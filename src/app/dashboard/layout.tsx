@@ -10,9 +10,9 @@ export default function RootLayout({
 }) {
   return (
     <SidebarProvider defaultOpen={true}>
-      <div className="relative flex min-h-screen">
+      <div className="relative flex min-h-screen ">
         <AppSidebar />
-        <div className="flex w-full flex-col">
+        <div className="flex  w-[calc(100vw-262px)] flex-col mx-auto">
           <Navbar />
           <main className="flex-1 p-6">{children}</main>
         </div>

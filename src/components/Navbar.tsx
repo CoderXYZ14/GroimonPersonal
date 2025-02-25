@@ -16,7 +16,7 @@ export function Navbar() {
   const { setTheme } = useTheme();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background">
+    <header className="sticky top-0 z-50  border-b bg-background">
       <div className="flex h-16 items-center px-6">
         <SidebarTrigger className="mr-4 md:hidden">
           <Menu className="h-5 w-5" />
