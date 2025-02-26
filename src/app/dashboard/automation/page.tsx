@@ -7,7 +7,7 @@ import { AutomationTable } from "@/components/AutomationTable";
 
 export default function AutomationPage() {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col  gap-8 max-w-6xl">
       <AutomationStats />
       <div className="flex items-center justify-between">
         <AutomationTabs />

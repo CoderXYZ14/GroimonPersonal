@@ -14,7 +14,9 @@ export default function RootLayout({
         <AppSidebar />
         <div className="flex  w-[calc(100vw-262px)] flex-col mx-auto">
           <Navbar />
-          <main className="flex-1 p-6">{children}</main>
+          <main className="flex flex-1 p-6 justify-center mx-auto max-w-7xl">
+            {children}
+          </main>
         </div>
       </div>
     </SidebarProvider>
