@@ -5,6 +5,9 @@ export interface IUser extends Document {
   email: string;
   image?: string;
   provider: string;
+  instagramId?: string; // Optional Instagram ID
+  instagramUsername?: string; // Optional Instagram username
+  accessToken?: string; // Optional Instagram access token
 }
 
 const UserSchema: Schema<IUser> = new Schema(
@@ -13,6 +16,9 @@ const UserSchema: Schema<IUser> = new Schema(
     email: { type: String, required: true, unique: true },
     image: { type: String },
     provider: { type: String, required: true },
+    instagramId: { type: String }, // Optional Instagram ID
+    instagramUsername: { type: String }, // Optional Instagram username
+    accessToken: { type: String }, // Optional Instagram access token
   },
   { timestamps: true }
 );
@@ -22,4 +28,3 @@ const UserModel =
   mongoose.model<IUser>("User", UserSchema);
 
 export default UserModel;
-//hello world

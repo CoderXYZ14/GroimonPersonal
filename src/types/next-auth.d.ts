@@ -7,6 +7,9 @@ declare module "next-auth" {
       name: string;
       email: string;
       provider: string;
+      instagramId?: string; // Optional Instagram ID
+      instagramUsername?: string; // Optional Instagram username
+      accessToken?: string; // Optional Instagram access token
     };
   }
 
@@ -15,5 +18,8 @@ declare module "next-auth" {
     name: string;
     email: string;
     provider: string;
+    instagramId?: string; // Optional Instagram ID
+    instagramUsername?: string; // Optional Instagram username
+    accessToken?: string; // Optional Instagram access token
   }
 }
