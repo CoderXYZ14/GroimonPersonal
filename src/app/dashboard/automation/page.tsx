@@ -50,8 +50,8 @@ export default function AutomationPage() {
       "instagram_business_manage_comments",
       "instagram_business_manage_insights",
     ]
-      .join(",") // Ensure no newlines
-      .replace(/,/g, "%2C"); // URL encode commas
+      .join(",")
+      .replace(/,/g, "%2C");
 
     const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`;
 
@@ -60,7 +60,8 @@ export default function AutomationPage() {
   };
 
   const handlePostAutomation = async () => {
-    if (isLoggedIn && instagramToken) {
+    const storedToken = localStorage.getItem("instagram_token");
+    if (storedToken) {
       router.push("/dashboard/automation/create");
     } else {
       handleInstagramLogin();

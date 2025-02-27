@@ -1,94 +1,52 @@
-// app/your_insta_token/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "axios";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSearchParams } from "next/navigation";
+import axios from "axios";
 
 export default function YourInstaToken() {
-  const [message, setMessage] = useState<string>(
-    "Processing your authorization..."
-  );
-  const [token, setToken] = useState<string | null>(null);
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
-    const getToken = async () => {
+    const exchangeCodeForToken = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const authorizationCode = urlParams.get("code");
+
+      console.log("Authorization Code:", authorizationCode); // Debugging log
+
+      if (!authorizationCode) {
+        console.error("Authorization code not found in URL");
+        router.push("/dashboard/automation");
+        return;
+      }
+
       try {
-        // Get code from URL params - this exactly mirrors the Python code
-        const code = searchParams.get("code") + "_";
-
-        if (!code) {
-          setMessage("Error: Authorization code not found");
-          return;
-        }
-
-        // Make the token exchange request to Instagram API
-        const url = "https://api.instagram.com/oauth/access_token";
-
-        // This exactly mirrors the Python payload structure
-        const payload = {
-          client_id: "3672122089745813",
-          client_secret: process.env.NEXT_PUBLIC_INSTAGRAM_APP_SECRET || "", // This should be securely stored
-          grant_type: "authorization_code",
-          redirect_uri:
-            "https://f73b-2401-4900-86a7-8df3-3945-abe7-935b-8f0.ngrok-free.app/your_insta_token",
-          code: code,
-        };
-
-        // Using FormData to match the Python requests format
-        const formData = new FormData();
-        Object.entries(payload).forEach(([key, value]) => {
-          formData.append(key, value);
+        const response = await axios.post("/api/instagram-token", {
+          code: authorizationCode,
         });
 
-        const response = await axios.post(url, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
+        const accessToken = response.data.access_token;
 
-        // Process the response like the Python code
-        const data = response.data;
-        const accessToken = data.access_token;
-
-        if (accessToken) {
-          // Store the token
+        if (typeof window !== "undefined") {
           localStorage.setItem("instagram_token", accessToken);
-          setToken(accessToken.substring(0, 5) + "...");
-          setMessage(
-            `Hello, User! Your token is: ${accessToken.substring(0, 5) + "..."}`
-          );
-
-          // Redirect after a delay
-          setTimeout(() => {
-            router.push("/dashboard/automation");
-          }, 3000);
-        } else {
-          setMessage("Failed to retrieve access token");
         }
+
+        router.push("/dashboard/automation/create");
       } catch (error) {
-        console.error("Error exchanging code for token:", error);
-        setMessage("Error during token exchange. Please try again.");
+        console.error(
+          "Error exchanging code for token:",
+          error.response?.data || error.message
+        ); // Debugging log
+        router.push("/dashboard/automation");
       }
     };
 
-    getToken();
-  }, [searchParams, router]);
+    exchangeCodeForToken();
+  }, [router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="text-center p-8 bg-white rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold mb-4">Instagram Authentication</h1>
-        <p className="mb-4">{message}</p>
-        {token && (
-          <p className="text-sm text-gray-500">
-            Redirecting you back to the dashboard...
-          </p>
-        )}
-      </div>
+    <div className="flex justify-center items-center h-screen">
+      <p>Processing Instagram token...</p>
     </div>
   );
 }
