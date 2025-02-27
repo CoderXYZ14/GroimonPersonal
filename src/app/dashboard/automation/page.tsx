@@ -15,46 +15,48 @@ export default function AutomationPage() {
   const [instagramToken, setInstagramToken] = useState<string | null>(null);
 
   // Use the exact values from your Python code
-  const appId = "3672122089745813";
-  const redirectUri =
-    "https://f73b-2401-4900-86a7-8df3-3945-abe7-935b-8f0.ngrok-free.app/your_insta_token";
+  // const appId = "1009455214362205";
+  // const redirectUri =
+  //   "https://f73b-2401-4900-86a7-8df3-3945-abe7-935b-8f0.ngrok-free.app/your_insta_token";
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await axios.get("/api/check-auth");
-        setIsLoggedIn(response.data.isLoggedIn);
+  // useEffect(() => {
+  //   const checkAuth = async () => {
+  //     try {
+  //       const response = await axios.get("/api/check-auth");
+  //       setIsLoggedIn(response.data.isLoggedIn);
 
-        const storedToken = localStorage.getItem("instagram_token");
-        if (storedToken) {
-          setInstagramToken(storedToken);
-        }
-      } catch (error) {
-        console.error("Error checking authentication status:", error);
-      }
-    };
+  //       const storedToken = localStorage.getItem("instagram_token");
+  //       if (storedToken) {
+  //         setInstagramToken(storedToken);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error checking authentication status:", error);
+  //     }
+  //   };
 
-    checkAuth();
-  }, []);
+  //   checkAuth();
+  // }, []);
 
   const handleInstagramLogin = () => {
-    // This exactly matches the Python implementation
-    let url = "https://www.instagram.com/oauth/authorize?";
-    url = url + `client_id=${appId}`;
-    url = url + `&redirect_uri=${redirectUri}`;
-    url = url + "&response_type=code";
-    url = url + "&scope=";
+    const appId = "1009455214362205";
+    const redirectUri = encodeURIComponent(
+      "https://f73b-2401-4900-86a7-8df3-3945-abe7-935b-8f0.ngrok-free.app/your_insta_token"
+    );
 
-    // This exactly matches the Python code's scope format with the replace operation
-    const scope =
-      "instagram_business_basic,instagram_business_content_publish,instagram_business_manage_messages,instagram_business_manage_comments";
+    const scope = [
+      "instagram_business_basic",
+      "instagram_business_content_publish",
+      "instagram_business_manage_messages",
+      "instagram_business_manage_comments",
+      "instagram_business_manage_insights",
+    ]
+      .join(",") // Ensure no newlines
+      .replace(/,/g, "%2C"); // URL encode commas
 
-    // This duplicates the Python replace operation in JavaScript
-    const formattedScope = scope.replace(/,/g, "%2C");
-    console.log(formattedScope);
-    // const authUrl = url + formattedScope;
+    const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`;
 
-    // window.location.href = authUrl;
+    console.log("Redirecting to Instagram OAuth:", authUrl);
+    window.location.href = authUrl;
   };
 
   const handlePostAutomation = async () => {
@@ -62,18 +64,6 @@ export default function AutomationPage() {
       router.push("/dashboard/automation/create");
     } else {
       handleInstagramLogin();
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await axios.get("/api/logout");
-      localStorage.removeItem("instagram_token");
-      setInstagramToken(null);
-      setIsLoggedIn(false);
-      router.refresh();
-    } catch (error) {
-      console.error("Error logging out:", error);
     }
   };
 
@@ -92,13 +82,6 @@ export default function AutomationPage() {
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Post automation
-              </Button>
-              <Button
-                onClick={handleLogout}
-                variant="destructive"
-                className="bg-red-600 hover:bg-red-700"
-              >
-                Logout
               </Button>
             </>
           ) : (
