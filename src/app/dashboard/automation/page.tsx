@@ -73,26 +73,14 @@ export default function AutomationPage() {
       <div className="flex items-center justify-between">
         <AutomationTabs />
         <div className="flex items-center gap-2">
-          {isLoggedIn ? (
-            <>
-              <Button
-                onClick={handlePostAutomation}
-                variant="default"
-                className="bg-primary hover:bg-primary/90"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Post automation
-              </Button>
-            </>
-          ) : (
-            <Button
-              onClick={handleInstagramLogin}
-              variant="default"
-              className="bg-primary hover:bg-primary/90"
-            >
-              Login with Instagram
-            </Button>
-          )}
+          <Button
+            onClick={handlePostAutomation}
+            variant="default"
+            className="bg-primary hover:bg-primary/90"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Post automation
+          </Button>
         </div>
       </div>
       <AutomationTable />
