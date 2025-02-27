@@ -2,30 +2,31 @@ import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
+    console.log("Webhook received!"); // Debug log
     const body = await request.json();
-    console.log(JSON.stringify(body, null, 4));
-    return NextResponse.json({
-      message: "This is POST Request, Hello Webhook!",
-    });
+    console.log("Instagram Webhook Data:", JSON.stringify(body, null, 2)); // Debug log
+
+    return NextResponse.json({ success: true });
   } catch (error) {
+    console.error("Error processing webhook POST request:", error); // Debug log
     return NextResponse.json(
-      { error: "Error processing request" },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }
 }
 
 export async function GET(request: Request) {
+  console.log("GET request received!"); // Debug log
   const { searchParams } = new URL(request.url);
-  const hubMode = searchParams.get("hub.mode");
   const hubChallenge = searchParams.get("hub.challenge");
-  const hubVerifyToken = searchParams.get("hub.verify_token");
 
   if (hubChallenge) {
+    console.log("Instagram Verification Challenge:", hubChallenge); // Debug log
     return new Response(hubChallenge);
-  } else {
-    return NextResponse.json({
-      message: "This is GET Request, Hello Webhook!",
-    });
   }
+
+  return NextResponse.json({
+    message: "This is a GET request, Hello WebBook!",
+  });
 }
