@@ -27,7 +27,7 @@ import { toast } from "sonner";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import Link from "next/link";
 
 const formSchema = z.object({
   name: z.string().min(2).max(50),
@@ -35,9 +35,6 @@ const formSchema = z.object({
   postSelection: z.string().optional(),
   keywords: z.string(),
   message: z.string(),
-  reply: z.string().optional(),
-  sendAutoReply: z.boolean().default(true),
-  backtrack: z.boolean().default(false),
 });
 
 export function CreateAutomationForm() {
@@ -57,18 +54,14 @@ export function CreateAutomationForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      applyOption: "all",
+      applyOption: "current",
       keywords: "",
       message: "",
-      reply: "",
       postSelection: "",
-      sendAutoReply: true,
-      backtrack: false,
     },
   });
 
   const applyOption = form.watch("applyOption");
-  const sendAutoReply = form.watch("sendAutoReply");
 
   useEffect(() => {
     const fetchMedia = async () => {
@@ -123,7 +116,7 @@ export function CreateAutomationForm() {
   }
 
   return (
-    <div className="max-w-4xl">
+    <div className="w-full">
       <div className="flex items-center justify-between p-6 border-b bg-white">
         <Input
           placeholder="Untitled"
@@ -131,7 +124,10 @@ export function CreateAutomationForm() {
           {...form.register("name")}
         />
         <div className="flex gap-2">
-          <Button variant="outline">Back</Button>
+          <Link href="/dashboard/automation">
+            <Button variant="outline">Back</Button>
+          </Link>
+
           <Button onClick={form.handleSubmit(onSubmit)}>Publish</Button>
         </div>
       </div>
@@ -207,7 +203,6 @@ export function CreateAutomationForm() {
                           className="w-full h-full object-cover"
                         />
                       )}
-                      {/* Add other media types here */}
                       {item.mediaType === "VIDEO" && (
                         <video
                           src={item.mediaUrl}
@@ -224,7 +219,7 @@ export function CreateAutomationForm() {
                       )}
                     </div>
                     <div className="p-2 flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 h-8">
                         <FormField
                           control={form.control}
                           name="postSelection"
@@ -248,21 +243,6 @@ export function CreateAutomationForm() {
                           )}
                         />
                       </div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"
-                          ></path>
-                        </svg>
-                      </Button>
                     </div>
                   </Card>
                 ))}
@@ -376,73 +356,6 @@ export function CreateAutomationForm() {
                 </FormItem>
               )}
             />
-          </div>
-
-          <div className="p-6 border-b bg-white">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-medium">Auto Reply</h2>
-              <div className="flex items-center space-x-2">
-                <span>Don't send auto reply</span>
-                <FormField
-                  control={form.control}
-                  name="sendAutoReply"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {sendAutoReply && (
-              <FormField
-                control={form.control}
-                name="reply"
-                render={({ field }) => (
-                  <FormItem className="mt-4">
-                    <FormControl>
-                      <Textarea
-                        placeholder="Enter the automatic reply message"
-                        className="min-h-[100px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-          </div>
-
-          <div className="p-6 bg-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-medium">Backtrack</h2>
-                <p className="text-sm text-gray-500">
-                  Allows you to catch up on previous comments upto 7 days old.
-                </p>
-              </div>
-              <FormField
-                control={form.control}
-                name="backtrack"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
           </div>
         </form>
       </Form>
