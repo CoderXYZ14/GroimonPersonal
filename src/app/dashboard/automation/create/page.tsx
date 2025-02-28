@@ -2,7 +2,7 @@ import { CreateAutomationForm } from "@/components/CreateAutomationForm";
 
 export default function CreateAutomationPage() {
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
+    <div className="flex flex-col gap-8 max-w-6xl">
       <div>
         <h1 className="text-3xl font-bold">Create Automation</h1>
         <p className="text-muted-foreground">
