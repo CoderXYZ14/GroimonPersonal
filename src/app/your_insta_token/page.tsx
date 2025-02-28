@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import { toast } from "sonner";
 
 export default function YourInstaToken() {
   const router = useRouter();
@@ -12,10 +13,8 @@ export default function YourInstaToken() {
       const urlParams = new URLSearchParams(window.location.search);
       const authorizationCode = urlParams.get("code");
 
-      console.log("Authorization Code:", authorizationCode); // Debugging log
-
       if (!authorizationCode) {
-        console.error("Authorization code not found in URL");
+        toast.error("Authorization code not found in URL");
         router.push("/dashboard/automation");
         return;
       }
@@ -30,13 +29,15 @@ export default function YourInstaToken() {
         if (typeof window !== "undefined") {
           localStorage.setItem("instagram_token", accessToken);
         }
+        toast.success("Instagram logged in successfully");
 
         router.push("/dashboard/automation/create");
-      } catch (error) {
+      } catch (error: any) {
+        toast.error("Error exchanging code for token");
         console.error(
           "Error exchanging code for token:",
           error.response?.data || error.message
-        ); // Debugging log
+        );
         router.push("/dashboard/automation");
       }
     };

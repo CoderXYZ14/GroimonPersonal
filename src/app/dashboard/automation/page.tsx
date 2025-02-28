@@ -6,8 +6,8 @@ import { AutomationStats } from "@/components/AutomationStats";
 import { AutomationTabs } from "@/components/AutomationTabs";
 import { AutomationTable } from "@/components/AutomationTable";
 import { useRouter } from "next/navigation";
-import axios from "axios";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { scope } from "@/constants/constants";
 
 export default function AutomationPage() {
   const router = useRouter();
@@ -38,24 +38,15 @@ export default function AutomationPage() {
   // }, []);
 
   const handleInstagramLogin = () => {
-    const appId = "1009455214362205";
+    const appId = process.env.INSTAGRAM_CLIENT_ID;
     const redirectUri = encodeURIComponent(
-      "https://f73b-2401-4900-86a7-8df3-3945-abe7-935b-8f0.ngrok-free.app/your_insta_token"
+      `${process.env.NEXTAUTH_URL}/your_insta_token`
     );
 
-    const scope = [
-      "instagram_business_basic",
-      "instagram_business_content_publish",
-      "instagram_business_manage_messages",
-      "instagram_business_manage_comments",
-      "instagram_business_manage_insights",
-    ]
-      .join(",")
-      .replace(/,/g, "%2C");
+    const instaScope = scope.join(",").replace(/,/g, "%2C");
 
-    const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`;
+    const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${redirectUri}&response_type=code&scope=${instaScope}`;
 
-    console.log("Redirecting to Instagram OAuth:", authUrl);
     window.location.href = authUrl;
   };
 

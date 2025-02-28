@@ -18,7 +18,7 @@ export default async function handler(
 
   const clientId = process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID;
   const clientSecret = process.env.INSTAGRAM_CLIENT_SECRET;
-  const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI;
+  const redirectUri = process.env.;
 
   try {
     // Exchange the code for an access token
