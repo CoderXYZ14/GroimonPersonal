@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useEffect, useState } from "react";
 
 const formSchema = z.object({
   name: z.string().min(2).max(50),
@@ -29,9 +30,13 @@ const formSchema = z.object({
   keywords: z.string(),
   message: z.string(),
   reply: z.string(),
+  postSelection: z.string(),
 });
 
 export function CreateAutomationForm() {
+  const [media, setMedia] = useState([]);
+  const [loading, setLoading] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -40,8 +45,28 @@ export function CreateAutomationForm() {
       keywords: "",
       message: "",
       reply: "",
+      postSelection: "all",
     },
   });
+
+  useEffect(() => {
+    const fetchMedia = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `https://graph.instagram.com/v22.0/<IG_ID>/media?access_token=<INSTAGRAM_USER_ACCESS_TOKEN>`
+        );
+        const data = await response.json();
+        setMedia(data.data);
+      } catch (error) {
+        console.error("Error fetching media:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMedia();
+  }, []);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
@@ -129,6 +154,31 @@ export function CreateAutomationForm() {
                   {...field}
                 />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="postSelection"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Select Post</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a post" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="all">All Posts</SelectItem>
+                  {/* {media.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      Post {item.id}
+                    </SelectItem>
+                  ))} */}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}

@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner";
+import { BeatLoader } from "react-spinners";
 
 export default function YourInstaToken() {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const exchangeCodeForToken = async () => {
@@ -20,25 +22,38 @@ export default function YourInstaToken() {
       }
 
       try {
-        const response = await axios.post("/api/instagram-token", {
+        const tokenResponse = await axios.post("/api/instagram-token", {
           code: authorizationCode,
         });
 
-        const accessToken = response.data.access_token;
+        const accessToken = tokenResponse.data.access_token;
 
         if (typeof window !== "undefined") {
           localStorage.setItem("instagram_token", accessToken);
         }
-        toast.success("Instagram logged in successfully");
+
+        const detailsResponse = await axios.post("/api/insta_details", {
+          accessToken: accessToken,
+        });
+
+        const { user_id, username } = detailsResponse.data;
+
+        if (typeof window !== "undefined") {
+          localStorage.setItem("instagram_user_id", user_id);
+          localStorage.setItem("instagram_username", username);
+        }
+
+        toast.success("Instagram details fetched successfully");
 
         router.push("/dashboard/automation/create");
       } catch (error: any) {
-        toast.error("Error exchanging code for token");
-        console.error(
-          "Error exchanging code for token:",
-          error.response?.data || error.message
+        toast.error(
+          "Error during Instagram token exchange or fetching details"
         );
+        console.error("Error:", error.response?.data || error.message);
         router.push("/dashboard/automation");
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -47,7 +62,16 @@ export default function YourInstaToken() {
 
   return (
     <div className="flex justify-center items-center h-screen">
-      <p>Processing Instagram token...</p>
+      {loading ? (
+        <div className="flex flex-col items-center">
+          <BeatLoader color="#3B82F6" size={15} />
+          <p className="mt-4 text-gray-600">
+            Processing Instagram token and fetching details...
+          </p>
+        </div>
+      ) : (
+        <p>Redirecting...</p>
+      )}
     </div>
   );
 }
