@@ -22,7 +22,6 @@ export default function Home() {
     <div className="flex flex-col items-center justify-center min-h-screen">
       <h1 className="text-2xl font-bold">Welcome, {session.user?.name}!</h1>
       <p>Email: {session.user?.email}</p>
-
       <Button onClick={() => signOut()} className="mt-4">
         Sign Out
       </Button>

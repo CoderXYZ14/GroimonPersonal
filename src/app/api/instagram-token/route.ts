@@ -6,10 +6,10 @@ export async function POST(req: Request) {
     const { code } = await req.json();
 
     const payload = new URLSearchParams({
-      client_id: process.env.INSTAGRAM_CLIENT_ID!,
-      client_secret: process.env.INSTAGRAM_CLIENT_SECRET!,
+      client_id: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID!,
+      client_secret: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_SECRET!,
       grant_type: "authorization_code"!,
-      redirect_uri: process.env.INSTAGRAM_REDIRECT_URI!,
+      redirect_uri: `${process.env.NEXT_PUBLIC_NEXTAUTH_URLL}/your_insta_token`,
       code,
     });
 
@@ -23,7 +23,22 @@ export async function POST(req: Request) {
       }
     );
 
-    return NextResponse.json(response.data);
+    const shortLivedAccessToken = response.data.access_token;
+
+    //long term token
+    const longLivedTokenResponse = await axios.get(
+      `https://graph.instagram.com/access_token`,
+      {
+        params: {
+          grant_type: "ig_exchange_token",
+          client_secret:
+            process.env.NEXT_PUBLIC_NEXT_PUBLIC_INSTAGRAM_CLIENT_SECRET,
+          access_token: shortLivedAccessToken,
+        },
+      }
+    );
+
+    return NextResponse.json(longLivedTokenResponse.data);
   } catch (error: any) {
     console.error(
       "Instagram API Error:",

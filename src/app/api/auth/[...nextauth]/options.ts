@@ -12,14 +12,14 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     }),
     // InstagramProvider({
-    //   clientId: process.env.INSTAGRAM_CLIENT_ID as string,
-    //   clientSecret: process.env.INSTAGRAM_CLIENT_SECRET as string,
+    //   clientId: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID as string,
+    //   clientSecret: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_SECRET as string,
     //   authorization: {
     //     url: "https://api.instagram.com/oauth/authorize",
     //     params: {
-    //       client_id: process.env.INSTAGRAM_CLIENT_ID as string,
+    //       client_id: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID as string,
     //       redirect_uri:
-    //         process.env.NEXTAUTH_URL + "/api/auth/callback/instagram",
+    //         process.env.NEXT_PUBLIC_NEXTAUTH_URLL + "/api/auth/callback/instagram",
     //       response_type: "code",
     //       scope:
     //         "instagram_basic,instagram_manage_messages,instagram_manage_comments,instagram_content_publish,business_management",
@@ -32,10 +32,10 @@ export const authOptions: NextAuthOptions = {
     //         "https://api.instagram.com/oauth/access_token",
     //         {
     //           form: {
-    //             client_id: process.env.INSTAGRAM_CLIENT_ID,
-    //             client_secret: process.env.INSTAGRAM_CLIENT_SECRET,
+    //             client_id: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID,
+    //             client_secret: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_SECRET,
     //             grant_type: "authorization_code",
-    //             redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/callback/instagram`,
+    //             redirect_uri: `${process.env.NEXT_PUBLIC_NEXTAUTH_URLL}/api/auth/callback/instagram`,
     //             code: params.code,
     //           },
     //         }

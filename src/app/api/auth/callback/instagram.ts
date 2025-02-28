@@ -16,8 +16,8 @@ export default async function handler(
     return res.status(400).json({ error: "No code provided" });
   }
 
-  const clientId = process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID;
-  const clientSecret = process.env.INSTAGRAM_CLIENT_SECRET;
+  const clientId = process.env.NEXT_PUBLIC_NEXT_PUBLIC_INSTAGRAM_CLIENT_ID;
+  const clientSecret = process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_SECRET;
   const redirectUri = process.env.;
 
   try {
