@@ -31,8 +31,7 @@ export async function POST(req: Request) {
       {
         params: {
           grant_type: "ig_exchange_token",
-          client_secret:
-            process.env.NEXT_PUBLIC_NEXT_PUBLIC_INSTAGRAM_CLIENT_SECRET,
+          client_secret: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_SECRET,
           access_token: shortLivedAccessToken,
         },
       }

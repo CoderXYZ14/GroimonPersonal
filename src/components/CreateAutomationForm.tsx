@@ -112,6 +112,13 @@ export function CreateAutomationForm() {
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
+
+    // Store the message and post ID in local storage
+    localStorage.setItem("automation_message", values.message);
+    if (values.postSelection) {
+      localStorage.setItem("tracked_post_id", values.postSelection);
+    }
+
     toast.success("Automation created successfully!");
   }
 
