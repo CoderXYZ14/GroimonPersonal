@@ -4,7 +4,10 @@ import { signIn } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Instagram } from "lucide-react";
-import { BorderBeam } from "@/components/magicui/border-beam";
+import { ShineBorder } from "@/components/magicui/shine-border";
+import { useTheme } from "next-themes";
+import Link from "next/link";
+
 export default function SignIn() {
   const handleSignIn = async (provider: "google" | "instagram") => {
     try {
@@ -18,16 +21,29 @@ export default function SignIn() {
     }
   };
 
+  const { theme } = useTheme();
+
+  // Define colors for light and dark modes
+  const lightModeColors = ["#FF9A9E", "#FAD0C4", "#A1C4FD", "#C2E9FB"]; // Soft pastel gradient
+  const darkModeColors = ["#FF6F61", "#FFD166", "#06D6A0", "#118AB2"]; // Vibrant but cohesive gradient
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 p-4">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-400/10 via-pink-300/5 to-transparent dark:from-purple-900/20 dark:via-pink-900/10 dark:to-transparent"></div>
 
       <Card className="w-full max-w-[400px] border shadow-lg relative z-10 bg-white/90 dark:bg-background/90 backdrop-blur-sm">
+        <ShineBorder
+          shineColor={theme === "dark" ? darkModeColors : lightModeColors}
+          duration={14}
+          borderWidth={1}
+        />
         <CardHeader className="text-center pb-2">
-          <div className="flex items-center justify-center gap-2 font-bold text-xl mb-6">
-            <Instagram className="h-6 w-6 text-purple-500" />
-            <span>Groimon</span>
-          </div>
+          <Link href="/">
+            <div className="flex items-center justify-center gap-2 font-bold text-xl mb-6">
+              <Instagram className="h-6 w-6 text-purple-500" />
+              <span>Groimon</span>
+            </div>
+          </Link>
           <CardTitle className="text-2xl">Sign In</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 pt-4">
