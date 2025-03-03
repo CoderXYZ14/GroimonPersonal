@@ -66,7 +66,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  href="/tos"
+                  href="/terms-of-service"
                   className="text-muted-foreground hover:text-purple-500 transition-colors"
                 >
                   Terms of Service

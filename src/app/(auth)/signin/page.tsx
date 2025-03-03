@@ -108,7 +108,7 @@ export default function SignIn() {
           <p className="text-center text-sm text-muted-foreground mt-6">
             By signing in, you agree to our
             <a
-              href="/tos"
+              href="/terms-of-service"
               className="text-purple-500 hover:text-purple-600 mx-1"
             >
               Terms of Service
