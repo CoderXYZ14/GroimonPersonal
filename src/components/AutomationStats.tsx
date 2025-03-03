@@ -1,4 +1,3 @@
-// components/AutomationStats.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -40,15 +39,36 @@ export function AutomationStats() {
   }, []);
 
   return (
-    <div>
+    <div className="w-full">
       {creatorData ? (
-        <div>
-          <h2>Creator Data</h2>
-          <p>Username: {creatorData.username}</p>
-          <p>ID: {creatorData.id}</p>
+        <div className="flex flex-col sm:flex-row gap-4 p-2">
+          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 flex-1">
+            <h3 className="text-lg font-medium text-purple-700 dark:text-purple-300 mb-2">
+              Creator Data
+            </h3>
+            <div className="space-y-2">
+              <p className="flex justify-between">
+                <span className="text-gray-500 dark:text-gray-400">
+                  Username:
+                </span>
+                <span className="font-medium">
+                  {creatorData.username || "Coderxyz"}
+                </span>
+              </p>
+              <p className="flex justify-between">
+                <span className="text-gray-500 dark:text-gray-400">ID:</span>
+                <span className="font-medium">{creatorData.id}</span>
+              </p>
+            </div>
+          </div>
         </div>
       ) : (
-        <p>Loading creator data...</p>
+        <div className="flex items-center justify-center p-6 text-gray-500 dark:text-gray-400">
+          <div className="flex flex-col items-center">
+            <div className="w-8 h-8 border-4 border-t-purple-500 border-b-purple-300 border-l-purple-300 border-r-purple-300 rounded-full animate-spin mb-3"></div>
+            Loading creator data...
+          </div>
+        </div>
       )}
     </div>
   );
