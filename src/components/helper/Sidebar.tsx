@@ -49,16 +49,7 @@ export function AppSidebar() {
       icon: Bot,
       href: "/dashboard/automation",
     },
-    {
-      title: "Messages",
-      icon: MessageCircle,
-      href: "/dashboard/messages",
-    },
-    {
-      title: "Instagram",
-      icon: Instagram,
-      href: "/dashboard/instagram",
-    },
+
     {
       title: "Settings",
       icon: Settings,
@@ -218,12 +209,12 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link
-                    href="/help"
+                    href="/terms-of-service"
                     className={cn(
                       "flex items-center gap-3 rounded-lg py-2",
                       "transition-all duration-300 ease-in-out",
                       isCollapsed ? "justify-center px-2" : "px-3",
-                      pathname === "/help"
+                      pathname === "/terms-of-service"
                         ? "bg-white dark:bg-background font-medium text-purple-500 shadow-sm"
                         : "text-muted-foreground hover:text-foreground hover:bg-purple-500/10"
                     )}
@@ -231,11 +222,13 @@ export function AppSidebar() {
                     <HelpCircle
                       className={cn(
                         "h-5 w-5",
-                        pathname === "/help" ? "text-purple-500" : ""
+                        pathname === "/terms-of-service"
+                          ? "text-purple-500"
+                          : ""
                       )}
                     />
                     {!isCollapsed && <span>Help & Support</span>}
-                    {pathname === "/help" && (
+                    {pathname === "/terms-of-service" && (
                       <span className="absolute inset-y-0 left-0 w-1 bg-gradient-to-r from-purple-600 to-pink-500 rounded-r-full" />
                     )}
                   </Link>
@@ -274,10 +267,11 @@ export function AppSidebar() {
                 Unlock unlimited automations and premium features
               </p>
             )}
-
-            <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white border-none">
-              {isCollapsed ? "⭐" : "Upgrade Now"}
-            </Button>
+            <Link href="/pricing">
+              <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white border-none">
+                {isCollapsed ? "⭐" : "Upgrade Now"}
+              </Button>
+            </Link>
           </div>
 
           {/* Legal links */}
