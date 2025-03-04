@@ -1,15 +1,4 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { ModeToggle } from "@/components/helper/mode-toggle";
-import {
-  Instagram,
-  MessageCircle,
-  Send,
-  Zap,
-  Shield,
-  Lock,
-  FileText,
-} from "lucide-react";
+import { MessageCircle, Send, Zap, Shield, Lock, FileText } from "lucide-react";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -27,7 +16,7 @@ export default function PrivacyPolicyPage() {
 
           <div className="bg-white dark:bg-background rounded-xl p-8 shadow-sm border mb-8">
             <p className="text-lg mb-6 text-muted-foreground">
-              At Groimon, we're committed to protecting your privacy and
+              At Groimon, we&apos;re committed to protecting your privacy and
               ensuring your information is secure. This privacy policy explains
               how we collect, use, and protect your personal information when
               you use our Instagram automation services.

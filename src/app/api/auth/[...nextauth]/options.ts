@@ -1,7 +1,7 @@
 import dbConnect from "@/lib/dbConnect";
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import InstagramProvider from "next-auth/providers/instagram";
+
 import User from "@/models/User"; // Import the updated User model
 
 export const authOptions: NextAuthOptions = {
@@ -109,7 +109,7 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
 
-    async jwt({ token, user, account }) {
+    async jwt({ token, user }) {
       if (user) {
         const dbUser = await User.findOne({ email: user.email });
 

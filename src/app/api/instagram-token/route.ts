@@ -38,14 +38,23 @@ export async function POST(req: Request) {
     );
 
     return NextResponse.json(longLivedTokenResponse.data);
-  } catch (error: any) {
-    console.error(
-      "Instagram API Error:",
-      error.response?.data || error.message
-    ); // Debugging log
-    return NextResponse.json(
-      { error: error.response?.data || "Something went wrong" },
-      { status: error.response?.status || 500 }
-    );
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error(
+        "Instagram API Error:",
+        (error as any).response?.data || error.message
+      ); // Debugging log
+
+      return NextResponse.json(
+        { error: (error as any).response?.data || "Something went wrong" },
+        { status: (error as any).response?.status || 500 }
+      );
+    } else {
+      console.error("Unknown error:", error);
+      return NextResponse.json(
+        { error: "An unknown error occurred" },
+        { status: 500 }
+      );
+    }
   }
 }

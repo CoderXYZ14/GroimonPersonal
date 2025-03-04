@@ -1,6 +1,3 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { ModeToggle } from "@/components/helper/mode-toggle";
 import {
   Instagram,
   MessageCircle,
@@ -29,10 +26,10 @@ export default function TermsOfServicePage() {
 
           <div className="bg-white dark:bg-background rounded-xl p-8 shadow-sm border mb-8">
             <p className="text-lg mb-6 text-muted-foreground">
-              Welcome to Groimon. These Terms of Service ("Terms") govern your
-              access to and use of our Instagram automation services. By using
-              our services, you agree to be bound by these Terms. Please read
-              them carefully.
+              Welcome to Groimon. These Terms of Service (&quot;Terms&quot;)
+              govern your access to and use of our Instagram automation
+              services. By using our services, you agree to be bound by these
+              Terms. Please read them carefully.
             </p>
 
             <div className="space-y-8">
@@ -59,13 +56,13 @@ export default function TermsOfServicePage() {
                 <div className="pl-7">
                   <p className="text-muted-foreground">
                     Groimon provides automation services for Instagram direct
-                    messages ("DMs"), allowing users to set up automated
-                    responses, message filtering, and other features to
-                    streamline Instagram communications.
+                    messages (&quot;DMs&quot;), allowing users to set up
+                    automated responses, message filtering, and other features
+                    to streamline Instagram communications.
                   </p>
                   <p className="mt-3 text-muted-foreground">
-                    Our services are designed to comply with Instagram's terms
-                    of service while providing enhanced functionality for
+                    Our services are designed to comply with Instagram&apos;s
+                    terms of service while providing enhanced functionality for
                     business and creator accounts.
                   </p>
                 </div>
@@ -89,8 +86,8 @@ export default function TermsOfServicePage() {
                     </li>
                     <li>All activities that occur under your account</li>
                     <li>
-                      Ensuring your use of our services complies with
-                      Instagram's terms
+                      Maintaining the confidentiality of your account
+                      credentials
                     </li>
                     <li>
                       Providing accurate and complete information when creating
@@ -110,12 +107,12 @@ export default function TermsOfServicePage() {
                 </div>
                 <div className="pl-7 space-y-3">
                   <p className="text-muted-foreground">
-                    When using our services, you may not:
+                    When using our services, you may not&#58;
                   </p>
                   <ul className="list-disc pl-6 text-muted-foreground space-y-2">
                     <li>Use our services for spamming or harassment</li>
                     <li>
-                      Violate Instagram's terms of service or community
+                      Violate Instagram&apos;s terms of service or community
                       guidelines
                     </li>
                     <li>
@@ -157,7 +154,8 @@ export default function TermsOfServicePage() {
                       Fees are non-refundable except where required by law
                     </li>
                     <li>
-                      We may change our pricing with 30 days' advance notice
+                      We may change our pricing with 30 days&apos;s advance
+                      notice
                     </li>
                     <li>
                       You are responsible for any taxes associated with your
