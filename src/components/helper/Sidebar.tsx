@@ -11,7 +11,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Instagram,
-  MessageCircle,
   FileText,
   Lock,
   Zap,
