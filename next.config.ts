@@ -1,10 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  experimental: {},
+  output: "standalone", // Optional: Useful if using serverless functions
   eslint: {
-    ignoreDuringBuilds: true, // Disable ESLint during production builds
+    ignoreDuringBuilds: true,
   },
 };
-
-export default nextConfig;

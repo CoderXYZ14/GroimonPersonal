@@ -30,8 +30,7 @@
 // }
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ModeToggle } from "@/components/helper/mode-toggle";
-import { Instagram, MessageCircle, Send, Zap } from "lucide-react";
+import { MessageCircle, Send, Zap } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -78,14 +77,14 @@ export default function Home() {
                     <div className="rounded-md bg-muted/50 p-4">
                       <p className="text-sm">New comment from @user123:</p>
                       <p className="font-medium">
-                        "Love this product! How can I learn more?"
+                        &ldquo;Love this product! How can I learn more?&rdquo;
                       </p>
                     </div>
                     <div className="rounded-md bg-purple-500/10 p-4">
                       <p className="text-sm">Automated response:</p>
                       <p className="font-medium">
-                        "Thanks @user123! Check your DMs for more info about our
-                        special offer 🎉"
+                        &ldquo;Thanks @user123! Check your DMs for more info
+                        about our special offer 🎉&rdquo;
                       </p>
                     </div>
                   </div>

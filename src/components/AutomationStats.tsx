@@ -9,7 +9,7 @@ interface CreatorData {
 }
 
 export function AutomationStats() {
-  const [creatorData, setCreatorData] = useState<CreatorData | null>(null);
+  const [creatorData] = useState<CreatorData | null>(null);
 
   useEffect(() => {
     const fetchCreatorData = async () => {

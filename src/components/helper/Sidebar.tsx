@@ -12,9 +12,7 @@ import {
   ChevronRight,
   Instagram,
   MessageCircle,
-  Shield,
   FileText,
-  Send,
   Lock,
   Zap,
 } from "lucide-react";

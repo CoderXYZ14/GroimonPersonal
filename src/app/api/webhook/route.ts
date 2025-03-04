@@ -9,7 +9,7 @@ const IG_PRO_USER_ID = "1009455214362205";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const hubMode = searchParams.get("hub.mode");
+  // const hubMode = searchParams.get("hub.mode");
   const hubChallenge = searchParams.get("hub.challenge");
   const hubVerifyToken = searchParams.get("hub.verify_token");
 
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       const commentInfo = data.entry[0].changes[0].value;
       const commenterId = commentInfo.from.id;
       const commentId = commentInfo.id;
-      const commentText = commentInfo.text;
+      // const commentText = commentInfo.text;
 
       console.log(`Comment from user ID: ${commenterId}`);
 

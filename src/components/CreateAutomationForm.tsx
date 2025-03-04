@@ -10,24 +10,18 @@ import {
   FormDescription,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import Image from "next/image";
 
 const formSchema = z.object({
   name: z.string().min(2).max(50),
@@ -48,7 +42,6 @@ export function CreateAutomationForm() {
   }
 
   const [media, setMedia] = useState<MediaItem[]>([]);
-  const [loading, setLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -65,8 +58,6 @@ export function CreateAutomationForm() {
 
   useEffect(() => {
     const fetchMedia = async () => {
-      setLoading(true);
-
       const userId = localStorage.getItem("instagram_user_id");
       const accessToken = localStorage.getItem("instagram_token");
 
@@ -75,7 +66,7 @@ export function CreateAutomationForm() {
           "Instagram user ID or access token not found in localStorage"
         );
         toast.error("Instagram user ID or access token not found");
-        setLoading(false);
+
         return;
       }
 
@@ -102,8 +93,6 @@ export function CreateAutomationForm() {
       } catch (error) {
         console.error("Error fetching media:", error);
         toast.error("Failed to fetch media");
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -204,7 +193,7 @@ export function CreateAutomationForm() {
                   >
                     <div className="h-24 bg-gray-200 flex items-center justify-center">
                       {item.mediaType === "IMAGE" && (
-                        <img
+                        <Image
                           src={item.mediaUrl}
                           alt={item.title}
                           className="w-full h-full object-cover"
@@ -218,7 +207,7 @@ export function CreateAutomationForm() {
                         />
                       )}
                       {item.mediaType === "CAROUSEL_ALBUM" && (
-                        <img
+                        <Image
                           src={item.thumbnailUrl || "/api/placeholder/150/150"}
                           alt={item.title}
                           className="w-full h-full object-cover"

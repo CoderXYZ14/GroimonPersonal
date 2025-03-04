@@ -22,7 +22,7 @@ const ComingSoon = () => {
             <div className="flex items-center gap-2 mb-6">
               <AlertCircle className="h-5 w-5 text-purple-500" />
               <p className="text-xl text-muted-foreground">
-                We're working hard to bring you this page
+                We&apos;re working hard to bring you this page
               </p>
             </div>
 
@@ -33,7 +33,7 @@ const ComingSoon = () => {
 
             <div className="bg-white dark:bg-background/80 rounded-xl p-8 shadow-sm border mb-8 max-w-md">
               <h2 className="text-xl font-bold mb-4">
-                Want to be notified when it's ready?
+                Want to be notified when it&apos;s ready?
               </h2>
               <div className="flex flex-col md:flex-row gap-4">
                 <input

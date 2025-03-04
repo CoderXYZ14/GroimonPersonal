@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageCircle, Image, Play } from "lucide-react";
+import { MessageCircle, Image as ImageIcon, Play } from "lucide-react"; // Renamed Image to ImageIcon
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AutomationTable } from "@/components/AutomationTable";
 
@@ -14,7 +14,8 @@ export function AutomationTabs() {
             value="post"
             className="flex items-center justify-center gap-2 rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm py-2"
           >
-            <Image className="h-4 w-4" />
+            <ImageIcon className="h-4 w-4" />{" "}
+            {/* Using ImageIcon instead of Image */}
             <span className="hidden sm:inline">Post</span>
           </TabsTrigger>
           <TabsTrigger
@@ -43,7 +44,9 @@ export function AutomationTabs() {
           <div className="py-12 ">
             <Play className="h-12 w-12 mx-auto mb-4 text-gray-300 dark:text-gray-600 " />
             <h3 className="text-lg font-medium mb-2">Story Automation</h3>
-            <p>Coming soon! We're working on bringing this feature to you.</p>
+            <p>
+              Coming soon! We&apos;re working on bringing this feature to you.
+            </p>
           </div>
         </div>
       </TabsContent>
@@ -52,7 +55,9 @@ export function AutomationTabs() {
           <div className="py-12">
             <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
             <h3 className="text-lg font-medium mb-2">Chat Automation</h3>
-            <p>Coming soon! We're working on bringing this feature to you.</p>
+            <p>
+              Coming soon! We&apos;re working on bringing this feature to you.
+            </p>
           </div>
         </div>
       </TabsContent>

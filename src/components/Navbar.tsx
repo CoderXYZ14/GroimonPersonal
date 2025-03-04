@@ -1,14 +1,12 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+// import { usePathname } from "next/navigation";
 import { User2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "@/components/helper/mode-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function Navbar() {
-  const pathname = usePathname();
-
   return (
     <nav
       className={cn(
