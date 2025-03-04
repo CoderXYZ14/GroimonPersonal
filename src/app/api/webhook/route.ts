@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 
 // Configuration
 const VERIFY_TOKEN = "12345";
@@ -9,7 +9,6 @@ const IG_PRO_USER_ID = "1009455214362205";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  // const hubMode = searchParams.get("hub.mode");
   const hubChallenge = searchParams.get("hub.challenge");
   const hubVerifyToken = searchParams.get("hub.verify_token");
 
@@ -35,7 +34,6 @@ export async function POST(request: Request) {
       const commentInfo = data.entry[0].changes[0].value;
       const commenterId = commentInfo.from.id;
       const commentId = commentInfo.id;
-      // const commentText = commentInfo.text;
 
       console.log(`Comment from user ID: ${commenterId}`);
 
@@ -74,12 +72,16 @@ export async function POST(request: Request) {
           "Private Reply Response:",
           JSON.stringify(replyResponse.data, null, 4)
         );
-      } catch (error: any) {
-        console.error("Error Details:", {
-          message: error.message,
-          response: error.response ? error.response.data : null,
-          stack: error.stack,
-        });
+      } catch (error) {
+        if (error instanceof AxiosError) {
+          console.error("Axios Error Details:", {
+            message: error.message,
+            response: error.response?.data || null,
+            stack: error.stack,
+          });
+        } else {
+          console.error("Unexpected Error:", error);
+        }
       }
     }
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { toast } from "sonner";
 import { BeatLoader } from "react-spinners";
 
@@ -46,11 +46,17 @@ export default function YourInstaToken() {
         toast.success("Instagram details fetched successfully");
 
         router.push("/dashboard/automation/create");
-      } catch (error: any) {
-        toast.error(
-          "Error during Instagram token exchange or fetching details"
-        );
-        console.error("Error:", error.response?.data || error.message);
+      } catch (error) {
+        if (error instanceof AxiosError) {
+          toast.error(
+            error.response?.data?.error ||
+              "Error during Instagram token exchange or fetching details"
+          );
+          console.error("Axios Error:", error.response?.data || error.message);
+        } else {
+          toast.error("An unexpected error occurred");
+          console.error("Unexpected Error:", error);
+        }
         router.push("/dashboard/automation");
       } finally {
         setLoading(false);

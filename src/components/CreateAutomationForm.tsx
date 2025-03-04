@@ -81,14 +81,23 @@ export function CreateAutomationForm() {
 
         const data = await response.json();
         setMedia(
-          data.data.map((item: any) => ({
-            id: item.id,
-            title: item.caption || `Post ${item.id}`,
-            mediaUrl: item.media_url,
-            mediaType: item.media_type,
-            thumbnailUrl: item.thumbnail_url,
-            timestamp: item.timestamp,
-          }))
+          data.data.map(
+            (item: {
+              id: string;
+              caption: string;
+              media_url: string;
+              media_type: string;
+              thumbnail_url?: string;
+              timestamp: string;
+            }) => ({
+              id: item.id,
+              title: item.caption || `Post ${item.id}`,
+              mediaUrl: item.media_url,
+              mediaType: item.media_type,
+              thumbnailUrl: item.thumbnail_url,
+              timestamp: item.timestamp,
+            })
+          )
         );
       } catch (error) {
         console.error("Error fetching media:", error);
