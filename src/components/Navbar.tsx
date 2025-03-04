@@ -16,7 +16,7 @@ export function Navbar() {
         "bg-white dark:bg-background",
         "px-4 sm:px-6 flex items-center justify-between h-16",
         "transition-all duration-300",
-        "lg:w-[calc(100%-64px)] md:w-[calc(100%-64px)] w-[calc(100%-20px)]"
+        "lg:w-[calc(100%-64px)] md:w-[calc(100%)] w-screen"
       )}
     >
       <div className="flex items-center relative z-10"></div>

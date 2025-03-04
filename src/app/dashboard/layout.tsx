@@ -12,7 +12,7 @@ export default function RootLayout({
     <SidebarProvider defaultOpen={true}>
       <div className="relative flex min-h-screen ">
         <AppSidebar />
-        <div className="flex  w-[calc(100vw-262px)] flex-col mx-auto">
+        <div className="flex  md:w-[calc(100vw-262px)] w-screen flex-col mx-auto">
           <Navbar />
           <main className="flex p-6 justify-center mx-auto max-w-screen-2xl">
             {children}

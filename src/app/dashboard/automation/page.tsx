@@ -36,15 +36,15 @@ export default function AutomationPage() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
+    <div className="w-full bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
       {/* Full-width background */}
       <div className="w-full absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-400/10 via-pink-300/5 to-transparent dark:from-purple-900/20 dark:via-pink-900/10 dark:to-transparent"></div>
 
       {/* Workspace container */}
-      <div className="relative w-full lg:w-[calc(100%-64px)] ml-0 lg:ml-16 p-4 md:p-6">
-        <div className="flex flex-col space-y-6 max-w-2xl mx-auto w-full">
+      <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 transition-all">
+        <div className="flex flex-col space-y-6">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center pb-4 w-full">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center pb-4 border-b border-gray-100 dark:border-gray-700">
             <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-500">
               Post automation
             </h2>
@@ -57,10 +57,15 @@ export default function AutomationPage() {
           </div>
 
           {/* Stats Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-100 dark:border-gray-700 w-full">
-            <div className="p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-100 dark:border-gray-700 w-[321px] sm:w-full ">
+            <div className="p-4 sm:p-6">
               <AutomationStats />
             </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="w-full bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <AutomationTabs />
           </div>
         </div>
       </div>
