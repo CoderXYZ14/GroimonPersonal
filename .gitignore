@@ -1,3 +1,5 @@
 node_modules/
 .next/
 .git.backup
+.env.local
+.env

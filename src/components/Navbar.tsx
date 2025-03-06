@@ -1,10 +1,6 @@
-"use client";
-
-// import { usePathname } from "next/navigation";
-import { User2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ModeToggle } from "@/components/helper/mode-toggle";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+import NavbarSigninAvatar from "./helper/NavbarSigninAvatar";
 
 export function Navbar() {
   return (
@@ -18,16 +14,7 @@ export function Navbar() {
       )}
     >
       <div className="flex items-center relative z-10"></div>
-      <div className="flex items-center gap-4 relative z-10">
-        <ModeToggle />
-
-        <Avatar className="h-8 w-8 cursor-pointer transition-all hover:scale-105">
-          <AvatarImage src="/avatar-placeholder.png" alt="User profile" />
-          <AvatarFallback className="bg-gradient-to-r from-purple-600 to-pink-500 text-white">
-            <User2 className="h-4 w-4" />
-          </AvatarFallback>
-        </Avatar>
-      </div>
+      <NavbarSigninAvatar />
     </nav>
   );
 }

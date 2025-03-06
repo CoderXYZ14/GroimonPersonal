@@ -1,8 +1,8 @@
 import { Instagram } from "lucide-react";
 import Link from "next/link";
 import React from "react";
-import { ModeToggle } from "./helper/mode-toggle";
-import { Button } from "./ui/button";
+
+import NavbarSigninAvatar from "./helper/NavbarSigninAvatar";
 
 const Header = () => {
   return (
@@ -11,7 +11,6 @@ const Header = () => {
         <Link href="/">
           <div className="flex items-center gap-2 font-bold text-xl">
             <Instagram className="h-6 w-6 text-purple-500" />
-
             <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-500">
               Groimon
             </h1>
@@ -24,7 +23,6 @@ const Header = () => {
           >
             Features
           </Link>
-
           <Link
             href="/pricing"
             className="text-sm font-medium hover:text-purple-500 transition-colors"
@@ -38,14 +36,7 @@ const Header = () => {
             Dashboard
           </Link>
         </nav>
-        <div className="flex items-center gap-4">
-          <ModeToggle />
-          <Link href="/signin">
-            <Button className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white">
-              Sign In
-            </Button>
-          </Link>
-        </div>
+        <NavbarSigninAvatar />
       </div>
     </header>
   );
