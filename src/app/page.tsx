@@ -52,12 +52,12 @@ export default function Home() {
               boost your Instagram presence and save hours of manual work.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-              <Link href="/dashboard">
+              <Link href="/dashboard/automation">
                 <Button className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white text-lg py-6 px-8">
                   Start Free Trial
                 </Button>
               </Link>
-              <Link href="/dashboard">
+              <Link href="/dashboard/automation">
                 <Button
                   variant="outline"
                   className="text-lg py-6 px-8 bg-white dark:bg-transparent"
@@ -84,7 +84,6 @@ export default function Home() {
                       <p className="text-sm">Automated response:</p>
                       <p className="font-medium">
                         &ldquo;Thanks @user123! Check your DMs for more info
-                        about our special offer 🎉&rdquo;
                       </p>
                     </div>
                   </div>

@@ -30,7 +30,7 @@ const Header = () => {
             Pricing
           </Link>
           <Link
-            href="/dashboard"
+            href="/dashboard/automation"
             className="text-sm font-medium hover:text-purple-500 transition-colors"
           >
             Dashboard

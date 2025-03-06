@@ -12,7 +12,7 @@ export default function SignIn() {
   const handleSignIn = async (provider: "google" | "instagram") => {
     try {
       const response = await signIn(provider, {
-        callbackUrl: "/",
+        callbackUrl: "/dashboard/automation",
         redirect: false,
       });
       console.log("SignIn Response:", response);
@@ -23,7 +23,6 @@ export default function SignIn() {
 
   const { theme } = useTheme();
 
-  // Define colors for light and dark modes
   const lightModeColors = ["#FF9A9E", "#FAD0C4", "#A1C4FD", "#C2E9FB"]; // Soft pastel gradient
   const darkModeColors = ["#FF6F61", "#FFD166", "#06D6A0", "#118AB2"]; // Vibrant but cohesive gradient
 

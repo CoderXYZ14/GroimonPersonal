@@ -38,11 +38,11 @@ export function AppSidebar() {
   };
 
   const menuItems = [
-    {
-      title: "Dashboard",
-      icon: Home,
-      href: "/dashboard",
-    },
+    // {
+    //   title: "Dashboard",
+    //   icon: Home,
+    //   href: "/dashboard",
+    // },
     {
       title: "Automation",
       icon: Bot,
@@ -56,7 +56,6 @@ export function AppSidebar() {
     },
   ];
 
-  // Footer links for legal pages
   const legalLinks = [
     {
       title: "Privacy Policy",
@@ -73,14 +72,11 @@ export function AppSidebar() {
   return (
     <Sidebar
       className={cn(
-        "border-r transition-all duration-300 ease-in-out relative bg-white dark:bg-background fixed",
+        "border-r transition-all duration-300 ease-in-out  bg-white dark:bg-background fixed",
         isCollapsed ? "w-20" : "w-64"
       )}
     >
-      {/* Background gradient similar to the privacy/terms pages */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-400/10 via-pink-300/5 to-transparent dark:from-purple-900/20 dark:via-pink-900/10 dark:to-transparent"></div>
-
-      {/* Collapse toggle button */}
       <button
         onClick={toggleSidebar}
         className={cn(
@@ -95,7 +91,6 @@ export function AppSidebar() {
           <ChevronLeft className="h-4 w-4" />
         )}
       </button>
-
       <SidebarHeader className="relative z-10">
         <div
           className={cn(
@@ -120,7 +115,6 @@ export function AppSidebar() {
           )}
         </div>
       </SidebarHeader>
-
       <SidebarContent className="relative z-10">
         <div className="flex flex-1 flex-col gap-6 py-4">
           <div className="px-3">
@@ -237,9 +231,7 @@ export function AppSidebar() {
           </div>
         </div>
       </SidebarContent>
-
       <SidebarFooter className="border-t relative z-10">
-        {/* Pro upgrade card similar to terms/privacy pages */}
         <div
           className={cn(
             "p-4 transition-all duration-300",
@@ -272,8 +264,6 @@ export function AppSidebar() {
               </Button>
             </Link>
           </div>
-
-          {/* Legal links */}
           {!isCollapsed && (
             <div className="flex justify-between mt-4 px-2 text-xs text-muted-foreground">
               {legalLinks.map((link) => (
