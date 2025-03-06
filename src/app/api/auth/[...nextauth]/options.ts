@@ -94,7 +94,7 @@ export const authOptions: NextAuthOptions = {
       }
 
       // Save or update user in MongoDB
-      const dbUser = await User.findOneAndUpdate(
+      await User.findOneAndUpdate(
         { email: user.email },
         {
           name: user.name,

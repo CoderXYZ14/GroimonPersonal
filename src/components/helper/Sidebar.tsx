@@ -5,7 +5,6 @@ import { useState } from "react";
 import {
   Bot,
   HelpCircle,
-  Home,
   Settings,
   User2,
   ChevronLeft,

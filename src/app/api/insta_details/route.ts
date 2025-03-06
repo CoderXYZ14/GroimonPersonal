@@ -1,6 +1,6 @@
 // app/api/automations/route.ts
 import { NextResponse } from "next/server";
-import IAutomationModel from "@/models/IAutomation";
+import AutomationModel from "@/models/Automation";
 import dbConnect from "@/lib/dbConnect";
 
 await dbConnect();
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const automation = new IAutomationModel({
+    const automation = new AutomationModel({
       name,
       postIds,
       keywords,

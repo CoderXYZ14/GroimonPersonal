@@ -65,7 +65,7 @@ export function AutomationTable() {
     };
 
     fetchAutomations();
-  }, []);
+  }, [session?.user?.id]);
 
   // Generate a random 8-digit post ID if postIds is empty
   const generateRandomPostId = () => {
