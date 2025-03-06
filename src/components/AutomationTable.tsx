@@ -19,6 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 
 interface Automation {
   _id: string;
@@ -271,9 +272,11 @@ export function AutomationTable() {
           <p className="text-gray-500 dark:text-gray-400 mb-4">
             No automations found
           </p>
-          <Button className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white">
-            <Plus className="h-4 w-4 mr-2" /> Create Your First Automation
-          </Button>
+          <Link href="/dashboard/automation/create">
+            <Button className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white">
+              <Plus className="h-4 w-4 mr-2" /> Create Your First Automation
+            </Button>
+          </Link>
         </div>
       )}
     </div>
