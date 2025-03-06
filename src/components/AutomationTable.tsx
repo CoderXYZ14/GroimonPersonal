@@ -17,21 +17,77 @@ import {
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 
-const automations = [
-  {
-    id: 1,
-    name: "Untitled",
-    created: "25 Feb 25 4:35 PM",
-    hits: 0,
-    keywords: ["send", "dm me", ""],
-    dmMessage: "Please ch...",
-    autoReplyMessage: "Thank you for...",
-    status: true,
-  },
-];
+interface Automation {
+  _id: string;
+  name: string;
+  postIds: string[];
+  keywords: string[];
+  message: string;
+  createdAt: string;
+}
 
 export function AutomationTable() {
+  const [automations, setAutomations] = useState<Automation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { data: session } = useSession();
+  // Fetch automations for the current user
+  useEffect(() => {
+    const fetchAutomations = async () => {
+      try {
+        const userId = session?.user?.id;
+        console.log("User ID:", userId);
+        if (!userId) {
+          throw new Error("User ID not found");
+        }
+
+        const response = await fetch("/api/automations", {
+          headers: {
+            "user-id": userId, // Pass user ID in headers
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch automations");
+        }
+
+        const data = await response.json();
+        setAutomations(data);
+      } catch (error) {
+        console.error("Error fetching automations:", error);
+        setError("Failed to fetch automations");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAutomations();
+  }, []);
+
+  // Generate a random 8-digit post ID if postIds is empty
+  const generateRandomPostId = () => {
+    return Math.floor(10000000 + Math.random() * 90000000).toString();
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="w-8 h-8 border-4 border-t-purple-500 border-b-purple-300 border-l-purple-300 border-r-purple-300 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-64 text-red-500">
+        {error}
+      </div>
+    );
+  }
+
   return (
     <div className="w-full overflow-auto">
       <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center">
@@ -44,18 +100,18 @@ export function AutomationTable() {
       <div className="md:hidden">
         {automations.map((automation) => (
           <div
-            key={automation.id}
+            key={automation._id}
             className="p-4 border-b border-gray-100 dark:border-gray-700"
           >
             <div className="flex justify-between items-start mb-3">
               <div>
                 <h4 className="font-medium">{automation.name}</h4>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {automation.created}
+                  Created: {new Date(automation.createdAt).toLocaleDateString()}
                 </p>
               </div>
               <div className="flex items-center">
-                <Switch checked={automation.status} className="mr-2" />
+                <Switch checked={true} className="mr-2" />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-8 w-8 p-0">
@@ -80,25 +136,35 @@ export function AutomationTable() {
 
             <div className="grid grid-cols-2 gap-2 mb-3">
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Hits</p>
-                <p className="font-medium">{automation.hits}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Post IDs
+                </p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {automation.postIds.length > 0
+                    ? automation.postIds.map((postId) => (
+                        <span
+                          key={postId}
+                          className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs px-2 py-0.5 rounded-full"
+                        >
+                          {postId}
+                        </span>
+                      ))
+                    : generateRandomPostId()}
+                </div>
               </div>
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   Keywords
                 </p>
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {automation.keywords.map(
-                    (keyword) =>
-                      keyword && (
-                        <span
-                          key={keyword}
-                          className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs px-2 py-0.5 rounded-full"
-                        >
-                          {keyword}
-                        </span>
-                      )
-                  )}
+                  {automation.keywords.map((keyword) => (
+                    <span
+                      key={keyword}
+                      className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs px-2 py-0.5 rounded-full"
+                    >
+                      {keyword}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>
@@ -106,15 +172,9 @@ export function AutomationTable() {
             <div className="grid grid-cols-1 gap-2">
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  DM Message
+                  Message
                 </p>
-                <p className="text-sm">{automation.dmMessage}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Auto Reply
-                </p>
-                <p className="text-sm">{automation.autoReplyMessage}</p>
+                <p className="text-sm">{automation.message}</p>
               </div>
             </div>
           </div>
@@ -128,18 +188,16 @@ export function AutomationTable() {
             <TableRow>
               <TableHead className="font-medium">NAME</TableHead>
               <TableHead className="font-medium">CREATED</TableHead>
-              <TableHead className="font-medium">HITS</TableHead>
+              <TableHead className="font-medium">POST IDS</TableHead>
               <TableHead className="font-medium">KEYWORDS</TableHead>
-              <TableHead className="font-medium">DM MESSAGE</TableHead>
-              <TableHead className="font-medium">AUTO REPLY MESSAGE</TableHead>
-              <TableHead className="font-medium">STATUS</TableHead>
+              <TableHead className="font-medium">MESSAGE</TableHead>
               <TableHead className="text-right font-medium">ACTIONS</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {automations.map((automation) => (
               <TableRow
-                key={automation.id}
+                key={automation._id}
                 className="hover:bg-gray-50 dark:hover:bg-gray-800/70"
               >
                 <TableCell className="font-medium">
@@ -147,35 +205,39 @@ export function AutomationTable() {
                     <span>{automation.name}</span>
                   </div>
                 </TableCell>
-                <TableCell>{automation.created}</TableCell>
-                <TableCell>{automation.hits}</TableCell>
+                <TableCell>
+                  {new Date(automation.createdAt).toLocaleDateString()}
+                </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
-                    {automation.keywords.map(
-                      (keyword) =>
-                        keyword && (
+                    {automation.postIds.length > 0
+                      ? automation.postIds.map((postId) => (
                           <span
-                            key={keyword}
+                            key={postId}
                             className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs px-2 py-1 rounded-full"
                           >
-                            {keyword}
+                            {postId}
                           </span>
-                        )
-                    )}
+                        ))
+                      : generateRandomPostId()}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {automation.keywords.map((keyword) => (
+                      <span
+                        key={keyword}
+                        className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs px-2 py-1 rounded-full"
+                      >
+                        {keyword}
+                      </span>
+                    ))}
                   </div>
                 </TableCell>
                 <TableCell>
                   <span className="text-gray-600 dark:text-gray-400">
-                    {automation.dmMessage}
+                    {automation.message}
                   </span>
-                </TableCell>
-                <TableCell>
-                  <span className="text-gray-600 dark:text-gray-400">
-                    {automation.autoReplyMessage}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <Switch checked={automation.status} />
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>

@@ -22,14 +22,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 const formSchema = z.object({
   name: z
     .string()
     .min(2, "Name must be at least 2 characters")
     .max(50, "Name must be less than 50 characters"),
-  applyOption: z.enum(["all", "current"]),
-  postSelection: z.string().optional(),
+  applyOption: z.enum(["all", "selected"]),
+  postId: z.string().optional(),
   keywords: z.string().min(1, "At least one keyword is required"),
   message: z.string().min(1, "Message template is required"),
 });
@@ -43,12 +45,12 @@ export function CreateAutomationForm() {
     thumbnailUrl?: string;
     timestamp: string;
   }
-
+  const router = useRouter();
   const [selectPostOpen, setSelectPostOpen] = useState(false);
   const [dmTypeOpen, setDmTypeOpen] = useState(true);
-  const [media, setMedia] = useState<MediaItem[]>([]);
+  const [media] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-
+  const { data: session } = useSession();
   const toggleSelectPost = () => {
     setSelectPostOpen(!selectPostOpen);
   };
@@ -61,10 +63,10 @@ export function CreateAutomationForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      applyOption: "current",
+      applyOption: "all",
+      postId: "",
       keywords: "",
       message: "",
-      postSelection: "",
     },
   });
 
@@ -73,47 +75,20 @@ export function CreateAutomationForm() {
   useEffect(() => {
     const fetchMedia = async () => {
       setIsLoading(true);
-      const userId = localStorage.getItem("instagram_user_id");
-      const accessToken = localStorage.getItem("instagram_token");
+      // const userId = localStorage.getItem("instagram_user_id");
+      // const accessToken = localStorage.getItem("instagram_token");
 
-      if (!userId || !accessToken) {
-        console.error(
-          "Instagram user ID or access token not found in localStorage"
-        );
-        toast.error("Instagram user ID or access token not found");
-        setIsLoading(false);
-        return;
-      }
+      // if (!userId || !accessToken) {
+      //   console.error(
+      //     "Instagram user ID or access token not found in localStorage"
+      //   );
+      //   toast.error("Instagram user ID or access token not found");
+      //   setIsLoading(false);
+      //   return;
+      // }
 
       try {
-        // Simulating data for demonstration
         setTimeout(() => {
-          const demoData = [
-            {
-              id: "1",
-              title: "My first post",
-              mediaUrl: "/api/placeholder/150/150",
-              mediaType: "IMAGE",
-              timestamp: "2025-02-28T12:00:00Z",
-            },
-            {
-              id: "2",
-              title: "Video content",
-              mediaUrl: "/api/placeholder/150/150",
-              mediaType: "VIDEO",
-              timestamp: "2025-02-27T10:30:00Z",
-            },
-            {
-              id: "3",
-              title: "Carousel post",
-              mediaUrl: "/api/placeholder/150/150",
-              mediaType: "CAROUSEL_ALBUM",
-              thumbnailUrl: "/api/placeholder/150/150",
-              timestamp: "2025-02-26T15:45:00Z",
-            },
-          ];
-
-          setMedia(demoData);
           setIsLoading(false);
         }, 1000);
       } catch (error) {
@@ -126,15 +101,42 @@ export function CreateAutomationForm() {
     fetchMedia();
   }, []);
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Save to local storage
-    localStorage.setItem("automation_message", values.message);
-    if (values.postSelection) {
-      localStorage.setItem("tracked_post_id", values.postSelection);
-    }
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      const userId = session?.user?.id;
+      if (!userId) {
+        throw new Error("User ID not found");
+      }
 
-    // Display success message
-    toast.success("Automation created successfully!");
+      const postIds =
+        values.applyOption === "all"
+          ? media.map((post) => post.id)
+          : [values.postId!];
+
+      const response = await fetch("/api/automations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...values,
+          postIds,
+          keywords: values.keywords.split(",").map((k) => k.trim()),
+          user: userId,
+        }),
+      });
+      // console.log("response", response);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create automation");
+      }
+
+      toast.success("Automation created successfully!");
+      router.push("/dashboard/automation");
+    } catch (error) {
+      console.error("Error creating automation:", error);
+      toast.error(error.message || "Failed to create automation");
+    }
   }
 
   const keywordsCount = form.watch("keywords")
@@ -187,8 +189,8 @@ export function CreateAutomationForm() {
           {/* Post selection section */}
           <div className="p-6 border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">Post</h2>
-              {applyOption === "current" && (
+              <h2 className="text-lg font-medium">Posts</h2>
+              {applyOption === "selected" && (
                 <Button
                   type="button"
                   variant="ghost"
@@ -219,13 +221,13 @@ export function CreateAutomationForm() {
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="all" id="all" />
                         <Label htmlFor="all" className="text-sm">
-                          Apply for all posts and reels
+                          Apply on all posts
                         </Label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="current" id="current" />
-                        <Label htmlFor="current" className="text-sm">
-                          Apply for a current post or reel
+                        <RadioGroupItem value="selected" id="selected" />
+                        <Label htmlFor="selected" className="text-sm">
+                          Apply on selected post
                         </Label>
                       </div>
                     </RadioGroup>
@@ -235,7 +237,7 @@ export function CreateAutomationForm() {
               )}
             />
 
-            {applyOption === "current" && selectPostOpen && (
+            {applyOption === "selected" && selectPostOpen && (
               <div className="mt-4">
                 {isLoading ? (
                   <div className="flex justify-center py-6">
@@ -282,7 +284,7 @@ export function CreateAutomationForm() {
                           <div className="p-2 flex items-center justify-between">
                             <FormField
                               control={form.control}
-                              name="postSelection"
+                              name="postId"
                               render={({ field }) => (
                                 <FormItem className="flex items-center space-x-2 m-0">
                                   <FormControl>

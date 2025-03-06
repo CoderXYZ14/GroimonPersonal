@@ -8,6 +8,7 @@ export interface IUser extends Document {
   instagramId?: string;
   instagramUsername?: string;
   accessToken?: string;
+  automations: mongoose.Types.ObjectId[];
 }
 
 const UserSchema: Schema<IUser> = new Schema(
@@ -19,6 +20,7 @@ const UserSchema: Schema<IUser> = new Schema(
     instagramId: { type: String },
     instagramUsername: { type: String },
     accessToken: { type: String },
+    automations: [{ type: Schema.Types.ObjectId, ref: "Automation" }],
   },
   { timestamps: true }
 );

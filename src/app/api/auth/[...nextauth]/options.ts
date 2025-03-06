@@ -94,7 +94,7 @@ export const authOptions: NextAuthOptions = {
       }
 
       // Save or update user in MongoDB
-      await User.findOneAndUpdate(
+      const dbUser = await User.findOneAndUpdate(
         { email: user.email },
         {
           name: user.name,
@@ -126,6 +126,7 @@ export const authOptions: NextAuthOptions = {
         token.instagramUsername = dbUser?.instagramUsername || null;
         token.accessToken = dbUser?.accessToken || null;
       }
+
       return token;
     },
     async session({ session, token }) {

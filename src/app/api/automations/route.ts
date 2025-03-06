@@ -1,0 +1,76 @@
+import { NextResponse } from "next/server";
+import AutomationModel from "@/models/Automation";
+import UserModel from "@/models/User";
+import dbConnect from "@/lib/dbConnect";
+
+export async function POST(request: Request) {
+  try {
+    await dbConnect(); // Ensure the database is connected
+    const body = await request.json();
+    console.log("Request Body:", body);
+
+    const { name, postIds, keywords, message, user } = body;
+
+    if (!name || !keywords || !message || !user) {
+      return NextResponse.json(
+        { message: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    const automation = new AutomationModel({
+      name,
+      postIds,
+      keywords,
+      message,
+      user,
+    });
+
+    await automation.save();
+
+    const updatedUser = await UserModel.findByIdAndUpdate(
+      user,
+      { $push: { automations: automation._id } },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(automation, { status: 201 });
+  } catch (error) {
+    console.error("Error creating automation:", error);
+    return NextResponse.json(
+      { message: "Failed to create automation", error: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const userId = request.headers.get("user-id"); // Get user ID from headers
+    if (!userId) {
+      return NextResponse.json(
+        { message: "User ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Fetch the user document and populate the automations
+    const user = await UserModel.findById(userId).populate("automations");
+    if (!user) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
+    }
+
+    // Return the automations
+    return NextResponse.json(user.automations, { status: 200 });
+  } catch (error) {
+    console.error("Error fetching automations:", error);
+    return NextResponse.json(
+      { message: "Failed to fetch automations" },
+      { status: 500 }
+    );
+  }
+}
