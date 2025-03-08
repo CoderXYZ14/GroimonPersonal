@@ -250,7 +250,7 @@ export function AutomationTable() {
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent
+                    {/* <DropdownMenuContent
                       align="end"
                       className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
                     >
@@ -260,7 +260,7 @@ export function AutomationTable() {
                       <DropdownMenuItem className="cursor-pointer text-red-500 hover:bg-gray-50 dark:hover:bg-gray-700">
                         Delete
                       </DropdownMenuItem>
-                    </DropdownMenuContent>
+                    </DropdownMenuContent> */}
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
