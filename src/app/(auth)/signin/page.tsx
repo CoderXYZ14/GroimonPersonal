@@ -1,6 +1,6 @@
 "use client";
 
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Instagram } from "lucide-react";
@@ -9,6 +9,7 @@ import { useTheme } from "next-themes";
 import Link from "next/link";
 
 export default function SignIn() {
+  const { data: session } = useSession();
   const handleSignIn = async (provider: "google" | "instagram") => {
     try {
       const response = await signIn(provider, {
@@ -16,6 +17,7 @@ export default function SignIn() {
         redirect: true,
       });
       console.log("SignIn Response:", response);
+      console.log("session", session);
     } catch (error) {
       console.error("SignIn Error:", error);
     }

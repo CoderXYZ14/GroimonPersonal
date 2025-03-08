@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react";
 
 const NavbarSigninAvatar = () => {
   const { data: session } = useSession();
+
   return (
     <div className="flex items-center gap-4">
       <ModeToggle />

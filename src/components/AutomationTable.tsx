@@ -1,3 +1,4 @@
+"use client";
 import { MoreHorizontal, Plus } from "lucide-react";
 import {
   DropdownMenu,
@@ -16,7 +17,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+
 import Link from "next/link";
 
 interface Automation {
@@ -30,47 +31,37 @@ interface Automation {
 
 export function AutomationTable() {
   const [automations, setAutomations] = useState<Automation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { data: session } = useSession();
+  const [loading, setLoading] = useState(false);
 
   // Fetch automations for the current user
   useEffect(() => {
     const fetchAutomations = async () => {
       try {
-        const userId = session?.user?.id;
-
-        if (!userId) {
-          // Early return if the user is not logged in
-          setError("User not logged in");
-          setLoading(false);
-          return;
-        }
-
+        setLoading(true);
+        const session_data = JSON.parse(
+          localStorage.getItem("session_data") || "{}"
+        );
         const response = await fetch("/api/automations", {
           headers: {
-            "user-id": userId, // Pass user ID in headers
+            "user-id": session_data?.id,
           },
         });
 
         if (!response.ok) {
           throw new Error("Failed to fetch automations");
         }
-
         const data = await response.json();
         setAutomations(data);
       } catch (error) {
         console.error("Error fetching automations:", error);
-        setError("Failed to fetch automations");
       } finally {
         setLoading(false);
       }
     };
 
     fetchAutomations();
-  }, [session?.user?.id]);
+  }, []);
 
-  // Generate a random 8-digit post ID if postIds is empty
   const generateRandomPostId = () => {
     return Math.floor(10000000 + Math.random() * 90000000).toString();
   };
@@ -79,14 +70,6 @@ export function AutomationTable() {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="w-8 h-8 border-4 border-t-purple-500 border-b-purple-300 border-l-purple-300 border-r-purple-300 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex justify-center items-center h-64 text-red-500">
-        {error}
       </div>
     );
   }
@@ -269,7 +252,7 @@ export function AutomationTable() {
         </Table>
       </div>
 
-      {automations.length === 0 && (
+      {!loading && automations.length === 0 && (
         <div className="flex flex-col items-center justify-center p-8 text-center">
           <p className="text-gray-500 dark:text-gray-400 mb-4">
             No automations found

@@ -71,27 +71,27 @@ export const authOptions: NextAuthOptions = {
 
       await dbConnect();
 
-      let instagramData = {};
-      if (account?.provider === "instagram" && account?.access_token) {
-        try {
-          const response = await fetch(
-            `https://graph.instagram.com/me?fields=id,username&access_token=${account.access_token}`
-          );
-          const data = await response.json();
+      // let instagramData = {};
+      // if (account?.provider === "instagram" && account?.access_token) {
+      //   try {
+      //     const response = await fetch(
+      //       `https://graph.instagram.com/me?fields=id,username&access_token=${account.access_token}`
+      //     );
+      //     const data = await response.json();
 
-          if (data.error) {
-            throw new Error(data.error.message);
-          }
+      //     if (data.error) {
+      //       throw new Error(data.error.message);
+      //     }
 
-          instagramData = {
-            instagramId: data.id,
-            instagramUsername: data.username,
-          };
-        } catch (error) {
-          console.error("Instagram API Error:", error);
-          throw new Error("Failed to fetch Instagram data");
-        }
-      }
+      //     instagramData = {
+      //       instagramId: data.id,
+      //       instagramUsername: data.username,
+      //     };
+      //   } catch (error) {
+      //     console.error("Instagram API Error:", error);
+      //     throw new Error("Failed to fetch Instagram data");
+      //   }
+      // }
 
       // Save or update user in MongoDB
       await User.findOneAndUpdate(
@@ -100,7 +100,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           image: user.image || "",
           provider: account?.provider || "google",
-          ...instagramData, // Store Instagram data
+          // ...instagramData, // Store Instagram data
           accessToken: account?.access_token || null, // Store Instagram access token
         },
         { upsert: true, new: true }

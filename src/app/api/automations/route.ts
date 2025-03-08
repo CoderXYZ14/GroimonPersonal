@@ -5,7 +5,7 @@ import dbConnect from "@/lib/dbConnect";
 
 export async function POST(request: Request) {
   try {
-    await dbConnect(); // Ensure the database is connected
+    await dbConnect();
     const body = await request.json();
     console.log("Request Body:", body);
 
@@ -50,15 +50,13 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const userId = request.headers.get("user-id"); // Get user ID from headers
+    const userId = request.headers.get("user-id");
     if (!userId) {
       return NextResponse.json(
         { message: "User ID is required" },
         { status: 400 }
       );
     }
-
-    // Fetch the user document and populate the automations
     const user = await UserModel.findById(userId).populate("automations");
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });

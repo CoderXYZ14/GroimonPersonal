@@ -6,14 +6,22 @@ import { AutomationStats } from "@/components/AutomationStats";
 import { AutomationTabs } from "@/components/AutomationTabs";
 import { useRouter } from "next/navigation";
 import handleInstagramLogin from "@/hooks/handleInstagramLogin";
+import { useSession } from "next-auth/react";
+import { useEffect } from "react";
 
 export default function AutomationPage() {
   const router = useRouter();
   // const [isLoggedIn, setIsLoggedIn] = useState(false);
   // const [instagramToken, setInstagramToken] = useState(null);
-
+  const { data: session } = useSession();
+  useEffect(() => {
+    if (session?.user) {
+      localStorage.setItem("session_data", JSON.stringify(session.user));
+    }
+  }, [session]);
   const handlePostAutomation = async () => {
     const storedToken = localStorage.getItem("instagram_token");
+
     if (storedToken) {
       router.push("/dashboard/automation/create");
     } else {
