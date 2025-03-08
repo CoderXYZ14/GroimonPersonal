@@ -5,27 +5,12 @@ import { Button } from "@/components/ui/button";
 import { AutomationStats } from "@/components/AutomationStats";
 import { AutomationTabs } from "@/components/AutomationTabs";
 import { useRouter } from "next/navigation";
-// import { useState } from "react";
 import handleInstagramLogin from "@/hooks/handleInstagramLogin";
-// import { scope } from "@/constants/constants";
 
 export default function AutomationPage() {
   const router = useRouter();
   // const [isLoggedIn, setIsLoggedIn] = useState(false);
   // const [instagramToken, setInstagramToken] = useState(null);
-
-  // const useHandleInstagramLogin = () => {
-  //   const appId = process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID;
-  //   const redirectUri = encodeURIComponent(
-  //     `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/your_insta_token`
-  //   );
-  //   console.log("redirectUri", redirectUri);
-  //   const instaScope = scope.join(",").replace(/,/g, "%2C");
-
-  //   const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${redirectUri}&response_type=code&scope=${instaScope}`;
-  //   console.log("authUrl", authUrl);
-  //   window.location.href = authUrl;
-  // };
 
   const handlePostAutomation = async () => {
     const storedToken = localStorage.getItem("instagram_token");

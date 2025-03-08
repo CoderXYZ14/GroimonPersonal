@@ -24,14 +24,11 @@ export function AutomationStats() {
 
         setIsLoggedIn(true);
 
-        const response = await axios.get(
-          "https://1021-2401-4900-a675-d74c-9021-ff0-c86b-9af4.ngrok-free.app/api/fetch-creator-data",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const response = await axios.get("/api/fetch-creator-data", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         console.log("Creator Data:", response.data);
         setCreatorData(response.data);
