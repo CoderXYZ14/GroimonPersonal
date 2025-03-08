@@ -5,14 +5,14 @@ import { Button } from "@/components/ui/button";
 import { AutomationStats } from "@/components/AutomationStats";
 import { AutomationTabs } from "@/components/AutomationTabs";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import useHandleInstagramLogin from "@/hooks/useHandleInstagramLogin";
+// import { useState } from "react";
+import handleInstagramLogin from "@/hooks/handleInstagramLogin";
 // import { scope } from "@/constants/constants";
 
 export default function AutomationPage() {
   const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [instagramToken, setInstagramToken] = useState(null);
+  // const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // const [instagramToken, setInstagramToken] = useState(null);
 
   // const useHandleInstagramLogin = () => {
   //   const appId = process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID;
@@ -32,7 +32,7 @@ export default function AutomationPage() {
     if (storedToken) {
       router.push("/dashboard/automation/create");
     } else {
-      useHandleInstagramLogin();
+      handleInstagramLogin();
     }
   };
 

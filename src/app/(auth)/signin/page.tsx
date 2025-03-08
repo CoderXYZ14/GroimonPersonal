@@ -13,7 +13,7 @@ export default function SignIn() {
     try {
       const response = await signIn(provider, {
         callbackUrl: "/dashboard/automation",
-        redirect: false,
+        redirect: true,
       });
       console.log("SignIn Response:", response);
     } catch (error) {

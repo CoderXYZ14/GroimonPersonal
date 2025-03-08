@@ -96,9 +96,20 @@ export function CreateAutomationForm() {
           throw new Error(`Failed to fetch media: ${response.statusText}`);
         }
 
-        const data = await response.json();
+        interface InstagramMediaItem {
+          id: string;
+          media_type: string;
+          media_url: string;
+          thumbnail_url?: string;
+          caption?: string;
+          timestamp: string;
+        }
+        interface InstagramMediaResponse {
+          data: InstagramMediaItem[];
+        }
+        const data: InstagramMediaResponse = await response.json();
         setMedia(
-          data.data.map((item: any) => ({
+          data.data.map((item: InstagramMediaItem) => ({
             id: item.id,
             title: item.caption || `Post ${item.id}`,
             mediaUrl: item.media_url,
@@ -107,9 +118,14 @@ export function CreateAutomationForm() {
             timestamp: item.timestamp,
           }))
         );
-      } catch (error) {
-        console.error("Error fetching media:", error);
-        toast.error("Failed to fetch media");
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          console.error("Error fetching media:", error.message);
+          toast.error(`Failed to fetch media: ${error.message}`);
+        } else {
+          console.error("Unknown error fetching media:", error);
+          toast.error("Failed to fetch media");
+        }
       } finally {
         setIsLoading(false);
       }

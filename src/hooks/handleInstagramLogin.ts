@@ -1,6 +1,6 @@
 import { scope } from "@/constants/constants";
 
-const useHandleInstagramLogin = () => {
+const handleInstagramLogin = () => {
   const appId = process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID;
   const redirectUri = encodeURIComponent(
     `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/your_insta_token`
@@ -13,4 +13,4 @@ const useHandleInstagramLogin = () => {
   window.location.href = authUrl;
 };
 
-export default useHandleInstagramLogin;
+export default handleInstagramLogin;
