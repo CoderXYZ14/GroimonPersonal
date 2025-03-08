@@ -9,34 +9,63 @@ interface CreatorData {
 }
 
 export function AutomationStats() {
-  const [creatorData] = useState<CreatorData | null>(null);
+  const [creatorData, setCreatorData] = useState<CreatorData | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
     const fetchCreatorData = async () => {
       try {
         const token = localStorage.getItem("instagram_token");
         if (!token) {
-          console.error("No Instagram token found in localStorage");
+          setIsLoggedIn(false);
+          console.log("No Instagram token found in localStorage");
           return;
         }
 
+        setIsLoggedIn(true);
+
         const response = await axios.get(
-          "https://f73b-2401-4900-86a7-8df3-3945-abe7-935b-8f0.ngrok-free.app/api/fetch-creator-data",
+          "https://1021-2401-4900-a675-d74c-9021-ff0-c86b-9af4.ngrok-free.app/api/fetch-creator-data",
           {
             headers: {
-              Authorization: `Bearer ${token}`, // Send token in header
+              Authorization: `Bearer ${token}`,
             },
           }
         );
 
         console.log("Creator Data:", response.data);
+        setCreatorData(response.data);
       } catch (error) {
         console.error("Error fetching creator data:", error);
+        setIsLoggedIn(false); // In case of error, consider the user not logged in.
       }
     };
 
     fetchCreatorData();
   }, []);
+
+  if (isLoggedIn === null) {
+    return (
+      <div className="flex items-center justify-center p-6 text-gray-500 dark:text-gray-400">
+        <div className="flex flex-col items-center">
+          <div className="w-8 h-8 border-4 border-t-purple-500 border-b-purple-300 border-l-purple-300 border-r-purple-300 rounded-full animate-spin mb-3"></div>
+          Loading...
+        </div>
+      </div>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <div className="flex items-center justify-center p-6 text-gray-500 dark:text-gray-400">
+        <div className="flex flex-col items-center">
+          <h3 className="text-lg font-medium text-purple-700 dark:text-purple-300 mb-2">
+            Please log in
+          </h3>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">

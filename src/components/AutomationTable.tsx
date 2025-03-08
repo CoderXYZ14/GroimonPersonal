@@ -1,5 +1,3 @@
-"use client";
-
 import { MoreHorizontal, Plus } from "lucide-react";
 import {
   DropdownMenu,
@@ -35,14 +33,18 @@ export function AutomationTable() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { data: session } = useSession();
+
   // Fetch automations for the current user
   useEffect(() => {
     const fetchAutomations = async () => {
       try {
         const userId = session?.user?.id;
-        console.log("User ID:", userId);
+
         if (!userId) {
-          throw new Error("User ID not found");
+          // Early return if the user is not logged in
+          setError("User not logged in");
+          setLoading(false);
+          return;
         }
 
         const response = await fetch("/api/automations", {

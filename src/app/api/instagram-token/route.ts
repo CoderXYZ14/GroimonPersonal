@@ -20,7 +20,7 @@ export async function POST(req: Request) {
       client_id: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID!,
       client_secret: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_SECRET!,
       grant_type: "authorization_code",
-      redirect_uri: `${process.env.NEXT_PUBLIC_NEXTAUTH_URLL}/your_insta_token`,
+      redirect_uri: `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/your_insta_token`,
       code,
     });
 

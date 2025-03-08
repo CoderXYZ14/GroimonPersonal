@@ -1,37 +1,31 @@
-// app/api/automations/route.ts
 import { NextResponse } from "next/server";
-import AutomationModel from "@/models/Automation";
-import dbConnect from "@/lib/dbConnect";
-
-await dbConnect();
+import axios from "axios";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { name, postIds, keywords, message, user } = body;
+    const { accessToken } = await request.json();
 
-    if (!name || !keywords || !message || !user) {
+    if (!accessToken) {
       return NextResponse.json(
-        { message: "Missing required fields" },
+        { error: "Access token is required" },
         { status: 400 }
       );
     }
 
-    const automation = new AutomationModel({
-      name,
-      postIds,
-      keywords,
-      message,
-      user,
+    const response = await axios.get(`https://graph.instagram.com/v22.0/me`, {
+      params: {
+        fields: "user_id,username",
+        access_token: accessToken,
+      },
     });
 
-    await automation.save();
+    const { user_id, username } = response.data;
 
-    return NextResponse.json(automation, { status: 201 });
+    return NextResponse.json({ user_id, username });
   } catch (error) {
-    console.error("Error creating automation:", error);
+    console.error("Error fetching Instagram details:", error);
     return NextResponse.json(
-      { message: "Failed to create automation" },
+      { error: "Failed to fetch Instagram details" },
       { status: 500 }
     );
   }

@@ -19,7 +19,7 @@ export const authOptions: NextAuthOptions = {
     //     params: {
     //       client_id: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID as string,
     //       redirect_uri:
-    //         process.env.NEXT_PUBLIC_NEXTAUTH_URLL + "/api/auth/callback/instagram",
+    //         process.env.NEXT_PUBLIC_NEXTAUTH_URL + "/api/auth/callback/instagram",
     //       response_type: "code",
     //       scope:
     //         "instagram_basic,instagram_manage_messages,instagram_manage_comments,instagram_content_publish,business_management",
@@ -35,7 +35,7 @@ export const authOptions: NextAuthOptions = {
     //             client_id: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID,
     //             client_secret: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_SECRET,
     //             grant_type: "authorization_code",
-    //             redirect_uri: `${process.env.NEXT_PUBLIC_NEXTAUTH_URLL}/api/auth/callback/instagram`,
+    //             redirect_uri: `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/api/auth/callback/instagram`,
     //             code: params.code,
     //           },
     //         }

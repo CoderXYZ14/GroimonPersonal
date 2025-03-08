@@ -27,7 +27,7 @@ export default function YourInstaToken() {
         });
 
         const accessToken = tokenResponse.data.access_token;
-
+        console.log("accessToken", accessToken);
         if (typeof window !== "undefined") {
           localStorage.setItem("instagram_token", accessToken);
         }
@@ -35,7 +35,7 @@ export default function YourInstaToken() {
         const detailsResponse = await axios.post("/api/insta_details", {
           accessToken: accessToken,
         });
-
+        console.log("detailsResponse", detailsResponse.data);
         const { user_id, username } = detailsResponse.data;
 
         if (typeof window !== "undefined") {
@@ -52,7 +52,7 @@ export default function YourInstaToken() {
             error.response?.data?.error ||
               "Error during Instagram token exchange or fetching details"
           );
-          console.error("Axios Error:", error.response?.data || error.message);
+          console.error("Instagram API Error:", error.response?.data || error);
         } else {
           toast.error("An unexpected error occurred");
           console.error("Unexpected Error:", error);

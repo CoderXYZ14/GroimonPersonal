@@ -46,9 +46,9 @@ export function CreateAutomationForm() {
     timestamp: string;
   }
   const router = useRouter();
-  const [selectPostOpen, setSelectPostOpen] = useState(false);
+  const [selectPostOpen, setSelectPostOpen] = useState(true);
   const [dmTypeOpen, setDmTypeOpen] = useState(true);
-  const [media] = useState<MediaItem[]>([]);
+  const [media, setMedia] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { data: session } = useSession();
   const toggleSelectPost = () => {
@@ -63,7 +63,7 @@ export function CreateAutomationForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      applyOption: "all",
+      applyOption: "selected",
       postId: "",
       keywords: "",
       message: "",
@@ -75,25 +75,42 @@ export function CreateAutomationForm() {
   useEffect(() => {
     const fetchMedia = async () => {
       setIsLoading(true);
-      // const userId = localStorage.getItem("instagram_user_id");
-      // const accessToken = localStorage.getItem("instagram_token");
+      const userId = localStorage.getItem("instagram_user_id");
+      const accessToken = localStorage.getItem("instagram_token");
 
-      // if (!userId || !accessToken) {
-      //   console.error(
-      //     "Instagram user ID or access token not found in localStorage"
-      //   );
-      //   toast.error("Instagram user ID or access token not found");
-      //   setIsLoading(false);
-      //   return;
-      // }
+      if (!userId || !accessToken) {
+        console.error(
+          "Instagram user ID or access token not found in localStorage"
+        );
+        toast.error("Instagram user ID or access token not found");
+        setIsLoading(false);
+        return;
+      }
 
       try {
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 1000);
+        const response = await fetch(
+          `https://graph.instagram.com/v22.0/${userId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&access_token=${accessToken}`
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch media: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        setMedia(
+          data.data.map((item: any) => ({
+            id: item.id,
+            title: item.caption || `Post ${item.id}`,
+            mediaUrl: item.media_url,
+            mediaType: item.media_type,
+            thumbnailUrl: item.thumbnail_url,
+            timestamp: item.timestamp,
+          }))
+        );
       } catch (error) {
         console.error("Error fetching media:", error);
         toast.error("Failed to fetch media");
+      } finally {
         setIsLoading(false);
       }
     };
@@ -107,12 +124,15 @@ export function CreateAutomationForm() {
       if (!userId) {
         throw new Error("User ID not found");
       }
-
       const postIds =
         values.applyOption === "all"
           ? media.map((post) => post.id)
-          : [values.postId!];
-
+          : values.postId
+          ? [values.postId]
+          : [];
+      if (values.applyOption === "selected" && !values.postId) {
+        throw new Error("Please select a post");
+      }
       const response = await fetch("/api/automations", {
         method: "POST",
         headers: {
@@ -125,12 +145,10 @@ export function CreateAutomationForm() {
           user: userId,
         }),
       });
-      // console.log("response", response);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to create automation");
       }
-
       toast.success("Automation created successfully!");
       router.push("/dashboard/automation");
     } catch (error) {
