@@ -40,7 +40,7 @@ export function AutomationTabs() {
         <AutomationTable />
       </TabsContent>
       <TabsContent value="story" className="mt-0">
-        <div className="p-6 text-center text-gray-500 dark:text-gray-400 md:w-[766px]">
+        <div className="p-6 text-center text-gray-500 dark:text-gray-400 md:w-[100%]">
           <div className="py-12 ">
             <Play className="h-12 w-12 mx-auto mb-4 text-gray-300 dark:text-gray-600 " />
             <h3 className="text-lg font-medium mb-2">Story Automation</h3>
@@ -51,7 +51,7 @@ export function AutomationTabs() {
         </div>
       </TabsContent>
       <TabsContent value="chat" className="mt-0 w-full">
-        <div className="p-6 text-center text-gray-500 dark:text-gray-400 md:w-[766px]">
+        <div className="p-6 text-center text-gray-500 dark:text-gray-400 md:w-[100%]">
           <div className="py-12">
             <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
             <h3 className="text-lg font-medium mb-2">Chat Automation</h3>

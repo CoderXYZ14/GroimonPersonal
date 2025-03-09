@@ -79,7 +79,7 @@ export default function SignIn() {
             Sign in with Google
           </Button>
 
-          <div className="relative flex items-center justify-center">
+          {/* <div className="relative flex items-center justify-center">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
             </div>
@@ -104,7 +104,7 @@ export default function SignIn() {
               </svg>
             </div>
             Sign in with Instagram
-          </Button>
+          </Button> */}
 
           <p className="text-center text-sm text-muted-foreground mt-6">
             By signing in, you agree to our

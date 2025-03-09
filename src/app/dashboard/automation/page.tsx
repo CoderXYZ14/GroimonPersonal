@@ -45,8 +45,7 @@ export default function AutomationPage() {
               <Plus className="h-4 w-4 mr-2" /> Create Automation
             </Button>
           </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-100 dark:border-gray-700 w-[321px] sm:w-full ">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-100 dark:border-gray-700 w-[321px] sm:w-[100%] ">
             <div className="p-4 sm:p-6">
               <AutomationStats />
             </div>
