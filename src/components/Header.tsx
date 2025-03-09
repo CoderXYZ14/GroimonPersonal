@@ -1,8 +1,8 @@
-import { Instagram } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 
 import NavbarSigninAvatar from "./helper/NavbarSigninAvatar";
+import Image from "next/image";
 
 const Header = () => {
   return (
@@ -10,7 +10,7 @@ const Header = () => {
       <div className="container flex h-16 items-center justify-between max-w-7xl p-4">
         <Link href="/">
           <div className="flex items-center gap-2 font-bold text-xl">
-            <Instagram className="h-6 w-6 text-purple-500" />
+            <Image src="/logo.svg" alt="logo" width={80} height={25} />
             <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-500">
               Groimon
             </h1>

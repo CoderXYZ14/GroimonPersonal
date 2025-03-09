@@ -182,10 +182,10 @@ export default function PrivacyPolicyPage() {
                   <p className="mt-3 font-medium">
                     Email:{" "}
                     <a
-                      href="mailto:shahwaizislam1404@gmail.com"
+                      href="mailto:hardik@longtermcollab.com"
                       className="text-purple-500 hover:underline"
                     >
-                      shahwaizislam1404@gmail.com
+                      hardik@longtermcollab.com
                     </a>
                   </p>
                 </div>

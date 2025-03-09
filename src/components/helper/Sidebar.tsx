@@ -9,7 +9,6 @@ import {
   User2,
   ChevronLeft,
   ChevronRight,
-  Instagram,
   FileText,
   Lock,
   Zap,
@@ -27,6 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -99,12 +99,12 @@ export function AppSidebar() {
         >
           {isCollapsed ? (
             <Link href="/">
-              <Instagram className="h-8 w-8 text-purple-500" />
+              <Image src="/logo.svg" alt="logo" width={80} height={25} />
             </Link>
           ) : (
             <Link href="/">
               <div className="flex items-center gap-2">
-                <Instagram className="h-8 w-8 text-purple-500" />
+                <Image src="/logo.svg" alt="logo" width={80} height={25} />
 
                 <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-500">
                   Groimon
