@@ -133,15 +133,15 @@ async function sendDM(
 ) {
   try {
     // Fetch the automation document to get the associated user
-    const automation = await AutomationModel.findById(automationId).populate(
-      "user"
-    );
+    const automation = await AutomationModel.findById(automationId).populate<{
+      user: IUser;
+    }>("user");
 
     if (!automation || !automation.user) {
       console.error("Automation or associated user not found");
       return;
     }
-    const user = automation.user as unknown as IUser;
+    const user = automation.user;
 
     const INSTAGRAM_TOKEN = user.accessToken;
 
