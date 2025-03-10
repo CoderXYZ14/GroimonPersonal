@@ -1,96 +1,159 @@
-import { NextResponse } from "next/server";
-import axios, { AxiosError } from "axios";
+import { NextRequest, NextResponse } from "next/server";
+import dbConnect from "@/lib/dbConnect";
+import AutomationModel from "@/models/Automation";
+import axios from "axios";
 
-// Configuration
-const VERIFY_TOKEN = "12345";
-const ACCESS_TOKEN =
-  "IGAAOWGBt3ZCl1BZAE5tYTlHV2U1VEhsZADBHQVpSdlZAEVW4zMnVRSndhamE2MnZAZAajE3NTFZAS3d1cGdJaEVMRE53WjZAnVUV4Y1lNUU1qTUE2TmRQeUN3ZAVpRcmJIOV9uVnBlcWJqdk9kUm51WjJLaEloVGtR";
-const IG_PRO_USER_ID = "1009455214362205";
-
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const hubChallenge = searchParams.get("hub.challenge");
-  const hubVerifyToken = searchParams.get("hub.verify_token");
-
-  if (hubVerifyToken === VERIFY_TOKEN) {
-    console.log("Webhook verified");
-    return new NextResponse(hubChallenge as string);
-  } else {
-    console.log("Verification failed");
-    return NextResponse.json({ error: "Verification failed" }, { status: 403 });
-  }
+// Define types for Instagram webhook data
+interface InstagramComment {
+  id: string;
+  from: {
+    id: string;
+    username: string;
+  };
+  media: {
+    id: string;
+    media_product_type: string;
+  };
+  text: string;
+  parent_id?: string;
 }
 
-export async function POST(request: Request) {
+interface InstagramChange {
+  field: string;
+  value: InstagramComment;
+}
+
+interface InstagramEntry {
+  id: string;
+  time: number;
+  changes: InstagramChange[];
+}
+
+interface WebhookPayload {
+  object: string;
+  entry: InstagramEntry[];
+}
+
+export async function GET(request: NextRequest) {
+  // Handle Instagram webhook verification
+  const searchParams = request.nextUrl.searchParams;
+  //const hub_mode = searchParams.get("hub.mode");
+  const hub_challenge = searchParams.get("hub.challenge");
+  const hub_verify_token = searchParams.get("hub.verify_token");
+
+  // Verify token (should match your configured webhook verify token)
+  const VERIFY_TOKEN = "12345";
+
+  if (hub_challenge && hub_verify_token === VERIFY_TOKEN) {
+    return new NextResponse(hub_challenge);
+  }
+
+  return new NextResponse("<p>This is GET Request, Hello Webhook!</p>");
+}
+
+export async function POST(request: NextRequest) {
   try {
-    const data = await request.json();
-    console.log("Webhook received:", JSON.stringify(data, null, 4));
+    const payload: WebhookPayload = await request.json();
+    console.log("Webhook payload:", JSON.stringify(payload, null, 4));
 
+    await dbConnect();
+
+    // Check if this is a comment notification from Instagram
     if (
-      data.entry &&
-      data.entry[0]?.changes &&
-      data.entry[0].changes[0]?.field === "comments"
+      payload.object === "instagram" &&
+      payload.entry &&
+      payload.entry.length > 0
     ) {
-      const commentInfo = data.entry[0].changes[0].value;
-      const commenterId = commentInfo.from.id;
-      const commentId = commentInfo.id;
-
-      console.log(`Comment from user ID: ${commenterId}`);
-
-      // Fetch user data
-      const url = `https://graph.instagram.com/v21.0/${commenterId}`;
-      const params = {
-        fields:
-          "name,profile_pic,username,follower_count,is_business,follows_user,is_user_follow_business,is_verified_user",
-        access_token: ACCESS_TOKEN,
-      };
-
-      try {
-        const response = await axios.get(url, { params });
-        const userData = response.data;
-        console.log("User Data:", JSON.stringify(userData, null, 4));
-
-        // Send a private reply
-        const replyUrl = `https://graph.instagram.com/${IG_PRO_USER_ID}/messages`;
-        const replyData = {
-          recipient: {
-            comment_id: commentId,
-          },
-          message: {
-            text: "Thank you for your comment! We will get back to you soon.",
-          },
-        };
-
-        const replyResponse = await axios.post(replyUrl, replyData, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${ACCESS_TOKEN}`,
-          },
-        });
-
-        console.log(
-          "Private Reply Response:",
-          JSON.stringify(replyResponse.data, null, 4)
-        );
-      } catch (error) {
-        if (error instanceof AxiosError) {
-          console.error("Axios Error Details:", {
-            message: error.message,
-            response: error.response?.data || null,
-            stack: error.stack,
-          });
-        } else {
-          console.error("Unexpected Error:", error);
+      for (const entry of payload.entry) {
+        if (entry.changes && entry.changes.length > 0) {
+          for (const change of entry.changes) {
+            // Check if this is a comment change
+            if (change.field === "comments" && change.value) {
+              await handleCommentNotification(change.value);
+            }
+          }
         }
       }
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ status: "success" });
   } catch (error) {
     console.error("Error processing webhook:", error);
     return NextResponse.json(
-      { error: "Error processing webhook" },
+      { message: "Failed to process webhook", error: error.message },
       { status: 500 }
     );
+  }
+}
+
+async function handleCommentNotification(comment: InstagramComment) {
+  try {
+    const automations = await AutomationModel.find({
+      postIds: comment.media.id,
+    }).populate("user");
+
+    if (!automations || automations.length === 0) {
+      console.log(`No automations found for post ID: ${comment.media.id}`);
+      return;
+    }
+
+    for (const automation of automations) {
+      if (!automation.keywords || automation.keywords.length === 0) continue;
+
+      // Check if comment text contains any of the keywords (case insensitive)
+      const commentText = comment.text.toLowerCase();
+      const keywordMatch = automation.keywords.some((keyword) =>
+        commentText.includes(keyword.toLowerCase())
+      );
+
+      // If keywords match or no keywords specified, send DM
+      if (keywordMatch) {
+        await sendInstagramDM(
+          comment.from.id,
+          automation.message,
+          comment.from.username
+        );
+
+        // Log this interaction (optional)
+        console.log(
+          `Sent DM to ${comment.from.username} for automation: ${automation.name}`
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Error handling comment notification:", error);
+  }
+}
+
+async function sendInstagramDM(
+  userId: string,
+  message: string,
+  username: string
+) {
+  try {
+    const INSTAGRAM_LONG_LIVED_TOKEN =
+      "IGAAlRTybzBRdBZAE1HMm1RUGdBU2ZAWc25nZAG52SFotS2NNejhSaG9aaVB4QTctWFRrdlhCU1RwRHY0VnVSZAnp2eDZAIdmZAac2psWHhuTFZApZA2oxSlg5ZAUNnZA2U1TTNBN2NjNHBIbklBdjhUTlVxRXA1dnJn";
+    const url = `https://graph.instagram.com/v22.0/me/messages`;
+
+    const headers = {
+      Authorization: `Bearer ${INSTAGRAM_LONG_LIVED_TOKEN}`,
+      "Content-Type": "application/json",
+    };
+
+    const body = {
+      recipient: {
+        id: userId,
+      },
+      message: {
+        text: message,
+      },
+    };
+
+    const response = await axios.post(url, body, { headers });
+    console.log(`DM sent to ${username} (${userId}):`, response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error sending Instagram DM:", error);
+    throw error;
   }
 }
