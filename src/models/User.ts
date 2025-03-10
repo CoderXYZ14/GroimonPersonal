@@ -19,15 +19,14 @@ const UserSchema: Schema<IUser> = new Schema(
     provider: { type: String, required: true },
     instagramId: { type: String },
     instagramUsername: { type: String },
-
     accessToken: { type: String },
     automations: [{ type: Schema.Types.ObjectId, ref: "Automation" }],
   },
   { timestamps: true }
 );
 
+// Fix the model registration pattern
 const UserModel =
-  (mongoose.models.User as mongoose.Model<IUser>) ||
-  mongoose.model<IUser>("User", UserSchema);
+  mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
 
-export default UserModel;
+export default UserModel as mongoose.Model<IUser>;

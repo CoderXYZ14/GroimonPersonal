@@ -19,8 +19,9 @@ const AutomationSchema: Schema<IAutomation> = new Schema(
   { timestamps: true }
 );
 
+// Fix this line following the same pattern as the User model fix
 const AutomationModel =
-  (mongoose.models.Automation as mongoose.Model<IAutomation>) ||
+  mongoose.models.Automation ||
   mongoose.model<IAutomation>("Automation", AutomationSchema);
 
-export default AutomationModel;
+export default AutomationModel as mongoose.Model<IAutomation>;
