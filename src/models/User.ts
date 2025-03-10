@@ -19,6 +19,7 @@ const UserSchema: Schema<IUser> = new Schema(
     provider: { type: String, required: true },
     instagramId: { type: String },
     instagramUsername: { type: String },
+
     accessToken: { type: String },
     automations: [{ type: Schema.Types.ObjectId, ref: "Automation" }],
   },

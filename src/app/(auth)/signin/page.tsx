@@ -3,10 +3,10 @@
 import { signIn, useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Instagram } from "lucide-react";
 import { ShineBorder } from "@/components/magicui/shine-border";
 import { useTheme } from "next-themes";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function SignIn() {
   const { data: session } = useSession();
@@ -41,7 +41,7 @@ export default function SignIn() {
         <CardHeader className="text-center pb-2">
           <Link href="/">
             <div className="flex items-center justify-center gap-2 font-bold text-xl mb-6">
-              <Instagram className="h-6 w-6 text-purple-500" />
+              <Image src="/logo.svg" alt="logo" width={80} height={25} />
               <span>Groimon</span>
             </div>
           </Link>

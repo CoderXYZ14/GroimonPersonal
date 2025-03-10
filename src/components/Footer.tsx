@@ -1,4 +1,4 @@
-import { Instagram } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 
@@ -9,7 +9,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 font-bold text-xl mb-4">
-              <Instagram className="h-6 w-6 text-purple-500" />
+              <Image src="/logo.svg" alt="logo" width={80} height={25} />
               <span>Groimon</span>
             </div>
             <p className="text-muted-foreground">

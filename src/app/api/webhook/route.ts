@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import AutomationModel from "@/models/Automation";
+
 import axios from "axios";
+import { IUser } from "@/models/User";
 
 // Instagram comment webhook data type
 interface InstagramComment {
@@ -78,7 +80,7 @@ async function processComment(comment: InstagramComment) {
     // Find automations that match this post ID
     const automations = await AutomationModel.find({
       postIds: comment.media.id,
-    });
+    }).populate("user"); // Populate the user to ensure the access token is available
 
     if (!automations || automations.length === 0) {
       console.log(`No automations found for post ID: ${comment.media.id}`);
@@ -107,7 +109,12 @@ async function processComment(comment: InstagramComment) {
         );
 
         // Send the DM with the message from the automation
-        await sendDM(comment, automation.message, automation.name);
+        await sendDM(
+          comment,
+          automation.message,
+          automation.name,
+          automation._id.toString()
+        );
       } else {
         console.log(
           `No keyword matches found for automation "${automation.name}"`
@@ -118,16 +125,30 @@ async function processComment(comment: InstagramComment) {
     console.error("Error processing comment:", error);
   }
 }
-
 async function sendDM(
   comment: InstagramComment,
   message: string,
-  automationName: string
+  automationName: string,
+  automationId: string
 ) {
   try {
-    // Hardcoded token as requested
-    const INSTAGRAM_TOKEN =
-      "IGAAlRTybzBRdBZAE1HMm1RUGdBU2ZAWc25nZAG52SFotS2NNejhSaG9aaVB4QTctWFRrdlhCU1RwRHY0VnVSZAnp2eDZAIdmZAac2psWHhuTFZApZA2oxSlg5ZAUNnZA2U1TTNBN2NjNHBIbklBdjhUTlVxRXA1dnJn";
+    // Fetch the automation document to get the associated user
+    const automation = await AutomationModel.findById(automationId).populate(
+      "user"
+    );
+
+    if (!automation || !automation.user) {
+      console.error("Automation or associated user not found");
+      return;
+    }
+    const user = automation.user as unknown as IUser;
+
+    const INSTAGRAM_TOKEN = user.accessToken;
+
+    if (!INSTAGRAM_TOKEN) {
+      console.error("No Instagram access token found for the user");
+      return;
+    }
 
     const url = "https://graph.instagram.com/v22.0/me/messages";
 
@@ -149,6 +170,7 @@ async function sendDM(
       `Attempting to send DM to user ${comment.from.username} (${comment.from.id}) for automation "${automationName}"`
     );
 
+    // Send the DM using axios
     const response = await axios.post(url, body, { headers });
 
     console.log(
