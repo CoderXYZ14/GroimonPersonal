@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import dbConnect from "@/lib/dbConnect";
+import AutomationModel from "@/models/Automation";
 import axios from "axios";
 
 // Instagram comment webhook data type
@@ -35,6 +37,9 @@ export async function POST(request: NextRequest) {
     const payload = await request.json();
     console.log("Webhook payload received:", JSON.stringify(payload, null, 2));
 
+    // Connect to database
+    await dbConnect();
+
     // Extract comment data from the webhook
     if (
       payload.object === "instagram" &&
@@ -46,8 +51,8 @@ export async function POST(request: NextRequest) {
           for (const change of entry.changes) {
             // Check if this is a comment change
             if (change.field === "comments" && change.value) {
-              // Send DM to commenter
-              await sendDM(change.value);
+              // Process the comment and check if we need to send a DM
+              await processComment(change.value);
             }
           }
         }
@@ -64,7 +69,61 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function sendDM(comment: InstagramComment) {
+async function processComment(comment: InstagramComment) {
+  try {
+    console.log(`Processing comment on post ID: ${comment.media.id}`);
+    console.log(`Comment from user: ${comment.from.username}`);
+    console.log(`Comment text: "${comment.text}"`);
+
+    // Find automations that match this post ID
+    const automations = await AutomationModel.find({
+      postIds: comment.media.id,
+    });
+
+    if (!automations || automations.length === 0) {
+      console.log(`No automations found for post ID: ${comment.media.id}`);
+      return;
+    }
+
+    console.log(`Found ${automations.length} automations for this post`);
+
+    // Check each automation for keyword matches
+    for (const automation of automations) {
+      // Skip if no keywords are defined
+      if (!automation.keywords || automation.keywords.length === 0) {
+        console.log(`Automation ${automation.name} has no keywords, skipping`);
+        continue;
+      }
+
+      // Check if comment text contains any of the keywords (case insensitive)
+      const commentText = comment.text.toLowerCase();
+      const matchedKeyword = automation.keywords.find((keyword) =>
+        commentText.includes(keyword.toLowerCase())
+      );
+
+      if (matchedKeyword) {
+        console.log(
+          `Keyword match found: "${matchedKeyword}" in automation "${automation.name}"`
+        );
+
+        // Send the DM with the message from the automation
+        await sendDM(comment, automation.message, automation.name);
+      } else {
+        console.log(
+          `No keyword matches found for automation "${automation.name}"`
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Error processing comment:", error);
+  }
+}
+
+async function sendDM(
+  comment: InstagramComment,
+  message: string,
+  automationName: string
+) {
   try {
     // Hardcoded token as requested
     const INSTAGRAM_TOKEN =
@@ -77,9 +136,6 @@ async function sendDM(comment: InstagramComment) {
       "Content-Type": "application/json",
     };
 
-    // Simple message to send
-    const message = "Good morning! Thanks for your comment.";
-
     const body = {
       recipient: {
         id: comment.from.id,
@@ -90,18 +146,15 @@ async function sendDM(comment: InstagramComment) {
     };
 
     console.log(
-      `Attempting to send DM to user ${comment.from.username} (${comment.from.id})`
+      `Attempting to send DM to user ${comment.from.username} (${comment.from.id}) for automation "${automationName}"`
     );
+
     const response = await axios.post(url, body, { headers });
 
     console.log(
-      `DM sent successfully to ${comment.from.username}:`,
+      `DM sent successfully to ${comment.from.username} with message: "${message}"`,
       response.data
     );
-
-    // Log details for debugging
-    console.log(`Comment was on post ID: ${comment.media.id}`);
-    console.log(`Comment text was: "${comment.text}"`);
 
     return response.data;
   } catch (error) {
