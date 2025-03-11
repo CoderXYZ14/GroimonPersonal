@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import axios, { AxiosError } from "axios";
+import UserModel from "@/models/User";
 
 interface InstagramTokenResponse {
   access_token: string;
@@ -14,7 +15,7 @@ interface ErrorResponse {
 
 export async function POST(req: Request) {
   try {
-    const { code } = await req.json();
+    const { code, userId } = await req.json();
 
     const payload = new URLSearchParams({
       client_id: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID!,
@@ -36,7 +37,6 @@ export async function POST(req: Request) {
 
     const shortLivedAccessToken = response.data.access_token;
 
-    // Long-term token request
     const longLivedTokenResponse = await axios.get<InstagramTokenResponse>(
       `https://graph.instagram.com/access_token`,
       {
@@ -46,6 +46,13 @@ export async function POST(req: Request) {
           access_token: shortLivedAccessToken,
         },
       }
+    );
+    const longLivedAccessToken = longLivedTokenResponse.data.access_token;
+
+    await UserModel.findByIdAndUpdate(
+      userId,
+      { instagramAccessToken: longLivedAccessToken },
+      { new: true }
     );
 
     return NextResponse.json(longLivedTokenResponse.data);

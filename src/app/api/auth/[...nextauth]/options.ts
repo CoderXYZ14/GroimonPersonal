@@ -100,8 +100,6 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           image: user.image || "",
           provider: account?.provider || "google",
-          // ...instagramData, // Store Instagram data
-          accessToken: account?.access_token || null, // Store Instagram access token
         },
         { upsert: true, new: true }
       );

@@ -20,10 +20,12 @@ export default function YourInstaToken() {
         router.push("/dashboard/automation");
         return;
       }
-
+      const session_data = localStorage.getItem("session_data");
+      const userId = JSON.parse(session_data).id;
       try {
         const tokenResponse = await axios.post("/api/instagram-token", {
           code: authorizationCode,
+          userId,
         });
 
         const accessToken = tokenResponse.data.access_token;
@@ -35,6 +37,7 @@ export default function YourInstaToken() {
         const detailsResponse = await axios.post("/api/insta_details", {
           accessToken: accessToken,
         });
+
         console.log("detailsResponse", detailsResponse.data);
         const { user_id, username } = detailsResponse.data;
 
