@@ -122,7 +122,6 @@ export const authOptions: NextAuthOptions = {
         token.provider = dbUser?.provider || "unknown";
         token.instagramId = dbUser?.instagramId || null;
         token.instagramUsername = dbUser?.instagramUsername || null;
-        token.accessToken = dbUser?.accessToken || null;
       }
 
       return token;
@@ -136,7 +135,6 @@ export const authOptions: NextAuthOptions = {
         session.user.image = token.image as string;
         session.user.instagramId = token.instagramId as string;
         session.user.instagramUsername = token.instagramUsername as string;
-        session.user.accessToken = token.accessToken as string;
       }
       return session;
     },
