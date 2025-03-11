@@ -23,7 +23,6 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 
 const formSchema = z.object({
   name: z
@@ -50,7 +49,7 @@ export function CreateAutomationForm() {
   const [dmTypeOpen, setDmTypeOpen] = useState(true);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { data: session } = useSession();
+
   const toggleSelectPost = () => {
     setSelectPostOpen(!selectPostOpen);
   };
@@ -136,10 +135,6 @@ export function CreateAutomationForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const userId = session?.user?.id;
-      if (!userId) {
-        throw new Error("User ID not found");
-      }
       const postIds =
         values.applyOption === "all"
           ? media.map((post) => post.id)
@@ -149,6 +144,17 @@ export function CreateAutomationForm() {
       if (values.applyOption === "selected" && !values.postId) {
         throw new Error("Please select a post");
       }
+      // For the POST request
+      const session_data = JSON.parse(
+        localStorage.getItem("session_data") || "{}"
+      );
+      const userId = session_data?.id;
+
+      if (!userId) {
+        console.error("User ID not found in session data");
+        return;
+      }
+
       const response = await fetch("/api/automations", {
         method: "POST",
         headers: {

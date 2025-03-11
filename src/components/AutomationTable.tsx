@@ -38,14 +38,21 @@ export function AutomationTable() {
     const fetchAutomations = async () => {
       try {
         setLoading(true);
+        // For the GET request
         const session_data = JSON.parse(
           localStorage.getItem("session_data") || "{}"
         );
-        const response = await fetch("/api/automations", {
-          headers: {
-            "user-id": session_data?.id,
-          },
-        });
+        const userId = session_data?.id;
+
+        // Check if userId exists
+        if (!userId) {
+          console.error("User ID not found in session data");
+          // Handle the error appropriately
+          return;
+        }
+
+        // Use a query parameter instead of a header
+        const response = await fetch(`/api/automations?userId=${userId}`);
 
         if (!response.ok) {
           throw new Error("Failed to fetch automations");

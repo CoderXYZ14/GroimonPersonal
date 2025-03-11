@@ -4,7 +4,7 @@ import AutomationModel from "@/models/Automation";
 
 import axios from "axios";
 import { IUser } from "@/models/User";
-
+import "../../../models/User";
 // Instagram comment webhook data type
 interface InstagramComment {
   id: string;

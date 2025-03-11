@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import AutomationModel from "@/models/Automation";
 import UserModel from "@/models/User";
 import dbConnect from "@/lib/dbConnect";
+import mongoose from "mongoose";
 
 export async function POST(request: Request) {
   try {
@@ -50,19 +51,30 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const userId = request.headers.get("user-id");
+    await dbConnect();
+
+    const url = new URL(request.url);
+    const userId = url.searchParams.get("userId");
+
     if (!userId) {
       return NextResponse.json(
         { message: "User ID is required" },
         { status: 400 }
       );
     }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return NextResponse.json(
+        { message: "Invalid User ID format" },
+        { status: 400 }
+      );
+    }
+
     const user = await UserModel.findById(userId).populate("automations");
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    // Return the automations
     return NextResponse.json(user.automations, { status: 200 });
   } catch (error) {
     console.error("Error fetching automations:", error);
