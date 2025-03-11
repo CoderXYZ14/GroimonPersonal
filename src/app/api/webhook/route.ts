@@ -80,7 +80,7 @@ async function processComment(comment: InstagramComment) {
     // Find automations that match this post ID
     const automations = await AutomationModel.find({
       postIds: comment.media.id,
-    }).populate("user"); // Populate the user to ensure the access token is available
+    }).populate("user");
 
     if (!automations || automations.length === 0) {
       console.log(`No automations found for post ID: ${comment.media.id}`);
@@ -132,27 +132,39 @@ async function sendDM(
   automationId: string
 ) {
   try {
-    const automation = await AutomationModel.findById(automationId).populate<{
-      user: IUser;
-    }>("user");
+    // Ensure database is connected
+    await dbConnect();
 
-    if (!automation || !automation.user) {
-      console.error("Automation or associated user not found");
+    // Find the automation with populated user data
+    const automation = await AutomationModel.findById(automationId).populate(
+      "user"
+    );
+
+    if (!automation) {
+      console.error(`Automation with ID ${automationId} not found`);
       return;
     }
-    const user = automation.user;
 
-    const INSTAGRAM_TOKEN = user.accessToken;
+    if (!automation.user) {
+      console.error(
+        `User not found for automation ${automationName} (${automationId})`
+      );
+      return;
+    }
 
-    if (!INSTAGRAM_TOKEN) {
-      console.error("No Instagram access token found for the user");
+    const user = automation.user as IUser;
+
+    if (!user.accessToken) {
+      console.error(
+        `Instagram access token not found for user ${user.name} (${user._id})`
+      );
       return;
     }
 
     const url = "https://graph.instagram.com/v22.0/me/messages";
 
     const headers = {
-      Authorization: `Bearer ${INSTAGRAM_TOKEN}`,
+      Authorization: `Bearer ${user.accessToken}`,
       "Content-Type": "application/json",
     };
 
@@ -173,16 +185,24 @@ async function sendDM(
     const response = await axios.post(url, body, { headers });
 
     console.log(
-      `DM sent successfully to ${comment.from.username} with message: "${message}"`,
-      response.data
+      `DM sent successfully to ${comment.from.username} with message: "${message}"`
     );
 
     return response.data;
   } catch (error) {
     console.error("Error sending Instagram DM:", error);
-    console.error(
-      "Error details:",
-      error.response ? error.response.data : "No response data"
-    );
+
+    // Safer error handling
+    if (error.response) {
+      console.error("Error status:", error.response.status);
+      console.error("Error details:", error.response.data);
+    } else if (error.request) {
+      console.error("No response received:", error.request);
+    } else {
+      console.error("Error message:", error.message);
+    }
+
+    // Rethrow or return the error
+    throw error;
   }
 }

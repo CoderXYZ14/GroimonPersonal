@@ -25,8 +25,6 @@ const UserSchema: Schema<IUser> = new Schema(
   { timestamps: true }
 );
 
-// Fix the model registration pattern
 const UserModel =
   mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
-
 export default UserModel as mongoose.Model<IUser>;

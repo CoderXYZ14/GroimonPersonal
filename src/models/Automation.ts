@@ -1,11 +1,12 @@
 import mongoose, { Schema, Document } from "mongoose";
+import { IUser } from "./User";
 
 export interface IAutomation extends Document {
   name: string;
   postIds: string[];
   keywords: string[];
   message: string;
-  user: mongoose.Types.ObjectId;
+  user: mongoose.Types.ObjectId | IUser;
 }
 
 const AutomationSchema: Schema<IAutomation> = new Schema(
@@ -19,9 +20,7 @@ const AutomationSchema: Schema<IAutomation> = new Schema(
   { timestamps: true }
 );
 
-// Fix this line following the same pattern as the User model fix
 const AutomationModel =
   mongoose.models.Automation ||
   mongoose.model<IAutomation>("Automation", AutomationSchema);
-
 export default AutomationModel as mongoose.Model<IAutomation>;
