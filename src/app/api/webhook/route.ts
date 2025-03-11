@@ -132,7 +132,6 @@ async function sendDM(
   automationId: string
 ) {
   try {
-    // Fetch the automation document to get the associated user
     const automation = await AutomationModel.findById(automationId).populate<{
       user: IUser;
     }>("user");
