@@ -49,11 +49,14 @@ export async function POST(req: Request) {
     );
     const longLivedAccessToken = longLivedTokenResponse.data.access_token;
 
-    await UserModel.findByIdAndUpdate(
+    const user = await UserModel.findByIdAndUpdate(
       userId,
-      { instagramAccessToken: longLivedAccessToken },
+      { accessToken: longLivedAccessToken },
       { new: true }
     );
+
+    console.log("User's Instagram access token updated");
+    console.log(user);
 
     return NextResponse.json(longLivedTokenResponse.data);
   } catch (error) {
