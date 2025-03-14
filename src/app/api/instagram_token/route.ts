@@ -55,7 +55,7 @@ export async function POST(req: Request) {
         accessToken: longLivedAccessToken,
       }
     );
-    console.log("detailsResponse", detailsResponse);
+
     const { user_id, username } = detailsResponse.data;
 
     const user = await UserModel.findByIdAndUpdate(

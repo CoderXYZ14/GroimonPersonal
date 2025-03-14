@@ -8,75 +8,85 @@ import { BeatLoader } from "react-spinners";
 import { useSession } from "next-auth/react";
 
 export default function YourInstaToken() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [sessionLoaded, setSessionLoaded] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // First useEffect to handle session loading
   useEffect(() => {
-    if (session) {
-      setSessionLoaded(true);
+    if (status === "loading") return;
+    if (!session) {
+      toast.error("Please sign in to continue");
+      router.push("/signin");
+      return;
     }
-  }, [session]);
-  useEffect(() => {
-    if (!sessionLoaded) return;
-    //session.user
-    const exchangeCodeForToken = async () => {
+
+    const processInstagramAuth = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const authorizationCode = urlParams.get("code");
+      const redirectPath = urlParams.get("redirect") || "/dashboard/automation";
 
       if (!authorizationCode) {
-        toast.error("Authorization code not found in URL");
-        router.push("/dashboard/automation");
+        toast.error("Authorization code not found");
+        router.push(redirectPath);
         return;
       }
-      const userId = session?.user?.id;
+
+      setIsProcessing(true);
+
       try {
-        const tokenResponse = await axios.post("/api/instagram_token", {
+        const { data } = await axios.post("/api/instagram_token", {
           code: authorizationCode,
-          userId,
+          userId: session.user.id,
         });
 
-        const { user, tokenData } = tokenResponse.data;
-        console.log("User data:", user);
-        console.log("Instagram token data:", tokenData);
+        localStorage.setItem("user_details", JSON.stringify(data.user));
+        localStorage.setItem("instagram_token", data.tokenData.access_token);
 
-        toast.success("Instagram details fetched successfully");
-
-        // router.push("/dashboard/automation/create");
+        toast.success("Successfully connected to Instagram");
+        router.push(redirectPath);
       } catch (error) {
-        if (error instanceof AxiosError) {
-          toast.error(
-            error.response?.data?.error ||
-              "Error during Instagram token exchange or fetching details"
-          );
-          console.error("Instagram API Error:", error.response?.data || error);
-        } else {
-          toast.error("An unexpected error occurred");
-          console.error("Unexpected Error:", error);
-        }
-        // router.push("/dashboard/automation");
+        const errorMessage =
+          error instanceof AxiosError
+            ? error.response?.data?.error ?? "Failed to connect to Instagram"
+            : "An unexpected error occurred";
+
+        toast.error(errorMessage);
+        console.error("Instagram authentication error:", error);
+        router.push(redirectPath);
       } finally {
-        setLoading(false);
+        setIsProcessing(false);
       }
     };
 
-    exchangeCodeForToken();
-  }, [router, session, sessionLoaded]);
+    processInstagramAuth();
+  }, [session, status, router]);
 
   return (
-    <div className="flex justify-center items-center h-screen">
-      {loading ? (
-        <div className="flex flex-col items-center">
-          <BeatLoader color="#3B82F6" size={15} />
-          <p className="mt-4 text-gray-600">
-            Processing Instagram token and fetching details...
-          </p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
+        <div className="text-center">
+          {isProcessing ? (
+            <>
+              <BeatLoader color="#3B82F6" size={15} />
+              <h2 className="mt-6 text-xl font-semibold text-gray-900">
+                Connecting to Instagram
+              </h2>
+              <p className="mt-2 text-sm text-gray-600">
+                Please wait while we process your authentication...
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-xl font-semibold text-gray-900">
+                Redirecting...
+              </h2>
+              <p className="mt-2 text-sm text-gray-600">
+                You will be redirected shortly
+              </p>
+            </>
+          )}
         </div>
-      ) : (
-        <p>Redirecting...</p>
-      )}
+      </div>
     </div>
   );
 }

@@ -25,7 +25,7 @@ export default function AutomationPage() {
     if (storedToken) {
       router.push("/dashboard/automation/create");
     } else {
-      handleInstagramLogin();
+      handleInstagramLogin("/dashboard/automation/create");
     }
   };
 
