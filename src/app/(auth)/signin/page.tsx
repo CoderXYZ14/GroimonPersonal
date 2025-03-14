@@ -1,6 +1,6 @@
 "use client";
 
-import { signIn, useSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShineBorder } from "@/components/magicui/shine-border";
@@ -10,7 +10,6 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 
 export default function SignIn() {
-  const { data: session } = useSession();
   const { theme } = useTheme();
 
   const handleSignIn = async (provider: "google" | "instagram") => {
@@ -29,7 +28,6 @@ export default function SignIn() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden">
-      {/* Animated background */}
       <div className="absolute inset-0 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-400/10 via-pink-300/5 to-transparent dark:from-purple-900/20 dark:via-pink-900/10 dark:to-transparent animate-pulse-slow"></div>
 

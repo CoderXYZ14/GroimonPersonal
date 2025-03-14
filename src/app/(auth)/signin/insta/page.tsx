@@ -128,7 +128,7 @@ export default function InstagramLink() {
               transition={{ delay: 0.4 }}
               className="text-center text-xs text-muted-foreground"
             >
-              We'll never post without your permission. View our{" "}
+              We&apos;ll never post without your permission. View our
               <Link
                 href="/privacy-policy"
                 className="text-purple-500 hover:text-purple-600 dark:text-purple-400 dark:hover:text-purple-300 transition-colors"
