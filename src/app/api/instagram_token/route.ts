@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       }
     );
 
-    const shortLivedAccessToken = response.data.access_token;
+    const shortLivedAccessToken = response?.data.access_token;
 
     const longLivedTokenResponse = await axios.get<InstagramTokenResponse>(
       `https://graph.instagram.com/access_token`,
@@ -47,18 +47,32 @@ export async function POST(req: Request) {
         },
       }
     );
-    const longLivedAccessToken = longLivedTokenResponse.data.access_token;
+    const longLivedAccessToken = longLivedTokenResponse?.data.access_token;
+
+    const detailsResponse = await axios.post("/api/insta_details", {
+      accessToken: longLivedAccessToken,
+    });
+
+    const { user_id, username } = detailsResponse.data;
 
     const user = await UserModel.findByIdAndUpdate(
       userId,
-      { accessToken: longLivedAccessToken },
-      { new: true }
+      {
+        instagramAccessToken: longLivedAccessToken,
+        instagramId: user_id,
+        instagramUsername: username,
+      },
+      {
+        new: true,
+        select:
+          "_id name email image provider instagramId instagramUsername instagramAccessToken",
+      }
     );
 
-    console.log("User's Instagram access token updated");
-    console.log(user);
-
-    return NextResponse.json(longLivedTokenResponse.data);
+    return NextResponse.json({
+      user,
+      tokenData: longLivedTokenResponse.data,
+    });
   } catch (error) {
     if (error instanceof AxiosError) {
       console.error(

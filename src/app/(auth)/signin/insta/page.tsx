@@ -9,7 +9,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Instagram } from "lucide-react";
-import { useEffect } from "react";
+import handleInstagramLogin from "@/hooks/handleInstagramLogin";
 
 export default function InstagramLink() {
   const { data: session } = useSession();
@@ -17,17 +17,12 @@ export default function InstagramLink() {
 
   const handleInstagramLink = async () => {
     try {
-      //   await signIn("instagram", {
-      //     callbackUrl: "/dashboard/automation",
-      //     redirect: true,
-      //   });
+      handleInstagramLogin();
     } catch (error) {
       console.error("Instagram Link Error:", error);
     }
   };
-  //   useEffect(() => {
-  //     console.log(session);
-  //   }, []);
+
   const lightModeColors = ["#FF9A9E", "#FAD0C4", "#A1C4FD", "#C2E9FB"];
   const darkModeColors = ["#FF6F61", "#FFD166", "#06D6A0", "#118AB2"];
 

@@ -154,7 +154,7 @@ async function sendDM(
 
     const user = automation.user as IUser;
 
-    if (!user.accessToken) {
+    if (!user.instagramAccessToken) {
       console.error(
         `Instagram access token not found for user ${user.name} (${user._id})`
       );
@@ -164,7 +164,7 @@ async function sendDM(
     const url = "https://graph.instagram.com/v22.0/me/messages";
 
     const headers = {
-      Authorization: `Bearer ${user.accessToken}`,
+      Authorization: `Bearer ${user.instagramAccessToken}`,
       "Content-Type": "application/json",
     };
 

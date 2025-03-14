@@ -5,12 +5,23 @@ import { useRouter } from "next/navigation";
 import axios, { AxiosError } from "axios";
 import { toast } from "sonner";
 import { BeatLoader } from "react-spinners";
+import { useSession } from "next-auth/react";
 
 export default function YourInstaToken() {
+  const { data: session } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
 
+  // First useEffect to handle session loading
   useEffect(() => {
+    if (session) {
+      setSessionLoaded(true);
+    }
+  }, [session]);
+  useEffect(() => {
+    if (!sessionLoaded) return;
+    //session.user
     const exchangeCodeForToken = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const authorizationCode = urlParams.get("code");
@@ -20,36 +31,20 @@ export default function YourInstaToken() {
         router.push("/dashboard/automation");
         return;
       }
-      const session_data = localStorage.getItem("session_data");
-      const userId = JSON.parse(session_data).id;
-      console.log("userId", userId);
+      const userId = session?.user?.id;
       try {
-        const tokenResponse = await axios.post("/api/instagram-token", {
+        const tokenResponse = await axios.post("/api/instagram_token", {
           code: authorizationCode,
           userId,
         });
 
-        const accessToken = tokenResponse.data.access_token;
-        console.log("accessToken", accessToken);
-        if (typeof window !== "undefined") {
-          localStorage.setItem("instagram_token", accessToken);
-        }
-
-        const detailsResponse = await axios.post("/api/insta_details", {
-          accessToken: accessToken,
-        });
-
-        console.log("detailsResponse", detailsResponse.data);
-        const { user_id, username } = detailsResponse.data;
-
-        if (typeof window !== "undefined") {
-          localStorage.setItem("instagram_user_id", user_id);
-          localStorage.setItem("instagram_username", username);
-        }
+        const { user, tokenData } = tokenResponse.data;
+        console.log("User data:", user);
+        console.log("Instagram token data:", tokenData);
 
         toast.success("Instagram details fetched successfully");
 
-        router.push("/dashboard/automation/create");
+        // router.push("/dashboard/automation/create");
       } catch (error) {
         if (error instanceof AxiosError) {
           toast.error(
@@ -61,14 +56,14 @@ export default function YourInstaToken() {
           toast.error("An unexpected error occurred");
           console.error("Unexpected Error:", error);
         }
-        router.push("/dashboard/automation");
+        // router.push("/dashboard/automation");
       } finally {
         setLoading(false);
       }
     };
 
     exchangeCodeForToken();
-  }, [router]);
+  }, [router, session, sessionLoaded]);
 
   return (
     <div className="flex justify-center items-center h-screen">
