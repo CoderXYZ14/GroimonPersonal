@@ -23,11 +23,11 @@ export default function YourInstaToken() {
     const processInstagramAuth = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const authorizationCode = urlParams.get("code");
-      const redirectPath = urlParams.get("redirect") || "/dashboard/automation";
+      const redirectPath = urlParams.get("redirect");
 
       if (!authorizationCode) {
         toast.error("Authorization code not found");
-        router.push(redirectPath);
+        router.push("/dashboard/automation");
         return;
       }
 
