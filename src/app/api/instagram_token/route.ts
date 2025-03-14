@@ -49,10 +49,13 @@ export async function POST(req: Request) {
     );
     const longLivedAccessToken = longLivedTokenResponse?.data.access_token;
 
-    const detailsResponse = await axios.post("/api/insta_details", {
-      accessToken: longLivedAccessToken,
-    });
-
+    const detailsResponse = await axios.post(
+      `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/api/insta_details`,
+      {
+        accessToken: longLivedAccessToken,
+      }
+    );
+    console.log("detailsResponse", detailsResponse);
     const { user_id, username } = detailsResponse.data;
 
     const user = await UserModel.findByIdAndUpdate(
