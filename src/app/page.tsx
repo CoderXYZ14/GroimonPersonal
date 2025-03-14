@@ -10,33 +10,35 @@ export default function Home() {
       <Header />
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative overflow-hidden py-20 md:py-32 bg-white dark:bg-transparent">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-400/20 via-pink-300/10 to-transparent dark:from-purple-900/30 dark:via-pink-900/20 dark:to-transparent"></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[radial-gradient(circle,_var(--tw-gradient-stops))] from-purple-500/20 to-transparent rounded-full blur-3xl"></div>
+        <section className="relative overflow-hidden py-32 md:py-40 bg-white/50 dark:bg-black/50">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-violet-500/10 via-fuchsia-400/5 to-transparent dark:from-violet-900/20 dark:via-fuchsia-900/10 dark:to-transparent"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[conic-gradient(from_0deg,_var(--tw-gradient-stops))] from-violet-500/20 via-fuchsia-500/10 to-transparent rounded-full blur-3xl"></div>
           <div className="container relative z-10 mx-auto px-4 text-center">
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-500">
-              Automate Your Instagram Engagement
+            <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-8 bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-fuchsia-500 leading-tight">
+              Automate Your Instagram
+              <br />
+              Engagement
             </h1>
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-10">
+            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed">
               Automatically respond to comments and send personalized DMs to
               boost your Instagram presence and save hours of manual work.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center mb-20">
               <Link href="/dashboard/automation">
-                <Button className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white text-lg py-6 px-8">
+                <Button className="bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 text-white text-lg py-7 px-10 rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
                   Start Free Trial
                 </Button>
               </Link>
               <Link href="/dashboard/automation">
                 <Button
                   variant="outline"
-                  className="text-lg py-6 px-8 bg-white dark:bg-transparent"
+                  className="text-lg py-7 px-10 rounded-full bg-white/80 dark:bg-black/50 backdrop-blur-sm border-2 hover:bg-white/90 dark:hover:bg-black/60 transition-all duration-300"
                 >
                   Watch Demo
                 </Button>
               </Link>
             </div>
-            <div className="relative mx-auto max-w-4xl rounded-xl border bg-white dark:bg-background p-2 shadow-xl">
+            <div className="relative mx-auto max-w-4xl rounded-2xl border bg-white/70 dark:bg-black/50 backdrop-blur-sm p-3 shadow-2xl">
               <div className="rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-6">
                 <div className="flex flex-col gap-4 rounded-md bg-white dark:bg-background p-4 shadow-sm">
                   <div className="flex items-center gap-2 text-purple-500">
@@ -64,9 +66,12 @@ export default function Home() {
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-20 bg-white dark:bg-muted/30">
+        <section
+          id="features"
+          className="py-32 bg-gradient-to-b from-white to-gray-50 dark:from-black dark:to-gray-950"
+        >
           <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-fuchsia-500">
               Powerful Automation Features
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-16">
@@ -111,7 +116,10 @@ export default function Home() {
         </section>
 
         {/* How It Works */}
-        <section id="how-it-works" className="py-20">
+        <section
+          id="how-it-works"
+          className="py-32 bg-white/50 dark:bg-black/50"
+        >
           <div className="container mx-auto px-4">
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
               How It Works
@@ -223,8 +231,8 @@ export default function Home() {
         </section> */}
 
         {/* CTA Section */}
-        <section className="py-20 relative overflow-hidden bg-white dark:bg-transparent">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-purple-400/20 via-pink-300/10 to-transparent dark:from-purple-900/30 dark:via-pink-900/20 dark:to-transparent"></div>
+        <section className="py-32 relative overflow-hidden bg-white/80 dark:bg-black/80">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom,_var(--tw-gradient-stops))] from-violet-500/20 via-fuchsia-400/10 to-transparent dark:from-violet-900/30 dark:via-fuchsia-900/20 dark:to-transparent"></div>
           <div className="container relative z-10 mx-auto px-4 text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Ready to Automate Your Instagram?

@@ -25,19 +25,45 @@ const AvatarDropdown = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
-          <AvatarImage src={session?.user?.image || ""} />
-          <AvatarFallback>
+        <Avatar className="h-9 w-9 cursor-pointer ring-offset-background transition-all duration-300 hover:scale-105 hover:shadow-md">
+          <AvatarImage
+            src={session?.user?.image || ""}
+            className="object-cover"
+            loading="lazy"
+          />
+          <AvatarFallback className="bg-gradient-to-r from-purple-600 to-pink-500 dark:from-purple-400 dark:to-pink-400 text-white animate-in zoom-in">
             {session?.user?.name?.charAt(0) || "U"}
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-48 bg-background border border-gray-200 rounded-lg shadow-lg">
+      <DropdownMenuContent
+        align="end"
+        className="w-56 mt-2 p-2 bg-white/80 dark:bg-gray-950/80 backdrop-blur-lg border border-border/40 rounded-xl shadow-lg animate-in slide-in-from-top-2 duration-200"
+      >
+        <div className="px-2 py-2 mb-2 border-b border-border/40">
+          <p className="text-sm font-medium text-foreground">
+            {session?.user?.name}
+          </p>
+          <p className="text-xs text-muted-foreground truncate">
+            {session?.user?.email}
+          </p>
+        </div>
+
+        <DropdownMenuItem className="flex items-center gap-2 cursor-pointer text-sm text-foreground hover:text-foreground/90 px-2 py-2 rounded-md hover:bg-muted/50 transition-colors">
+          <div className="flex-1">Profile</div>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem className="flex items-center gap-2 cursor-pointer text-sm text-foreground hover:text-foreground/90 px-2 py-2 rounded-md hover:bg-muted/50 transition-colors">
+          <div className="flex-1">Settings</div>
+        </DropdownMenuItem>
+
+        <div className="h-px bg-border/40 my-2" />
+
         <DropdownMenuItem
           onClick={handleSignOut}
-          className="cursor-pointer text-sm text-gray-700 hover:bg-gray-100 p-2"
+          className="flex items-center gap-2 cursor-pointer text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 px-2 py-2 rounded-md hover:bg-red-50/50 dark:hover:bg-red-950/50 transition-colors"
         >
-          Logout
+          <div className="flex-1">Logout</div>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
