@@ -209,26 +209,35 @@ async function sendDM(
       `Attempting to send DM to user ${comment.from.username} (${comment.from.id}) for automation "${automationName}"`
     );
 
-    const response = await axios.post(url, body, { headers });
+    try {
+      const response = await axios.post(url, body, { headers });
+      console.log(
+        `DM sent successfully to ${comment.from.username} with message: "${message}"`
+      );
+      return response.data;
+    } catch (error) {
+      if (
+        error.response?.data?.error?.code === 10 &&
+        error.response?.data?.error?.error_subcode === 2534022
+      ) {
+        console.log(
+          `Cannot send DM to ${comment.from.username}: Outside 24-hour messaging window`
+        );
+        // Handle gracefully - maybe store this in a queue or mark for follow-up
+        return null;
+      }
 
-    console.log(
-      `DM sent successfully to ${comment.from.username} with message: "${message}"`
-    );
-
-    console.log(response.data);
-
-    return response.data;
-  } catch (error) {
-    console.error("Error sending Instagram DM:");
-
-    if (error.response) {
-      console.error("Error response:", error.response.data);
-    } else if (error.request) {
-      console.error("No response received:", error.request);
-    } else {
-      console.error("Error:", error.message);
+      // For other errors, log and rethrow
+      console.error("Error sending Instagram DM:", {
+        username: comment.from.username,
+        errorMessage: error.response?.data?.error?.message || error.message,
+        errorCode: error.response?.data?.error?.code,
+        errorSubcode: error.response?.data?.error?.error_subcode,
+      });
+      throw error;
     }
-
+  } catch (error) {
+    console.error("Error in sendDM function:", error);
     throw error;
   }
 }
