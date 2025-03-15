@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { usePostAutomation } from "@/hooks/usePostAutomation";
+import axios from "axios";
 
 interface Automation {
   _id: string;
@@ -49,12 +50,9 @@ export function AutomationTable() {
           return;
         }
 
-        const response = await fetch(
-          `/api/automations?userId=${userDetails._id}`
-        );
-        if (!response.ok) throw new Error("Failed to fetch automations");
-
-        const data = await response.json();
+        const { data } = await axios.get(`/api/automations`, {
+          params: { userId: userDetails._id },
+        });
         setAutomations(data);
       } catch (error) {
         console.error("Error:", error);
@@ -80,13 +78,9 @@ export function AutomationTable() {
     }
 
     try {
-      const response = await fetch(`/api/automations/${id}`, {
-        method: "DELETE",
+      await axios.delete(`/api/automations`, {
+        params: { id },
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete automation");
-      }
 
       setAutomations((prev) => prev.filter((auto) => auto._id !== id));
     } catch (error) {
