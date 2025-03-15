@@ -6,8 +6,6 @@ import { AutomationStats } from "@/components/AutomationStats";
 import { AutomationTabs } from "@/components/AutomationTabs";
 import { useRouter } from "next/navigation";
 import handleInstagramLogin from "@/hooks/handleInstagramLogin";
-import { useSession } from "next-auth/react";
-import { useEffect } from "react";
 
 export default function AutomationPage() {
   const router = useRouter();
