@@ -7,7 +7,7 @@ export interface IAutomation extends Document {
   keywords: string[];
   message: string;
   enableCommentAutomation: boolean;
-  commentMessage: string;
+  commentMessage?: string;
   isFollowed: boolean;
   user: mongoose.Types.ObjectId | IUser;
 }

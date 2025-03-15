@@ -5,7 +5,7 @@ import AutomationModel from "@/models/Automation";
 import axios from "axios";
 import { IUser } from "@/models/User";
 import "../../../models/User";
-// Instagram comment webhook data type
+
 interface InstagramComment {
   id: string;
   from: {
@@ -16,6 +16,15 @@ interface InstagramComment {
     id: string;
   };
   text: string;
+}
+
+interface IAutomation {
+  _id: { toString: () => string };
+  name: string;
+  keywords: string[];
+  message: string;
+  postIds: string[];
+  user: IUser;
 }
 
 export async function GET(request: NextRequest) {
@@ -82,15 +91,22 @@ async function processComment(comment: InstagramComment) {
 
     console.log(`Found ${automations.length} automations for this post`);
 
-    // Check each automation for keyword matches
     for (const automation of automations) {
-      // Skip if no keywords are defined
+      if (
+        typeof automation.user === "object" &&
+        "instagramId" in automation.user
+      ) {
+        if (automation.user.instagramId === comment.from.id) {
+          console.log(`Skipping automation as comment is from the post owner`);
+          continue;
+        }
+      }
+
       if (!automation.keywords || automation.keywords.length === 0) {
         console.log(`Automation ${automation.name} has no keywords, skipping`);
         continue;
       }
 
-      // Check if comment text contains any of the keywords (case insensitive)
       const commentText = comment.text.toLowerCase();
       const matchedKeyword = automation.keywords.find((keyword) =>
         commentText.includes(keyword.toLowerCase())
@@ -101,10 +117,9 @@ async function processComment(comment: InstagramComment) {
           `Keyword match found: "${matchedKeyword}" in automation "${automation.name}"`
         );
 
-        // Send the DM with the message from the automation
-        await sendDM(
+        await handleAutomationResponse(
           comment,
-          automation.message,
+          automation as IAutomation,
           automation.name,
           automation._id.toString()
         );
@@ -118,6 +133,28 @@ async function processComment(comment: InstagramComment) {
     console.error("Error processing comment:", error);
   }
 }
+
+async function handleAutomationResponse(
+  comment: InstagramComment,
+  automation: IAutomation,
+  automationName: string,
+  automationId: string
+) {
+  try {
+    const user = automation.user as IUser;
+
+    if (!user.instagramAccessToken) {
+      console.error(`Instagram access token not found for user ${user.name}`);
+      return;
+    }
+
+    await sendDM(comment, automation.message, automationName, automationId);
+  } catch (error) {
+    console.error("Error handling automation response:", error);
+    throw error;
+  }
+}
+
 async function sendDM(
   comment: InstagramComment,
   message: string,
@@ -125,10 +162,8 @@ async function sendDM(
   automationId: string
 ) {
   try {
-    // Ensure database is connected
     await dbConnect();
 
-    // Find the automation with populated user data
     const automation = await AutomationModel.findById(automationId).populate(
       "user"
     );
@@ -174,28 +209,26 @@ async function sendDM(
       `Attempting to send DM to user ${comment.from.username} (${comment.from.id}) for automation "${automationName}"`
     );
 
-    // Send the DM using axios
     const response = await axios.post(url, body, { headers });
 
     console.log(
       `DM sent successfully to ${comment.from.username} with message: "${message}"`
     );
 
+    console.log(response.data);
+
     return response.data;
   } catch (error) {
-    console.error("Error sending Instagram DM:", error);
+    console.error("Error sending Instagram DM:");
 
-    // Safer error handling
     if (error.response) {
-      console.error("Error status:", error.response.status);
-      console.error("Error details:", error.response.data);
+      console.error("Error response:", error.response.data);
     } else if (error.request) {
       console.error("No response received:", error.request);
     } else {
-      console.error("Error message:", error.message);
+      console.error("Error:", error.message);
     }
 
-    // Rethrow or return the error
     throw error;
   }
 }
