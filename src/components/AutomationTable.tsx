@@ -62,7 +62,7 @@ export function AutomationTable() {
     };
 
     fetchAutomations();
-  }, []);
+  }, [setAutomations]);
 
   const filteredAutomations = automations.filter(
     (automation) =>
