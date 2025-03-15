@@ -23,6 +23,8 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Switch } from "@/components/ui/switch";
+import axios from "axios";
 
 const formSchema = z.object({
   name: z
@@ -33,22 +35,40 @@ const formSchema = z.object({
   postId: z.string().optional(),
   keywords: z.string().min(1, "At least one keyword is required"),
   message: z.string().min(1, "Message template is required"),
+  enableCommentAutomation: z.boolean(),
+  commentMessage: z.string().min(1, "Comment message is required"),
+  isFollowed: z.boolean().default(false),
 });
 
+interface InstagramMediaItem {
+  id: string;
+  media_type: string;
+  media_url: string;
+  thumbnail_url?: string;
+  caption?: string;
+  timestamp: string;
+}
+
+interface MediaItem {
+  id: string;
+  title: string;
+  mediaUrl: string;
+  mediaType: string;
+  thumbnailUrl?: string;
+  timestamp: string;
+}
+
+interface InstagramMediaResponse {
+  data: InstagramMediaItem[];
+}
+
 export function CreateAutomationForm() {
-  interface MediaItem {
-    id: string;
-    title: string;
-    mediaUrl: string;
-    mediaType: string;
-    thumbnailUrl?: string;
-    timestamp: string;
-  }
   const router = useRouter();
   const [selectPostOpen, setSelectPostOpen] = useState(true);
   const [dmTypeOpen, setDmTypeOpen] = useState(true);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [commentAutomationOpen, setCommentAutomationOpen] = useState(false);
 
   const toggleSelectPost = () => {
     setSelectPostOpen(!selectPostOpen);
@@ -56,6 +76,10 @@ export function CreateAutomationForm() {
 
   const toggleDmType = () => {
     setDmTypeOpen(!dmTypeOpen);
+  };
+
+  const toggleCommentAutomation = () => {
+    setCommentAutomationOpen(!commentAutomationOpen);
   };
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -66,6 +90,9 @@ export function CreateAutomationForm() {
       postId: "",
       keywords: "",
       message: "",
+      enableCommentAutomation: false,
+      commentMessage: "",
+      isFollowed: false,
     },
   });
 
@@ -97,17 +124,6 @@ export function CreateAutomationForm() {
           throw new Error(`Failed to fetch media: ${response.statusText}`);
         }
 
-        interface InstagramMediaItem {
-          id: string;
-          media_type: string;
-          media_url: string;
-          thumbnail_url?: string;
-          caption?: string;
-          timestamp: string;
-        }
-        interface InstagramMediaResponse {
-          data: InstagramMediaItem[];
-        }
         const data: InstagramMediaResponse = await response.json();
         setMedia(
           data.data.map((item: InstagramMediaItem) => ({
@@ -148,7 +164,6 @@ export function CreateAutomationForm() {
       }
 
       const userDetail = JSON.parse(localStorage.getItem("user_details"));
-
       const userId = userDetail?._id;
 
       if (!userId) {
@@ -156,27 +171,24 @@ export function CreateAutomationForm() {
         return;
       }
 
-      const response = await fetch("/api/automations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...values,
-          postIds,
-          keywords: values.keywords.split(",").map((k) => k.trim()),
-          user: userId,
-        }),
+      await axios.post("/api/automations", {
+        ...values,
+        postIds,
+        keywords: values.keywords.split(",").map((k) => k.trim()),
+        user: userId,
       });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create automation");
-      }
+
       toast.success("Automation created successfully!");
       router.push("/dashboard/automation");
     } catch (error) {
       console.error("Error creating automation:", error);
-      toast.error(error.message || "Failed to create automation");
+      if (axios.isAxiosError(error)) {
+        toast.error(
+          error.response?.data?.message || "Failed to create automation"
+        );
+      } else {
+        toast.error("Failed to create automation");
+      }
     }
   }
 
@@ -191,7 +203,6 @@ export function CreateAutomationForm() {
     <div className="w-full">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          {/* Header with name and buttons */}
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
             <FormField
               control={form.control}
@@ -428,6 +439,100 @@ export function CreateAutomationForm() {
                       <FormControl>
                         <Textarea
                           placeholder="Enter the message to send as an auto-reply"
+                          className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[120px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Is Followed Check section */}
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium">Follow Check</h2>
+            </div>
+
+            <FormField
+              control={form.control}
+              name="isFollowed"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">
+                      Check if User is Following
+                    </Label>
+                    <FormDescription>
+                      Only respond to users who follow your account
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Comment Automation section */}
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium">Comment Automation</h2>
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-green-500 flex items-center"
+                onClick={toggleCommentAutomation}
+              >
+                Comment Template
+                {commentAutomationOpen ? (
+                  <ChevronUp className="w-4 h-4 ml-1" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 ml-1" />
+                )}
+              </Button>
+            </div>
+
+            <FormField
+              control={form.control}
+              name="enableCommentAutomation"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">
+                      Enable Comment Automation
+                    </Label>
+                    <FormDescription>
+                      Automatically respond to comments on your posts
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {commentAutomationOpen && form.watch("enableCommentAutomation") && (
+              <div className="mt-4">
+                <FormField
+                  control={form.control}
+                  name="commentMessage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Enter the message to reply to comments"
                           className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[120px]"
                           {...field}
                         />
