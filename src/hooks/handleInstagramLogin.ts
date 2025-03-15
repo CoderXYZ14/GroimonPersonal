@@ -5,6 +5,7 @@ const handleInstagramLogin = (redirectAfterAuth?: string) => {
   const baseRedirectUri = `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/your_insta_token`;
 
   // Add the redirect path as a query parameter
+  console.log("redirect url", redirectAfterAuth);
   const finalRedirectUri = redirectAfterAuth
     ? `${baseRedirectUri}?redirect=${encodeURIComponent(redirectAfterAuth)}`
     : baseRedirectUri;
