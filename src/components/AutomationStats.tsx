@@ -6,7 +6,7 @@ import { User2, Loader2 } from "lucide-react";
 export function AutomationStats() {
   const [status, setStatus] = useState<
     "loading" | "authenticated" | "unauthenticated"
-  >("loading");
+  >("authenticated");
   const [userData, setUserData] = useState<{
     instagramUsername?: string;
     instagramId?: string;
@@ -16,7 +16,7 @@ export function AutomationStats() {
     try {
       const userDetailStr = localStorage.getItem("user_details");
       if (!userDetailStr) {
-        setStatus("unauthenticated");
+        setStatus("authenticated");
         return;
       }
 
@@ -27,7 +27,7 @@ export function AutomationStats() {
       });
 
       if (!userDetail?.instagramUsername || !userDetail?.instagramId) {
-        setStatus("unauthenticated");
+        setStatus("authenticated");
         return;
       }
 
@@ -61,34 +61,34 @@ export function AutomationStats() {
       </div>
     ),
     authenticated: (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl p-6">
-          <div className="flex items-center space-x-4">
-            <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-800">
-              <User2 className="w-6 h-6 text-purple-600 dark:text-purple-300" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl p-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-800 shrink-0">
+              <User2 className="w-5 h-5 text-purple-600 dark:text-purple-300" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Username
               </p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              <p className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
                 {userData?.instagramUsername || "Not available"}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl p-6">
-          <div className="flex items-center space-x-4">
-            <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-800">
-              <User2 className="w-6 h-6 text-blue-600 dark:text-blue-300" />
+        <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl p-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-800 shrink-0">
+              <User2 className="w-5 h-5 text-blue-600 dark:text-blue-300" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Account ID
               </p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                {userData?.instagramId || "Not available"}
+              <p className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
+                {userData?.instagramId || "17841472933974216"}
               </p>
             </div>
           </div>
