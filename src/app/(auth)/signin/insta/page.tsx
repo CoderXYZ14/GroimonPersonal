@@ -17,7 +17,7 @@ export default function InstagramLink() {
 
   const handleInstagramLink = async () => {
     try {
-      handleInstagramLogin("/dashboard/automation");
+      handleInstagramLogin();
     } catch (error) {
       console.error("Instagram Link Error:", error);
     }

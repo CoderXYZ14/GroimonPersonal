@@ -23,7 +23,6 @@ export default function YourInstaToken() {
     const processInstagramAuth = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const authorizationCode = urlParams.get("code");
-      const redirectPath = urlParams.get("redirect");
 
       if (!authorizationCode) {
         toast.error("Authorization code not found");
@@ -43,7 +42,7 @@ export default function YourInstaToken() {
         localStorage.setItem("instagram_token", data.tokenData.access_token);
 
         toast.success("Successfully connected to Instagram");
-        router.push(redirectPath);
+        router.push("/dashboard/automation");
       } catch (error) {
         const errorMessage =
           error instanceof AxiosError
@@ -52,7 +51,7 @@ export default function YourInstaToken() {
 
         toast.error(errorMessage);
         console.error("Instagram authentication error:", error);
-        router.push(redirectPath);
+        router.push("/dashboard/automation");
       } finally {
         setIsProcessing(false);
       }
