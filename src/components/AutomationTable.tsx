@@ -25,6 +25,9 @@ interface Automation {
   postIds: string[];
   keywords: string[];
   message: string;
+  enableCommentAutomation: boolean;
+  commentMessage: string;
+  isFollowed: boolean;
   createdAt: string;
 }
 
@@ -70,6 +73,26 @@ export function AutomationTable() {
         keyword.toLowerCase().includes(searchTerm.toLowerCase())
       )
   );
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this automation?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/automations/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete automation");
+      }
+
+      setAutomations((prev) => prev.filter((auto) => auto._id !== id));
+    } catch (error) {
+      console.error("Error deleting automation:", error);
+    }
+  };
 
   if (loading) {
     return (
@@ -157,7 +180,10 @@ export function AutomationTable() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-[120px]">
                   <DropdownMenuItem className="text-xs">Edit</DropdownMenuItem>
-                  <DropdownMenuItem className="text-xs text-red-600">
+                  <DropdownMenuItem
+                    className="text-xs text-red-600"
+                    onClick={() => handleDelete(automation._id)}
+                  >
                     Delete
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -195,6 +221,30 @@ export function AutomationTable() {
                   ))}
                 </div>
               </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                  Comment Automation
+                </p>
+                <div className="flex flex-col gap-1">
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center w-fit ${
+                      automation.enableCommentAutomation
+                        ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                        : "bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300"
+                    }`}
+                  >
+                    {automation.enableCommentAutomation
+                      ? "Comments On"
+                      : "Comments Off"}
+                  </span>
+                  {automation.enableCommentAutomation &&
+                    automation.commentMessage && (
+                      <p className="text-xs text-gray-600 dark:text-gray-300">
+                        Comment: {automation.commentMessage}
+                      </p>
+                    )}
+                </div>
+              </div>
             </div>
           </div>
         ))}
@@ -218,6 +268,9 @@ export function AutomationTable() {
                 </TableHead>
                 <TableHead className="font-medium text-xs py-3">
                   Message
+                </TableHead>
+                <TableHead className="font-medium text-xs py-3">
+                  Comment Status
                 </TableHead>
                 <TableHead className="w-[40px]"></TableHead>
               </TableRow>
@@ -262,6 +315,27 @@ export function AutomationTable() {
                     {automation.message}
                   </TableCell>
                   <TableCell className="py-2">
+                    <div className="flex flex-col gap-1">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center w-fit ${
+                          automation.enableCommentAutomation
+                            ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                            : "bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        {automation.enableCommentAutomation
+                          ? "Comments On"
+                          : "Comments Off"}
+                      </span>
+                      {automation.enableCommentAutomation &&
+                        automation.commentMessage && (
+                          <span className="text-xs text-gray-600 dark:text-gray-300 truncate max-w-[150px]">
+                            {automation.commentMessage}
+                          </span>
+                        )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-2">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm" className="h-7 w-7">
@@ -272,7 +346,10 @@ export function AutomationTable() {
                         <DropdownMenuItem className="text-xs">
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-xs text-red-600">
+                        <DropdownMenuItem
+                          className="text-xs text-red-600"
+                          onClick={() => handleDelete(automation._id)}
+                        >
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>

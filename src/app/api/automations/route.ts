@@ -103,3 +103,41 @@ export async function GET(request: Request) {
     );
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    await dbConnect();
+
+    const url = new URL(request.url);
+    const id = url.searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { message: "Automation ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const automation = await AutomationModel.findById(id);
+    if (!automation) {
+      return NextResponse.json(
+        { message: "Automation not found" },
+        { status: 404 }
+      );
+    }
+
+    await UserModel.findByIdAndUpdate(automation.user, {
+      $pull: { automations: id },
+    });
+
+    await automation.deleteOne();
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error) {
+    console.error("Error deleting automation:", error);
+    return NextResponse.json(
+      { error: "Failed to delete automation" },
+      { status: 500 }
+    );
+  }
+}
