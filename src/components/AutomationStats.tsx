@@ -1,101 +1,101 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import axios from "axios";
-
-interface CreatorData {
-  id: string;
-  username: string;
-}
+import { User2, Loader2 } from "lucide-react";
 
 export function AutomationStats() {
-  const [creatorData, setCreatorData] = useState<CreatorData | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [status, setStatus] = useState<
+    "loading" | "authenticated" | "unauthenticated"
+  >("loading");
+  const [userData, setUserData] = useState<{
+    instagramUsername?: string;
+    instagramId?: string;
+  } | null>(null);
 
   useEffect(() => {
-    const fetchCreatorData = async () => {
-      try {
-        const token = localStorage.getItem("instagram_token");
-        if (!token) {
-          setIsLoggedIn(false);
-          console.log("No Instagram token found in localStorage");
-          return;
-        }
-
-        setIsLoggedIn(true);
-
-        const response = await axios.get("/api/fetch-creator-data", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        console.log("Creator Data:", response.data);
-        setCreatorData(response.data);
-      } catch (error) {
-        console.error("Error fetching creator data:", error);
-        setIsLoggedIn(false); // In case of error, consider the user not logged in.
+    try {
+      const userDetailStr = localStorage.getItem("user_details");
+      if (!userDetailStr) {
+        setStatus("unauthenticated");
+        return;
       }
-    };
 
-    fetchCreatorData();
+      const userDetail = JSON.parse(userDetailStr);
+      setUserData({
+        instagramUsername: userDetail?.instagramUsername,
+        instagramId: userDetail?.instagramId,
+      });
+
+      if (!userDetail?.instagramUsername || !userDetail?.instagramId) {
+        setStatus("unauthenticated");
+        return;
+      }
+
+      setStatus("authenticated");
+    } catch (error) {
+      console.error("Error reading user details:", error);
+      setStatus("unauthenticated");
+    }
   }, []);
 
-  if (isLoggedIn === null) {
-    return (
-      <div className="flex items-center justify-center p-6 text-gray-500 dark:text-gray-400">
-        <div className="flex flex-col items-center">
-          <div className="w-8 h-8 border-4 border-t-purple-500 border-b-purple-300 border-l-purple-300 border-r-purple-300 rounded-full animate-spin mb-3"></div>
-          Loading...
-        </div>
+  const renderContent = {
+    loading: (
+      <div className="flex items-center justify-center h-40 text-gray-500 dark:text-gray-400">
+        <Loader2 className="w-6 h-6 animate-spin mr-2" />
+        <span>Loading creator data...</span>
       </div>
-    );
-  }
-
-  if (!isLoggedIn) {
-    return (
-      <div className="flex items-center justify-center p-6 text-gray-500 dark:text-gray-400">
-        <div className="flex flex-col items-center">
-          <h3 className="text-lg font-medium text-purple-700 dark:text-purple-300 mb-2">
-            Please log in
+    ),
+    unauthenticated: (
+      <div className="flex flex-col items-center justify-center h-40 space-y-4">
+        <div className="p-4 rounded-full bg-purple-100 dark:bg-purple-900/30">
+          <User2 className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+        </div>
+        <div className="text-center">
+          <h3 className="text-lg font-medium text-purple-700 dark:text-purple-300">
+            Instagram Account Required
           </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Connect your Instagram account to get started
+          </p>
         </div>
       </div>
-    );
-  }
-
-  return (
-    <div className="w-full">
-      {creatorData ? (
-        <div className="flex flex-col sm:flex-row gap-4 p-2">
-          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 flex-1">
-            <h3 className="text-lg font-medium text-purple-700 dark:text-purple-300 mb-2">
-              Creator Data
-            </h3>
-            <div className="space-y-2">
-              <p className="flex justify-between">
-                <span className="text-gray-500 dark:text-gray-400">
-                  Username:
-                </span>
-                <span className="font-medium">
-                  {creatorData.username || "Coderxyz"}
-                </span>
+    ),
+    authenticated: (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl p-6">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-800">
+              <User2 className="w-6 h-6 text-purple-600 dark:text-purple-300" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Username
               </p>
-              <p className="flex justify-between">
-                <span className="text-gray-500 dark:text-gray-400">ID:</span>
-                <span className="font-medium">{creatorData.id}</span>
+              <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {userData?.instagramUsername || "Not available"}
               </p>
             </div>
           </div>
         </div>
-      ) : (
-        <div className="flex items-center justify-center p-6 text-gray-500 dark:text-gray-400">
-          <div className="flex flex-col items-center">
-            <div className="w-8 h-8 border-4 border-t-purple-500 border-b-purple-300 border-l-purple-300 border-r-purple-300 rounded-full animate-spin mb-3"></div>
-            Loading creator data...
+
+        <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl p-6">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-800">
+              <User2 className="w-6 h-6 text-blue-600 dark:text-blue-300" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Account ID
+              </p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {userData?.instagramId || "Not available"}
+              </p>
+            </div>
           </div>
         </div>
-      )}
-    </div>
-  );
+      </div>
+    ),
+  };
+
+  return <div className="w-full">{renderContent[status]}</div>;
 }
