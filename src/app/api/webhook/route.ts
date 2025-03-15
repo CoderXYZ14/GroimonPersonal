@@ -25,6 +25,9 @@ interface IAutomation {
   message: string;
   postIds: string[];
   user: IUser;
+  enableCommentAutomation: boolean;
+  commentMessage: string;
+  isFollowed: boolean;
 }
 
 export async function GET(request: NextRequest) {
@@ -148,9 +151,58 @@ async function handleAutomationResponse(
       return;
     }
 
+    if (automation.enableCommentAutomation && automation.commentMessage) {
+      await replyToComment(
+        comment,
+        automation.commentMessage,
+        user.instagramAccessToken
+      );
+    }
+
     await sendDM(comment, automation.message, automationName, automationId);
   } catch (error) {
     console.error("Error handling automation response:", error);
+    throw error;
+  }
+}
+
+async function replyToComment(
+  comment: InstagramComment,
+  message: string,
+  accessToken: string
+) {
+  try {
+    const url = `https://graph.instagram.com/v22.0/${comment.id}/replies`;
+
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    };
+
+    const body = {
+      message: message,
+    };
+
+    console.log(
+      `Attempting to reply to comment from user ${comment.from.username} (${comment.from.id})`
+    );
+
+    try {
+      const response = await axios.post(url, body, { headers });
+      console.log(
+        `Reply sent successfully to ${comment.from.username}'s comment with message: "${message}"`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error replying to Instagram comment:", {
+        username: comment.from.username,
+        errorMessage: error.response?.data?.error?.message || error.message,
+        errorCode: error.response?.data?.error?.code,
+      });
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error in replyToComment function:", error);
     throw error;
   }
 }
@@ -227,7 +279,6 @@ async function sendDM(
         return null;
       }
 
-      // For other errors, log and rethrow
       console.error("Error sending Instagram DM:", {
         username: comment.from.username,
         errorMessage: error.response?.data?.error?.message || error.message,
