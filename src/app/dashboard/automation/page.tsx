@@ -1,26 +1,13 @@
 "use client";
-
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AutomationStats } from "@/components/AutomationStats";
 import { AutomationTabs } from "@/components/AutomationTabs";
-import { useRouter } from "next/navigation";
-import handleInstagramLogin from "@/hooks/handleInstagramLogin";
+
+import { usePostAutomation } from "@/hooks/usePostAutomation";
 
 export default function AutomationPage() {
-  const router = useRouter();
-
-  const handlePostAutomation = async () => {
-    const userDetail = JSON.parse(localStorage.getItem("user_details"));
-    const instagramAccessToken = userDetail?.instagramAccessToken;
-
-    if (instagramAccessToken) {
-      router.push("/dashboard/automation/create");
-    } else {
-      handleInstagramLogin();
-    }
-  };
-
+  const handlePostAutomation = usePostAutomation();
   return (
     <div className=" bg-[#fafafa] dark:bg-gray-900">
       <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 via-white to-blue-50/50 dark:from-purple-900/20 dark:via-gray-900 dark:to-blue-900/20 pointer-events-none" />

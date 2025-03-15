@@ -1,5 +1,5 @@
 "use client";
-import { MoreHorizontal, Plus } from "lucide-react";
+import { MoreHorizontal, Plus, Loader2, Search } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,11 +14,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
-
-import Link from "next/link";
+import { usePostAutomation } from "@/hooks/usePostAutomation";
 
 interface Automation {
   _id: string;
@@ -31,36 +30,31 @@ interface Automation {
 
 export function AutomationTable() {
   const [automations, setAutomations] = useState<Automation[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Fetch automations for the current user
+  const handlePostAutomation = usePostAutomation();
+
   useEffect(() => {
     const fetchAutomations = async () => {
       try {
-        setLoading(true);
-        // For the GET request
-        const session_data = JSON.parse(
+        const sessionData = JSON.parse(
           localStorage.getItem("session_data") || "{}"
         );
-        const userId = session_data?.id;
-
-        // Check if userId exists
-        if (!userId) {
-          console.error("User ID not found in session data");
-          // Handle the error appropriately
+        if (!sessionData?.id) {
+          console.error("User ID not found");
           return;
         }
 
-        // Use a query parameter instead of a header
-        const response = await fetch(`/api/automations?userId=${userId}`);
+        const response = await fetch(
+          `/api/automations?userId=${sessionData.id}`
+        );
+        if (!response.ok) throw new Error("Failed to fetch automations");
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch automations");
-        }
         const data = await response.json();
         setAutomations(data);
       } catch (error) {
-        console.error("Error fetching automations:", error);
+        console.error("Error:", error);
       } finally {
         setLoading(false);
       }
@@ -69,91 +63,132 @@ export function AutomationTable() {
     fetchAutomations();
   }, []);
 
-  const generateRandomPostId = () => {
-    return Math.floor(10000000 + Math.random() * 90000000).toString();
-  };
+  const filteredAutomations = automations.filter(
+    (automation) =>
+      automation.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      automation.keywords.some((keyword) =>
+        keyword.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+  );
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="w-8 h-8 border-4 border-t-purple-500 border-b-purple-300 border-l-purple-300 border-r-purple-300 rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center ">
+        <div className="flex flex-col items-center gap-1.5">
+          <Loader2 className="h-6 w-6 animate-spin text-purple-500" />
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Loading automations...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (automations.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center  px-4">
+        <div className="relative">
+          <div className="absolute -inset-3 rounded-full bg-gradient-to-r from-purple-600/20 to-pink-600/20 blur-lg opacity-75" />
+          <div className="relative bg-white dark:bg-gray-800 rounded-full p-3">
+            <Plus className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+          </div>
+        </div>
+        <h3 className="mt-4 text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          Create Your First Automation
+        </h3>
+        <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400 text-center max-w-sm">
+          Start automating your Instagram posts
+        </p>
+
+        <Button
+          size="sm"
+          onClick={handlePostAutomation}
+          className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white"
+        >
+          <Plus className="h-3.5 w-3.5 mr-1.5" /> Create Automation
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="w-full overflow-auto">
-      <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center">
-        <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-3 sm:mb-0">
-          Your Automations
-        </h3>
+    <div className="w-full space-y-3">
+      <div className="flex items-center justify-between gap-3 p-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
+          <Input
+            placeholder="Search automations..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-8 py-1.5 text-sm bg-white dark:bg-gray-800 h-8"
+          />
+        </div>
+
+        <Button
+          size="sm"
+          onClick={handlePostAutomation}
+          className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white h-8"
+        >
+          <Plus className="h-3.5 w-3.5 mr-1.5" /> New
+        </Button>
       </div>
 
-      {/* Mobile View - Cards */}
-      <div className="md:hidden">
-        {automations.map((automation) => (
+      {/* Mobile View */}
+      <div className="md:hidden space-y-2 px-3">
+        {filteredAutomations.map((automation) => (
           <div
             key={automation._id}
-            className="p-4 border-b border-gray-100 dark:border-gray-700"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 space-y-2"
           >
-            <div className="flex justify-between items-start mb-3">
+            <div className="flex items-start justify-between">
               <div>
-                <h4 className="font-medium">{automation.name}</h4>
+                <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100">
+                  {automation.name}
+                </h4>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Created: {new Date(automation.createdAt).toLocaleDateString()}
+                  {new Date(automation.createdAt).toLocaleDateString()}
                 </p>
               </div>
-              <div className="flex items-center">
-                <Switch checked={true} className="mr-2" />
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <span className="sr-only">Open menu</span>
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
-                  >
-                    <DropdownMenuItem className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer text-red-500 hover:bg-gray-50 dark:hover:bg-gray-700">
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-7 w-7">
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[120px]">
+                  <DropdownMenuItem className="text-xs">Edit</DropdownMenuItem>
+                  <DropdownMenuItem className="text-xs text-red-600">
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="space-y-1.5">
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Post IDs
                 </p>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {automation.postIds.length > 0
-                    ? automation.postIds.map((postId) => (
-                        <span
-                          key={postId}
-                          className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs px-2 py-0.5 rounded-full"
-                        >
-                          {postId}
-                        </span>
-                      ))
-                    : generateRandomPostId()}
+                <div className="flex flex-wrap gap-1">
+                  {automation.postIds.map((id) => (
+                    <span
+                      key={id}
+                      className="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                    >
+                      {id}
+                    </span>
+                  ))}
                 </div>
               </div>
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Keywords
                 </p>
-                <div className="flex flex-wrap gap-1 mt-1">
+                <div className="flex flex-wrap gap-1">
                   {automation.keywords.map((keyword) => (
                     <span
                       key={keyword}
-                      className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs px-2 py-0.5 rounded-full"
+                      className="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
                     >
                       {keyword}
                     </span>
@@ -161,116 +196,94 @@ export function AutomationTable() {
                 </div>
               </div>
             </div>
-
-            <div className="grid grid-cols-1 gap-2">
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Message
-                </p>
-                <p className="text-sm">{automation.message}</p>
-              </div>
-            </div>
           </div>
         ))}
       </div>
 
-      {/* Desktop View - Table */}
-      <div className="hidden md:block">
-        <Table>
-          <TableHeader className="bg-gray-50 dark:bg-gray-800/50">
-            <TableRow>
-              <TableHead className="font-medium">NAME</TableHead>
-              <TableHead className="font-medium">CREATED</TableHead>
-              <TableHead className="font-medium">POST IDS</TableHead>
-              <TableHead className="font-medium">KEYWORDS</TableHead>
-              <TableHead className="font-medium">MESSAGE</TableHead>
-              <TableHead className="text-right font-medium">ACTIONS</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {automations.map((automation) => (
-              <TableRow
-                key={automation._id}
-                className="hover:bg-gray-50 dark:hover:bg-gray-800/70"
-              >
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    <span>{automation.name}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {new Date(automation.createdAt).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {automation.postIds.length > 0
-                      ? automation.postIds.map((postId) => (
-                          <span
-                            key={postId}
-                            className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs px-2 py-1 rounded-full"
-                          >
-                            {postId}
-                          </span>
-                        ))
-                      : generateRandomPostId()}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {automation.keywords.map((keyword) => (
-                      <span
-                        key={keyword}
-                        className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs px-2 py-1 rounded-full"
-                      >
-                        {keyword}
-                      </span>
-                    ))}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <span className="text-gray-600 dark:text-gray-400">
-                    {automation.message}
-                  </span>
-                </TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    {/* <DropdownMenuContent
-                      align="end"
-                      className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
-                    >
-                      <DropdownMenuItem className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer text-red-500 hover:bg-gray-50 dark:hover:bg-gray-700">
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent> */}
-                  </DropdownMenu>
-                </TableCell>
+      {/* Desktop View */}
+      <div className="hidden md:block px-3">
+        <div className="rounded-lg border border-gray-100 dark:border-gray-800 overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-50/50 dark:bg-gray-800/50">
+                <TableHead className="font-medium text-xs py-3">Name</TableHead>
+                <TableHead className="font-medium text-xs py-3">
+                  Created
+                </TableHead>
+                <TableHead className="font-medium text-xs py-3">
+                  Post IDs
+                </TableHead>
+                <TableHead className="font-medium text-xs py-3">
+                  Keywords
+                </TableHead>
+                <TableHead className="font-medium text-xs py-3">
+                  Message
+                </TableHead>
+                <TableHead className="w-[40px]"></TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      {!loading && automations.length === 0 && (
-        <div className="flex flex-col items-center justify-center p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">
-            No automations found
-          </p>
-          <Link href="/dashboard/automation/create">
-            <Button className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white">
-              <Plus className="h-4 w-4 mr-2" /> Create Your First Automation
-            </Button>
-          </Link>
+            </TableHeader>
+            <TableBody>
+              {filteredAutomations.map((automation) => (
+                <TableRow
+                  key={automation._id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                >
+                  <TableCell className="py-2 text-sm">
+                    {automation.name}
+                  </TableCell>
+                  <TableCell className="py-2 text-xs text-gray-600 dark:text-gray-300">
+                    {new Date(automation.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="py-2">
+                    <div className="flex flex-wrap gap-1">
+                      {automation.postIds.map((id) => (
+                        <span
+                          key={id}
+                          className="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                        >
+                          {id}
+                        </span>
+                      ))}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-2">
+                    <div className="flex flex-wrap gap-1">
+                      {automation.keywords.map((keyword) => (
+                        <span
+                          key={keyword}
+                          className="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                        >
+                          {keyword}
+                        </span>
+                      ))}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-2 max-w-[150px] truncate text-xs">
+                    {automation.message}
+                  </TableCell>
+                  <TableCell className="py-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-7 w-7">
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-[120px]">
+                        <DropdownMenuItem className="text-xs">
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-xs text-red-600">
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -88,7 +88,7 @@ export function AutomationStats() {
                 Account ID
               </p>
               <p className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
-                {userData?.instagramId || "17841472933974216"}
+                {userData?.instagramId || "NA"}
               </p>
             </div>
           </div>
