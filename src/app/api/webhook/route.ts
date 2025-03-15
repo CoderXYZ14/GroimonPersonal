@@ -23,8 +23,7 @@ export async function GET(request: NextRequest) {
   const hub_challenge = searchParams.get("hub.challenge");
   const hub_verify_token = searchParams.get("hub.verify_token");
 
-  // Hardcoded verification token
-  const VERIFY_TOKEN = "12345";
+  const VERIFY_TOKEN = process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN;
 
   if (hub_challenge && hub_verify_token === VERIFY_TOKEN) {
     return new NextResponse(hub_challenge);
@@ -35,14 +34,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Parse the webhook payload
     const payload = await request.json();
     console.log("Webhook payload received:", JSON.stringify(payload, null, 2));
 
-    // Connect to database
     await dbConnect();
 
-    // Extract comment data from the webhook
     if (
       payload.object === "instagram" &&
       payload.entry &&
@@ -51,9 +47,7 @@ export async function POST(request: NextRequest) {
       for (const entry of payload.entry) {
         if (entry.changes && entry.changes.length > 0) {
           for (const change of entry.changes) {
-            // Check if this is a comment change
             if (change.field === "comments" && change.value) {
-              // Process the comment and check if we need to send a DM
               await processComment(change.value);
             }
           }
@@ -77,7 +71,6 @@ async function processComment(comment: InstagramComment) {
     console.log(`Comment from user: ${comment.from.username}`);
     console.log(`Comment text: "${comment.text}"`);
 
-    // Find automations that match this post ID
     const automations = await AutomationModel.find({
       postIds: comment.media.id,
     }).populate("user");

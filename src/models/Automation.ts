@@ -6,6 +6,9 @@ export interface IAutomation extends Document {
   postIds: string[];
   keywords: string[];
   message: string;
+  enableCommentAutomation: boolean;
+  commentMessage: string;
+  isFollowed: boolean;
   user: mongoose.Types.ObjectId | IUser;
 }
 
@@ -15,6 +18,9 @@ const AutomationSchema: Schema<IAutomation> = new Schema(
     postIds: { type: [String] },
     keywords: { type: [String], required: true },
     message: { type: String, required: true },
+    enableCommentAutomation: { type: Boolean, default: false },
+    commentMessage: { type: String, default: "" },
+    isFollowed: { type: Boolean, default: false },
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }
