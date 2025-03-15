@@ -74,10 +74,12 @@ export function CreateAutomationForm() {
   useEffect(() => {
     const fetchMedia = async () => {
       setIsLoading(true);
-      const userId = localStorage.getItem("instagram_user_id");
-      const accessToken = localStorage.getItem("instagram_token");
+      const userDetail = JSON.parse(localStorage.getItem("user_details"));
 
-      if (!userId || !accessToken) {
+      const instagramId = userDetail?.instagramId;
+      const instagramAccessToken = userDetail?.instagramAccessToken;
+
+      if (!instagramId || !instagramAccessToken) {
         console.error(
           "Instagram user ID or access token not found in localStorage"
         );
@@ -88,7 +90,7 @@ export function CreateAutomationForm() {
 
       try {
         const response = await fetch(
-          `https://graph.instagram.com/v22.0/${userId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&access_token=${accessToken}`
+          `https://graph.instagram.com/v22.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&access_token=${instagramAccessToken}`
         );
 
         if (!response.ok) {
@@ -144,11 +146,10 @@ export function CreateAutomationForm() {
       if (values.applyOption === "selected" && !values.postId) {
         throw new Error("Please select a post");
       }
-      // For the POST request
-      const session_data = JSON.parse(
-        localStorage.getItem("session_data") || "{}"
-      );
-      const userId = session_data?.id;
+
+      const userDetail = JSON.parse(localStorage.getItem("user_details"));
+
+      const userId = userDetail?._id;
 
       if (!userId) {
         console.error("User ID not found in session data");
