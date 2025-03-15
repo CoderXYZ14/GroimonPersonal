@@ -38,16 +38,16 @@ export function AutomationTable() {
   useEffect(() => {
     const fetchAutomations = async () => {
       try {
-        const sessionData = JSON.parse(
-          localStorage.getItem("session_data") || "{}"
+        const userDetails = JSON.parse(
+          localStorage.getItem("user_details") || "{}"
         );
-        if (!sessionData?.id) {
+        if (!userDetails?._id) {
           console.error("User ID not found");
           return;
         }
 
         const response = await fetch(
-          `/api/automations?userId=${sessionData.id}`
+          `/api/automations?userId=${userDetails._id}`
         );
         if (!response.ok) throw new Error("Failed to fetch automations");
 

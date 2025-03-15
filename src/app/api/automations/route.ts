@@ -8,11 +8,27 @@ export async function POST(request: Request) {
   try {
     await dbConnect();
     const body = await request.json();
-    console.log("Request Body:", body);
 
-    const { name, postIds, keywords, message, user } = body;
+    const {
+      name,
+      postIds,
+      keywords,
+      message,
+      user,
+      enableCommentAutomation,
+      commentMessage,
+      isFollowed,
+    } = body;
 
-    if (!name || !keywords || !message || !user) {
+    if (
+      !name ||
+      !keywords ||
+      !message ||
+      !user ||
+      !enableCommentAutomation ||
+      !commentMessage ||
+      !isFollowed
+    ) {
       return NextResponse.json(
         { message: "Missing required fields" },
         { status: 400 }
@@ -25,6 +41,9 @@ export async function POST(request: Request) {
       keywords,
       message,
       user,
+      enableCommentAutomation,
+      commentMessage,
+      isFollowed,
     });
 
     await automation.save();
