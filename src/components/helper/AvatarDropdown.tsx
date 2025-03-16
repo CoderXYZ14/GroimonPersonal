@@ -14,9 +14,7 @@ const AvatarDropdown = () => {
 
   const handleSignOut = async () => {
     localStorage.removeItem("nextauth.message");
-    localStorage.removeItem("session_data");
-    localStorage.removeItem("instagram_user_id");
-    localStorage.removeItem("instagram_username");
+    localStorage.removeItem("user_details");
     localStorage.removeItem("instagram_token");
 
     await signOut({ callbackUrl: "/" });

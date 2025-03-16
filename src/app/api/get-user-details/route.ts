@@ -1,8 +1,9 @@
 import dbConnect from "@/lib/dbConnect";
 import UserModel from "@/models/User";
 
-export async function GET(req, { params }) {
-  const { id } = params;
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const id = url.searchParams.get("id");
 
   await dbConnect();
   try {
