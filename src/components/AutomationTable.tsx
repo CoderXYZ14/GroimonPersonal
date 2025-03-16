@@ -173,7 +173,7 @@ export function AutomationTable() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-[120px]">
-                  <DropdownMenuItem className="text-xs">Edit</DropdownMenuItem>
+                  {/* <DropdownMenuItem className="text-xs">Edit</DropdownMenuItem> */}
                   <DropdownMenuItem
                     className="text-xs text-red-600"
                     onClick={() => handleDelete(automation._id)}
@@ -337,9 +337,9 @@ export function AutomationTable() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-[120px]">
-                        <DropdownMenuItem className="text-xs">
+                        {/* <DropdownMenuItem className="text-xs">
                           Edit
-                        </DropdownMenuItem>
+                        </DropdownMenuItem> */}
                         <DropdownMenuItem
                           className="text-xs text-red-600"
                           onClick={() => handleDelete(automation._id)}
