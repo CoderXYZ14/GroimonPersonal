@@ -95,8 +95,14 @@ async function processComment(comment: InstagramComment) {
     console.log(`Found ${automations.length} automations for this post`);
 
     for (const automation of automations) {
+      if (!automation.user) {
+        console.log(`Skipping automation as user is null`);
+        continue;
+      }
+
       if (
         typeof automation.user === "object" &&
+        automation.user !== null &&
         "instagramId" in automation.user
       ) {
         if (automation.user.instagramId === comment.from.id) {
