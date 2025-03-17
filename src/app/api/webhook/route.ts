@@ -25,9 +25,6 @@ interface IAutomation {
   message: string;
   postIds: string[];
   user: IUser;
-  enableCommentAutomation: boolean;
-  commentMessage: string;
-  isFollowed: boolean;
 }
 
 export async function GET(request: NextRequest) {
@@ -79,6 +76,10 @@ export async function POST(request: NextRequest) {
 
 async function processComment(comment: InstagramComment) {
   try {
+    console.log(`Processing comment on post ID: ${comment.media.id}`);
+    console.log(`Comment from user: ${comment.from.username}`);
+    console.log(`Comment text: "${comment.text}"`);
+
     const automations = await AutomationModel.find({
       postIds: comment.media.id,
     }).populate("user");
@@ -91,14 +92,8 @@ async function processComment(comment: InstagramComment) {
     console.log(`Found ${automations.length} automations for this post`);
 
     for (const automation of automations) {
-      if (!automation.user) {
-        console.log(`Skipping automation as user is null`);
-        continue;
-      }
-
       if (
         typeof automation.user === "object" &&
-        automation.user !== null &&
         "instagramId" in automation.user
       ) {
         if (automation.user.instagramId === comment.from.id) {
@@ -153,58 +148,9 @@ async function handleAutomationResponse(
       return;
     }
 
-    if (automation.enableCommentAutomation && automation.commentMessage) {
-      await replyToComment(
-        comment,
-        automation.commentMessage,
-        user.instagramAccessToken
-      );
-    }
-
     await sendDM(comment, automation.message, automationName, automationId);
   } catch (error) {
     console.error("Error handling automation response:", error);
-    throw error;
-  }
-}
-
-async function replyToComment(
-  comment: InstagramComment,
-  message: string,
-  accessToken: string
-) {
-  try {
-    const url = `https://graph.instagram.com/v22.0/${comment.id}/replies`;
-
-    const headers = {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    };
-
-    const body = {
-      message: message,
-    };
-
-    console.log(
-      `Attempting to reply to comment from user ${comment.from.username} (${comment.from.id})`
-    );
-
-    try {
-      const response = await axios.post(url, body, { headers });
-      console.log(
-        `Reply sent successfully to ${comment.from.username}'s comment with message: "${message}"`
-      );
-      return response.data;
-    } catch (error) {
-      console.error("Error replying to Instagram comment:", {
-        username: comment.from.username,
-        errorMessage: error.response?.data?.error?.message || error.message,
-        errorCode: error.response?.data?.error?.code,
-      });
-      throw error;
-    }
-  } catch (error) {
-    console.error("Error in replyToComment function:", error);
     throw error;
   }
 }
@@ -263,34 +209,26 @@ async function sendDM(
       `Attempting to send DM to user ${comment.from.username} (${comment.from.id}) for automation "${automationName}"`
     );
 
-    try {
-      const response = await axios.post(url, body, { headers });
-      console.log(
-        `DM sent successfully to ${comment.from.username} with message: "${message}"`
-      );
-      return response.data;
-    } catch (error) {
-      if (
-        error.response?.data?.error?.code === 10 &&
-        error.response?.data?.error?.error_subcode === 2534022
-      ) {
-        console.log(
-          `Cannot send DM to ${comment.from.username}: Outside 24-hour messaging window`
-        );
-        // Handle gracefully - maybe store this in a queue or mark for follow-up
-        return null;
-      }
+    const response = await axios.post(url, body, { headers });
 
-      console.error("Error sending Instagram DM:", {
-        username: comment.from.username,
-        errorMessage: error.response?.data?.error?.message || error.message,
-        errorCode: error.response?.data?.error?.code,
-        errorSubcode: error.response?.data?.error?.error_subcode,
-      });
-      throw error;
-    }
+    console.log(
+      `DM sent successfully to ${comment.from.username} with message: "${message}"`
+    );
+
+    console.log(response.data);
+
+    return response.data;
   } catch (error) {
-    console.error("Error in sendDM function:", error);
+    console.error("Error sending Instagram DM:");
+
+    if (error.response) {
+      console.error("Error response:", error.response.data);
+    } else if (error.request) {
+      console.error("No response received:", error.request);
+    } else {
+      console.error("Error:", error.message);
+    }
+
     throw error;
   }
 }
