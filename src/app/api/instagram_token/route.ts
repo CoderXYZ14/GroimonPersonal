@@ -77,6 +77,8 @@ export async function POST(req: Request) {
       tokenData: longLivedTokenResponse.data,
     });
   } catch (error) {
+    console.error("Detailed error:", error);
+
     if (error instanceof AxiosError) {
       console.error(
         "Instagram API Error:",
@@ -84,17 +86,26 @@ export async function POST(req: Request) {
       );
 
       const errorResponse: ErrorResponse = {
-        error: (error.response?.data as string) || "Something went wrong",
+        error:
+          (error.response?.data as string) || "Instagram API error occurred",
         status: error.response?.status,
       };
 
       return NextResponse.json(errorResponse, {
         status: error.response?.status || 500,
       });
+    } else if (error instanceof Error && error.name === "MongooseError") {
+      console.error("MongoDB Error:", error.message);
+      const errorResponse: ErrorResponse = {
+        error: "Database operation timed out. Please try again.",
+        status: 503,
+      };
+      return NextResponse.json(errorResponse, { status: 503 });
     } else {
       console.error("Unknown error:", error);
       const errorResponse: ErrorResponse = {
         error: "An unknown error occurred",
+        status: 500,
       };
       return NextResponse.json(errorResponse, { status: 500 });
     }
