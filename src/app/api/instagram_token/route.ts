@@ -15,7 +15,7 @@ interface ErrorResponse {
 
 export async function POST(req: Request) {
   try {
-    const { code, userId } = await req.json();
+    const { code } = await req.json();
 
     const payload = new URLSearchParams({
       client_id: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID!,
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     const { user_id, username } = detailsResponse.data;
 
     const user = await UserModel.findByIdAndUpdate(
-      userId,
+      "67d7ad008e6101562691c63e",
       {
         instagramAccessToken: longLivedAccessToken,
         instagramId: user_id,

@@ -35,7 +35,7 @@ export default function YourInstaToken() {
       try {
         const { data } = await axios.post("/api/instagram_token", {
           code: authorizationCode,
-          userId: "67d7ad008e6101562691c63e",
+          // userId: "67d7ad008e6101562691c63e",
         });
 
         localStorage.setItem("user_details", JSON.stringify(data.user));
