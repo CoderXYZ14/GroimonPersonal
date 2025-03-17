@@ -1,11 +1,8 @@
 import mongoose from "mongoose";
 
-// Track connection status
-let isConnected = false;
-
 async function dbConnect(): Promise<void> {
-  // If already connected, return early
-  if (isConnected) {
+  // Check if already connected using mongoose's built-in state tracking
+  if (mongoose.connection.readyState === 1) {
     return;
   }
 
@@ -15,7 +12,6 @@ async function dbConnect(): Promise<void> {
 
   try {
     await mongoose.connect(process.env.MONGODB_URI);
-    isConnected = true;
     console.log("DB Connected Successfully");
   } catch (error) {
     console.error("DB Connection Error:", error);

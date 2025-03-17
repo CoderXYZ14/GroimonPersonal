@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import axios, { AxiosError } from "axios";
 import UserModel from "@/models/User";
 
+import dbConnect from "@/lib/dbConnect";
 interface InstagramTokenResponse {
   access_token: string;
   token_type: string;
@@ -15,6 +16,7 @@ interface ErrorResponse {
 
 export async function POST(req: Request) {
   try {
+    await dbConnect();
     const { code } = await req.json();
 
     const payload = new URLSearchParams({
@@ -58,6 +60,7 @@ export async function POST(req: Request) {
 
     const { user_id, username } = detailsResponse.data;
 
+    console.log("access token:", longLivedAccessToken);
     const user = await UserModel.findByIdAndUpdate(
       "67d7ad008e6101562691c63e",
       {
@@ -72,6 +75,7 @@ export async function POST(req: Request) {
       }
     );
 
+    console.log(user);
     return NextResponse.json({
       user,
       tokenData: longLivedTokenResponse.data,
