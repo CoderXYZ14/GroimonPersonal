@@ -79,10 +79,6 @@ export async function POST(request: NextRequest) {
 
 async function processComment(comment: InstagramComment) {
   try {
-    console.log(`Processing comment on post ID: ${comment.media.id}`);
-    console.log(`Comment from user: ${comment.from.username}`);
-    console.log(`Comment text: "${comment.text}"`);
-
     const automations = await AutomationModel.find({
       postIds: comment.media.id,
     }).populate("user");

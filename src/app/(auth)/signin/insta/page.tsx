@@ -69,7 +69,7 @@ export default function InstagramLink() {
                   ) : (
                     <div className="w-full h-full rounded-full bg-muted flex items-center justify-center">
                       <span className="text-2xl font-bold text-white">
-                        {session?.user?.name?.[0] || "U"}
+                        {session?.user?.name?.[0] || "T"}
                       </span>
                     </div>
                   )}
@@ -81,7 +81,7 @@ export default function InstagramLink() {
                   Signed in as
                 </p>
                 <p className="font-semibold text-foreground">
-                  {session?.user?.email}
+                  {session?.user?.email || "testuser@groimon.com"}
                 </p>
               </div>
             </motion.div>

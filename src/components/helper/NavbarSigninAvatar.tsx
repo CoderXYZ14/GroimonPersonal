@@ -1,18 +1,18 @@
-"use client";
 import React from "react";
 import { ModeToggle } from "./mode-toggle";
 import AvatarDropdown from "./AvatarDropdown";
 import Link from "next/link";
 import { Button } from "../ui/button";
-import { useSession } from "next-auth/react";
+// import { useSession } from "next-auth/react";
 
 const NavbarSigninAvatar = () => {
-  const { data: session } = useSession();
+  // const { data: session } = useSession();
 
+  const user_details = localStorage.getItem("user_details");
   return (
     <div className="flex items-center gap-6">
       <ModeToggle />
-      {session ? (
+      {user_details ? (
         <AvatarDropdown />
       ) : (
         <Link href="/signin">

@@ -40,10 +40,10 @@ const AvatarDropdown = () => {
       >
         <div className="px-2 py-2 mb-2 border-b border-border/40">
           <p className="text-sm font-medium text-foreground">
-            {session?.user?.name}
+            {session?.user?.name || "TestUser"}
           </p>
           <p className="text-xs text-muted-foreground truncate">
-            {session?.user?.email}
+            {session?.user?.email || "testuser@groimon.com"}
           </p>
         </div>
 

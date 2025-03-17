@@ -14,11 +14,11 @@ export default function YourInstaToken() {
 
   useEffect(() => {
     if (status === "loading") return;
-    if (!session) {
-      toast.error("Please sign in to continue");
-      router.push("/signin");
-      return;
-    }
+    // if (!session) {
+    //   toast.error("Please sign in to continue");
+    //   router.push("/signin");
+    //   return;
+    // }
 
     const processInstagramAuth = async () => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -35,7 +35,7 @@ export default function YourInstaToken() {
       try {
         const { data } = await axios.post("/api/instagram_token", {
           code: authorizationCode,
-          userId: session.user.id,
+          userId: "67d7ad008e6101562691c63e",
         });
 
         localStorage.setItem("user_details", JSON.stringify(data.user));
