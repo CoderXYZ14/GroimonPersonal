@@ -96,13 +96,13 @@ async function processComment(comment: InstagramComment) {
 
     for (const automation of automations) {
       if (
+        automation.user &&
         typeof automation.user === "object" &&
-        "instagramId" in automation.user
+        "instagramId" in automation.user &&
+        automation.user.instagramId === comment.from.id
       ) {
-        if (automation.user.instagramId === comment.from.id) {
-          console.log(`Skipping automation as comment is from the post owner`);
-          continue;
-        }
+        console.log(`Skipping automation as comment is from the post owner`);
+        continue;
       }
 
       if (!automation.keywords || automation.keywords.length === 0) {
