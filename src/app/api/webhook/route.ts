@@ -93,6 +93,7 @@ async function processComment(comment: InstagramComment) {
 
     for (const automation of automations) {
       if (
+        automation.user &&
         typeof automation.user === "object" &&
         "instagramId" in automation.user
       ) {
@@ -142,6 +143,11 @@ async function handleAutomationResponse(
 ) {
   try {
     const user = automation.user as IUser;
+
+    if (!user) {
+      console.error(`User not found for automation ${automationName}`);
+      return;
+    }
 
     if (!user.instagramAccessToken) {
       console.error(`Instagram access token not found for user ${user.name}`);

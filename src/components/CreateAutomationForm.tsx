@@ -163,8 +163,8 @@ export function CreateAutomationForm() {
         throw new Error("Please select a post");
       }
 
-      const userDetail = JSON.parse(localStorage.getItem("user_details"));
-      const userId = userDetail?._id;
+      // const userDetail = JSON.parse(localStorage.getItem("user_details"));
+      const userId = "67d7ad008e6101562691c63e";
 
       if (!userId) {
         console.error("User ID not found in session data");
