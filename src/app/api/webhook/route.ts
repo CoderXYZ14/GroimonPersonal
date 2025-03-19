@@ -241,16 +241,26 @@ async function sendDM(
       return;
     }
 
-    const url = "https://graph.instagram.com/v22.0/me/messages";
+    // Use the user's Instagram ID as the owner ID
+    const ownerId = user.instagramId;
+    if (!ownerId) {
+      console.error(
+        `Instagram ID not found for user ${user.name} (${user._id})`
+      );
+      return;
+    }
+
+    const url = `https://graph.instagram.com/v22.0/${ownerId}/messages`;
 
     const headers = {
       Authorization: `Bearer ${user.instagramAccessToken}`,
       "Content-Type": "application/json",
     };
 
+    // Key change: Using comment_id instead of id in the recipient field
     const body = {
       recipient: {
-        id: comment.from.id,
+        comment_id: comment.id,
       },
       message: {
         text: message,
