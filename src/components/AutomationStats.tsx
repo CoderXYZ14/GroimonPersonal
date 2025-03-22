@@ -77,22 +77,6 @@ export function AutomationStats() {
             </div>
           </div>
         </div>
-
-        {/* <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl p-4">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-800 shrink-0">
-              <User2 className="w-5 h-5 text-blue-600 dark:text-blue-300" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Account ID
-              </p>
-              <p className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
-                {userData?.instagramId || "NA"}
-              </p>
-            </div>
-          </div>
-        </div> */}
       </div>
     ),
   };

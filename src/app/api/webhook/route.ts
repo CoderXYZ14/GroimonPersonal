@@ -285,7 +285,6 @@ async function sendDM(
         console.log(
           `Cannot send DM to ${comment.from.username}: Outside 24-hour messaging window`
         );
-        // Handle gracefully - maybe store this in a queue or mark for follow-up
         return null;
       }
 
