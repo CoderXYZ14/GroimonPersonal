@@ -14,11 +14,11 @@ export default function YourInstaToken() {
 
   useEffect(() => {
     if (status === "loading") return;
-    if (!session) {
-      toast.error("Please sign in to continue");
-      router.push("/signin");
-      return;
-    }
+    // if (!session) {
+    //   toast.error("Please sign in to continue");
+    //   router.push("/signin");
+    //   return;
+    // }
 
     const processInstagramAuth = async () => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -40,6 +40,7 @@ export default function YourInstaToken() {
         });
 
         console.log(data);
+
         localStorage.setItem("user_details", JSON.stringify(data.user));
         localStorage.setItem("instagram_token", data.tokenData.access_token);
 
