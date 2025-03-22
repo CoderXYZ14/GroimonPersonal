@@ -21,7 +21,7 @@ export async function POST(request: Request) {
 
     const { user_id, username, profile_picture_url } = response.data;
 
-    return NextResponse.json({ user_id, username });
+    return NextResponse.json({ user_id, username, profile_picture_url });
   } catch (error) {
     console.error("Error fetching Instagram details:", error);
     return NextResponse.json(
