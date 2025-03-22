@@ -85,6 +85,7 @@ export async function POST(req: Request) {
           instagramAccessToken: longLivedAccessToken,
           instagramId: user_id,
           instagramUsername: username,
+          instaProfilePic: profile_picture_url,
         });
       }
     } else {
@@ -94,11 +95,12 @@ export async function POST(req: Request) {
           instagramAccessToken: longLivedAccessToken,
           instagramId: user_id,
           instagramUsername: username,
+          instaProfilePic: profile_picture_url,
         },
         {
           new: true,
           select:
-            "_id name email image provider instagramId instagramUsername instagramAccessToken",
+            "_id name email provider instagramId instagramUsername instagramAccessToken instaProfilePic",
         }
       );
 
