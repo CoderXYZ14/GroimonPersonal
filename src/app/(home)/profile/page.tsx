@@ -113,13 +113,10 @@ const ProfilePage = () => {
                             if (!userDetails) return;
 
                             const parsedUser = JSON.parse(userDetails);
-                            const response = await axios.post(
-                              `/api/update-profile`,
-                              {
-                                userId: parsedUser._id,
-                                ...editedData,
-                              }
-                            );
+                            await axios.post(`/api/update-profile`, {
+                              userId: parsedUser._id,
+                              ...editedData,
+                            });
 
                             // Update userData state
                             setUserData((prev) => ({
