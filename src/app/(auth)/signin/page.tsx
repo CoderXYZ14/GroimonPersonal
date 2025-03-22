@@ -24,14 +24,6 @@ export default function SignIn() {
     }
   };
 
-  const handleInstagramLink = async () => {
-    try {
-      handleInstagramLogin();
-    } catch (error) {
-      console.error("Instagram Link Error:", error);
-    }
-  };
-
   const lightModeColors = ["#FF9A9E", "#FAD0C4", "#A1C4FD", "#C2E9FB"];
   const darkModeColors = ["#FF6F61", "#FFD166", "#06D6A0", "#118AB2"];
 
