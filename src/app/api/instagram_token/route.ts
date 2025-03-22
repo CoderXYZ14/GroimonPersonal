@@ -63,12 +63,29 @@ export async function POST(req: Request) {
     console.log("access token:", longLivedAccessToken);
     let user;
     if (isInstagramLogin) {
-      user = await UserModel.create({
-        provider: "instagram",
-        instagramAccessToken: longLivedAccessToken,
+      user = await UserModel.findOne({
         instagramId: user_id,
-        instagramUsername: username,
+
+        provider: "instagram",
       });
+
+      if (user) {
+        user = await UserModel.findByIdAndUpdate(
+          user._id,
+          {
+            instagramAccessToken: longLivedAccessToken,
+            instagramUsername: username,
+          },
+          { new: true }
+        );
+      } else {
+        user = await UserModel.create({
+          provider: "instagram",
+          instagramAccessToken: longLivedAccessToken,
+          instagramId: user_id,
+          instagramUsername: username,
+        });
+      }
     } else {
       user = await UserModel.findByIdAndUpdate(
         userId,
