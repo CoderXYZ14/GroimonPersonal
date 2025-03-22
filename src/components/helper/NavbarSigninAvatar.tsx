@@ -7,11 +7,9 @@ import { Button } from "../ui/button";
 // import { useSession } from "next-auth/react";
 
 const NavbarSigninAvatar = () => {
-  // const { data: session } = useSession();
   const [userDetails, setUserDetails] = useState<string | null>(null);
 
   useEffect(() => {
-    // Access localStorage only after component mounts (client-side)
     const details = localStorage.getItem("user_details");
     setUserDetails(details);
   }, []);
