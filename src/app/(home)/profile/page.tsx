@@ -39,7 +39,7 @@ const ProfilePage = () => {
             email: parsedUser.email || "",
             instaId: parsedUser.instagramUsername,
             automationsCreated: response.data.numberOfAutomations,
-            profileImage: response.data.instaProfilePic,
+            profileImage: response.data.image,
             provider: parsedUser.provider,
           };
           setUserData(userData);

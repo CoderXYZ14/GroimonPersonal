@@ -12,17 +12,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const response = await axios.get(`https://graph.instagram.com/v22.0/me`, {
-      params: {
-        fields: "user_id,username,profile_picture_url",
-        access_token: accessToken,
-      },
-    });
+    // First get the user ID and username
+    const userResponse = await axios.get(
+      `https://graph.instagram.com/v22.0/me`,
+      {
+        params: {
+          fields: "id,user_id,username,account_type,name",
+          access_token: accessToken,
+        },
+      }
+    );
 
-    console.log("Instagram details:", response.data);
-    const { user_id, username, profile_picture_url } = response.data;
+    const { user_id, username } = userResponse.data;
 
-    return NextResponse.json({ user_id, username, profile_picture_url });
+    return NextResponse.json({ user_id, username });
   } catch (error) {
     console.error("Error fetching Instagram details:", error);
     return NextResponse.json(

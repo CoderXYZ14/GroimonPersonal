@@ -58,7 +58,7 @@ export async function POST(req: Request) {
       }
     );
 
-    const { user_id, username, profile_picture_url } = detailsResponse.data;
+    const { user_id, username } = detailsResponse.data;
 
     console.log("access token:", longLivedAccessToken);
     let user;
@@ -75,7 +75,6 @@ export async function POST(req: Request) {
           {
             instagramAccessToken: longLivedAccessToken,
             instagramUsername: username,
-            instaProfilePic: profile_picture_url,
           },
           { new: true }
         );
@@ -85,7 +84,6 @@ export async function POST(req: Request) {
           instagramAccessToken: longLivedAccessToken,
           instagramId: user_id,
           instagramUsername: username,
-          instaProfilePic: profile_picture_url,
         });
       }
     } else {
@@ -95,12 +93,11 @@ export async function POST(req: Request) {
           instagramAccessToken: longLivedAccessToken,
           instagramId: user_id,
           instagramUsername: username,
-          instaProfilePic: profile_picture_url,
         },
         {
           new: true,
           select:
-            "_id name email provider instagramId instagramUsername instagramAccessToken instaProfilePic",
+            "_id name email provider instagramId instagramUsername instagramAccessToken ",
         }
       );
 
