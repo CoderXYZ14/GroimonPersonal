@@ -19,6 +19,7 @@ export async function POST(request: Request) {
       },
     });
 
+    console.log("Instagram details:", response.data);
     const { user_id, username, profile_picture_url } = response.data;
 
     return NextResponse.json({ user_id, username, profile_picture_url });
