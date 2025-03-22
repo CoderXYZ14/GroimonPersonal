@@ -6,15 +6,24 @@ export { default } from "next-auth/middleware";
 export async function middleware(request) {
   const token = await getToken({ req: request });
   const url = request.nextUrl;
+
+  const userDetails = request.cookies.get("user_details")?.value;
+  const isInstagramAuthenticated =
+    userDetails && JSON.parse(userDetails).provider === "instagram";
+
+  const isAuthenticated = token || isInstagramAuthenticated;
+
   if (
-    token &&
+    isAuthenticated &&
     (url.pathname.startsWith("/signin") || url.pathname.startsWith("/signup"))
   ) {
     return NextResponse.redirect(new URL("/dashboard/automation", request.url));
   }
-  if (!token && url.pathname.startsWith("/dashboard")) {
+
+  if (!isAuthenticated && url.pathname.startsWith("/dashboard")) {
     return NextResponse.redirect(new URL("/signin", request.url));
   }
+
   return NextResponse.next();
 }
 
