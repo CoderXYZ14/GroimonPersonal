@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       code,
     });
 
-    const response = await axios.post<InstagramTokenResponse>(
+    const tokenResponse = await axios.post<InstagramTokenResponse>(
       "https://api.instagram.com/oauth/access_token",
       payload,
       {
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
       }
     );
 
-    const shortLivedAccessToken = response?.data.access_token;
+    const shortLivedAccessToken = tokenResponse?.data.access_token;
 
     const longLivedTokenResponse = await axios.get<InstagramTokenResponse>(
       `https://graph.instagram.com/access_token`,
@@ -51,14 +51,14 @@ export async function POST(req: Request) {
     );
     const longLivedAccessToken = longLivedTokenResponse?.data.access_token;
 
-    const detailsResponse = await axios.post(
+    const userDetailsResponse = await axios.post(
       `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/api/insta_details`,
       {
         accessToken: longLivedAccessToken,
       }
     );
 
-    const { user_id, username } = detailsResponse.data;
+    const { user_id, username } = userDetailsResponse.data;
 
     console.log("access token:", longLivedAccessToken);
     let user;
@@ -106,11 +106,28 @@ export async function POST(req: Request) {
       }
     }
 
-    console.log(user);
-    return NextResponse.json({
+    // Create response with user data
+    const response = NextResponse.json({
       user,
       tokenData: longLivedTokenResponse.data,
     });
+
+    // Set cookie with user details that expires in 30 days
+    response.cookies.set({
+      name: "user_details",
+      value: JSON.stringify({
+        _id: user._id,
+        provider: "instagram",
+        instagramUsername: username,
+        instagramId: user_id,
+      }),
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+    });
+
+    return response;
   } catch (error) {
     console.error("Detailed error:", error);
 
