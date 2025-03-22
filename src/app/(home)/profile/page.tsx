@@ -113,16 +113,31 @@ const ProfilePage = () => {
                             if (!userDetails) return;
 
                             const parsedUser = JSON.parse(userDetails);
-                            await axios.post(`/api/update-profile`, {
-                              userId: parsedUser._id,
-                              ...editedData,
-                            });
+                            const response = await axios.post(
+                              `/api/update-profile`,
+                              {
+                                userId: parsedUser._id,
+                                ...editedData,
+                              }
+                            );
 
+                            // Update userData state
                             setUserData((prev) => ({
                               ...prev,
                               name: editedData.name,
                               email: editedData.email,
                             }));
+
+                            // Update localStorage
+                            const updatedUserDetails = {
+                              ...parsedUser,
+                              name: editedData.name,
+                              email: editedData.email,
+                            };
+                            localStorage.setItem(
+                              "user_details",
+                              JSON.stringify(updatedUserDetails)
+                            );
 
                             setIsEditing(false);
                             toast.success("Profile updated successfully!");
@@ -183,7 +198,7 @@ const ProfilePage = () => {
                           />
                         ) : (
                           <div className="bg-white dark:bg-gray-900 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-800 h-8">
-                            {userData.name || "Set your name"}
+                            {userData.name ? userData.name : "Set your name"}
                           </div>
                         )}
                         {!isEditing && (
@@ -235,7 +250,7 @@ const ProfilePage = () => {
                           />
                         ) : (
                           <div className="bg-white dark:bg-gray-900 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-800 h-8">
-                            {userData.email || "Add your email"}
+                            {userData.email ? userData.email : "Add your email"}
                           </div>
                         )}
                         {!isEditing && (
