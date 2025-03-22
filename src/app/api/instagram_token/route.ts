@@ -17,7 +17,7 @@ interface ErrorResponse {
 export async function POST(req: Request) {
   try {
     await dbConnect();
-    const { code } = await req.json();
+    const { code, userId, isInstagramLogin } = await req.json();
 
     const payload = new URLSearchParams({
       client_id: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID!,
@@ -61,19 +61,33 @@ export async function POST(req: Request) {
     const { user_id, username } = detailsResponse.data;
 
     console.log("access token:", longLivedAccessToken);
-    const user = await UserModel.findByIdAndUpdate(
-      "67d7ad008e6101562691c63e",
-      {
+    let user;
+    if (isInstagramLogin) {
+      user = await UserModel.create({
+        provider: "instagram",
         instagramAccessToken: longLivedAccessToken,
         instagramId: user_id,
         instagramUsername: username,
-      },
-      {
-        new: true,
-        select:
-          "_id name email image provider instagramId instagramUsername instagramAccessToken",
+      });
+    } else {
+      user = await UserModel.findByIdAndUpdate(
+        userId,
+        {
+          instagramAccessToken: longLivedAccessToken,
+          instagramId: user_id,
+          instagramUsername: username,
+        },
+        {
+          new: true,
+          select:
+            "_id name email image provider instagramId instagramUsername instagramAccessToken",
+        }
+      );
+
+      if (!user) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
-    );
+    }
 
     console.log(user);
     return NextResponse.json({
