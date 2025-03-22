@@ -14,12 +14,12 @@ export async function POST(request: Request) {
 
     const response = await axios.get(`https://graph.instagram.com/v22.0/me`, {
       params: {
-        fields: "user_id,username",
+        fields: "user_id,username,profile_picture_url",
         access_token: accessToken,
       },
     });
 
-    const { user_id, username } = response.data;
+    const { user_id, username, profile_picture_url } = response.data;
 
     return NextResponse.json({ user_id, username });
   } catch (error) {

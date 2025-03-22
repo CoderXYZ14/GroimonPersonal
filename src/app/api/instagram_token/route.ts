@@ -58,7 +58,7 @@ export async function POST(req: Request) {
       }
     );
 
-    const { user_id, username } = detailsResponse.data;
+    const { user_id, username, profile_picture_url } = detailsResponse.data;
 
     console.log("access token:", longLivedAccessToken);
     let user;
@@ -75,6 +75,7 @@ export async function POST(req: Request) {
           {
             instagramAccessToken: longLivedAccessToken,
             instagramUsername: username,
+            instaProfilePic: profile_picture_url,
           },
           { new: true }
         );
