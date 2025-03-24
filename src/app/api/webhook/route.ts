@@ -95,15 +95,15 @@ async function processComment(comment: InstagramComment) {
     console.log(`Found ${automations.length} automations for this post`);
 
     for (const automation of automations) {
-      if (
-        automation.user &&
-        typeof automation.user === "object" &&
-        "instagramId" in automation.user &&
-        automation.user.instagramId === comment.from.id
-      ) {
-        console.log(`Skipping automation as comment is from the post owner`);
-        continue;
-      }
+      // if (
+      //   automation.user &&
+      //   typeof automation.user === "object" &&
+      //   "instagramId" in automation.user &&
+      //   automation.user.instagramId === comment.from.id
+      // ) {
+      //   console.log(`Skipping automation as comment is from the post owner`);
+      //   continue;
+      // }
 
       if (!automation.keywords || automation.keywords.length === 0) {
         console.log(`Automation ${automation.name} has no keywords, skipping`);
@@ -241,7 +241,6 @@ async function sendDM(
       return;
     }
 
-    // Use the user's Instagram ID as the owner ID
     const ownerId = user.instagramId;
     if (!ownerId) {
       console.error(
@@ -257,7 +256,6 @@ async function sendDM(
       "Content-Type": "application/json",
     };
 
-    // Key change: Using comment_id instead of id in the recipient field
     const body = {
       recipient: {
         comment_id: comment.id,
