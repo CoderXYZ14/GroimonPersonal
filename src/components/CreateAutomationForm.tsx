@@ -296,14 +296,14 @@ export function CreateAutomationForm() {
                     <div className="w-8 h-8 border-4 border-t-purple-500 border-b-purple-300 border-l-purple-300 border-r-purple-300 rounded-full animate-spin"></div>
                   </div>
                 ) : (
-                  <div className="flex overflow-x-auto gap-4 pb-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {media.length > 0 ? (
                       media.map((item) => (
                         <Card
                           key={item.id}
-                          className="overflow-hidden flex-shrink-0 w-48 border border-gray-200 dark:border-gray-700"
+                          className="overflow-hidden w-full border border-gray-200 dark:border-gray-700 transition-transform hover:scale-[1.02]"
                         >
-                          <div className="h-32 bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                          <div className="aspect-square bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                             {item.mediaType === "IMAGE" && (
                               <Image
                                 src={item.mediaUrl}
@@ -413,7 +413,7 @@ export function CreateAutomationForm() {
           {/* DM Type section */}
           <div className="p-6 border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">DM Type</h2>
+              <h2 className="text-lg font-medium">DM Message</h2>
               <Button
                 type="button"
                 variant="ghost"
@@ -452,7 +452,7 @@ export function CreateAutomationForm() {
           </div>
 
           {/* Is Followed Check section */}
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+          {/* <div className="p-6 border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium">Follow Check</h2>
             </div>
@@ -479,12 +479,12 @@ export function CreateAutomationForm() {
                 </FormItem>
               )}
             />
-          </div>
+          </div> */}
 
           {/* Comment Automation section */}
           <div className="p-6 border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">Comment Automation</h2>
+              <h2 className="text-lg font-medium">Auto Reply</h2>
               <Button
                 type="button"
                 variant="ghost"
@@ -506,9 +506,7 @@ export function CreateAutomationForm() {
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
-                    <Label className="text-base">
-                      Enable Comment Automation
-                    </Label>
+                    <Label className="text-base">Enable Auto Reply</Label>
                     <FormDescription>
                       Automatically respond to comments on your posts
                     </FormDescription>
