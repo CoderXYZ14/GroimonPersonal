@@ -8,10 +8,17 @@ export const usePostAutomation = () => {
   const user = useAppSelector((state) => state.user);
 
   return async () => {
-    console.log(user);
+    // Store current path for redirect after auth
+    document.cookie = `redirectTo=/dashboard/automation/create; path=/; max-age=3600`;
+
     if (user?.instagramAccessToken) {
+      // User has Instagram connected, proceed to create automation
       router.push("/dashboard/automation/create");
+    } else if (user?.provider === "google") {
+      // Google user needs to connect Instagram
+      router.push("/signin/insta");
     } else {
+      // New user needs to authenticate with Instagram
       handleInstagramLogin();
     }
   };

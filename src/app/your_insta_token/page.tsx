@@ -46,18 +46,28 @@ export default function YourInstaToken() {
             _id: userData._id,
             name: userData.name,
             email: userData.email,
-            provider: "instagram",
+            // Keep original provider if user was logged in with Google
+            provider: session ? "google" : "instagram",
             instagramId: userData.instagramId,
             instagramUsername: userData.instagramUsername,
-            instagramAccessToken: tokenData.access_token, // Use the token from response
+            instagramAccessToken: tokenData.access_token,
+            // Preserve Google data if it exists
+            googleId: session?.user?.id,
+            googleEmail: session?.user?.email,
+            googleImage: session?.user?.image,
           })
         );
 
         // Set user data in localStorage
         const userDataForStorage = {
           ...userData,
+          provider: session ? "google" : "instagram",
           instagramAccessToken: tokenData.access_token,
           isAuthenticated: true,
+          // Preserve Google data
+          googleId: session?.user?.id,
+          googleEmail: session?.user?.email,
+          googleImage: session?.user?.image,
         };
 
         // Store in localStorage

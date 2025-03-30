@@ -111,10 +111,15 @@ export async function POST(req: Request) {
       _id: user._id,
       name: user.name || username,
       email: user.email,
-      provider: "instagram",
+      // Keep original provider if user was logged in with Google
+      provider: isInstagramLogin ? "instagram" : user.provider || "instagram",
       instagramUsername: username,
       instagramId: user_id,
       instagramAccessToken: longLivedAccessToken,
+      // Preserve Google data if it exists
+      googleId: user.googleId,
+      googleEmail: user.googleEmail,
+      googleImage: user.googleImage,
     };
 
     // Create response with user data
