@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
+import { useAppSelector } from "@/redux/hooks";
 import { usePostAutomation } from "@/hooks/usePostAutomation";
 import axios from "axios";
 
@@ -39,19 +40,18 @@ export function AutomationTable() {
 
   const handlePostAutomation = usePostAutomation();
 
+  const user = useAppSelector((state) => state.user);
+
   useEffect(() => {
     const fetchAutomations = async () => {
       try {
-        const userDetails = JSON.parse(
-          localStorage.getItem("user_details") || "{}"
-        );
-        if (!userDetails?._id) {
-          console.error("User ID not found");
+        if (!user.isAuthenticated || !user._id) {
+          console.error("User not authenticated or ID not found");
           return;
         }
 
         const { data } = await axios.get(`/api/automations`, {
-          params: { userId: userDetails._id },
+          params: { userId: user._id },
         });
         setAutomations(data);
       } catch (error) {
@@ -62,7 +62,7 @@ export function AutomationTable() {
     };
 
     fetchAutomations();
-  }, [setAutomations]);
+  }, [user._id, setAutomations]);
 
   const filteredAutomations = automations.filter(
     (automation) =>

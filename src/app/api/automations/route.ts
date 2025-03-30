@@ -26,8 +26,7 @@ export async function POST(request: Request) {
       !message ||
       !user ||
       !enableCommentAutomation ||
-      !commentMessage ||
-      !isFollowed
+      !commentMessage
     ) {
       return NextResponse.json(
         { message: "Missing required fields" },

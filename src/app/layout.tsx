@@ -5,6 +5,7 @@ import AuthProvider from "@/context/AuthProvider";
 import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Providers } from "@/redux/provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,21 +37,23 @@ export default function RootLayout({
       {/* <head>
         <link rel="icon" href="/logo.svg" />
       </head> */}
-      <AuthProvider>
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        >
-          {children}
-          <Toaster
-            theme="light"
-            duration={2000}
-            position="bottom-right"
-            richColors
-          />
-          <SpeedInsights />
-          <Analytics />
-        </body>
-      </AuthProvider>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <Providers>
+          <AuthProvider>
+            {children}
+            <Toaster
+              theme="light"
+              duration={2000}
+              position="bottom-right"
+              richColors
+            />
+            <SpeedInsights />
+            <Analytics />
+          </AuthProvider>
+        </Providers>
+      </body>
     </html>
   );
 }

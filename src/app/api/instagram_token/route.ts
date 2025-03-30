@@ -106,24 +106,34 @@ export async function POST(req: Request) {
       }
     }
 
+    // Prepare user data with all necessary fields
+    const userData = {
+      _id: user._id,
+      name: user.name || username,
+      email: user.email,
+      provider: "instagram",
+      instagramUsername: username,
+      instagramId: user_id,
+      instagramAccessToken: longLivedAccessToken,
+    };
+
     // Create response with user data
     const response = NextResponse.json({
-      user,
-      tokenData: longLivedTokenResponse.data,
+      user: userData,
+      tokenData: {
+        access_token: longLivedAccessToken,
+        user_id,
+      },
     });
 
     // Set cookie with user details that expires in 30 days
     response.cookies.set({
       name: "user_details",
-      value: JSON.stringify({
-        _id: user._id,
-        provider: "instagram",
-        instagramUsername: username,
-        instagramId: user_id,
-      }),
-      httpOnly: true,
+      value: JSON.stringify(userData),
+      httpOnly: false, // Allow client-side access
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
+      path: "/",
       maxAge: 30 * 24 * 60 * 60, // 30 days
     });
 

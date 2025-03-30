@@ -1,16 +1,15 @@
 "use client";
 import { useRouter } from "next/navigation";
-
+import { useAppSelector } from "@/redux/hooks";
 import handleInstagramLogin from "./handleInstagramLogin";
 
 export const usePostAutomation = () => {
   const router = useRouter();
+  const user = useAppSelector((state) => state.user);
 
   return async () => {
-    const userDetail = JSON.parse(localStorage.getItem("user_details"));
-    const instagramAccessToken = userDetail?.instagramAccessToken;
-
-    if (instagramAccessToken) {
+    console.log(user);
+    if (user?.instagramAccessToken) {
       router.push("/dashboard/automation/create");
     } else {
       handleInstagramLogin();

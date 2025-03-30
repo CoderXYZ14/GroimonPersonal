@@ -1,23 +1,19 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { ModeToggle } from "./mode-toggle";
 import AvatarDropdown from "./AvatarDropdown";
 import Link from "next/link";
 import { Button } from "../ui/button";
+import { useAppSelector } from "@/redux/hooks";
 // import { useSession } from "next-auth/react";
 
 const NavbarSigninAvatar = () => {
-  const [userDetails, setUserDetails] = useState<string | null>(null);
-
-  useEffect(() => {
-    const details = localStorage.getItem("user_details");
-    setUserDetails(details);
-  }, []);
+  const user = useAppSelector((state) => state.user);
 
   return (
     <div className="flex items-center gap-6">
       <ModeToggle />
-      {userDetails ? (
+      {user.isAuthenticated ? (
         <AvatarDropdown />
       ) : (
         <Link href="/signin">

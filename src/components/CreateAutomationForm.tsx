@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAppSelector } from "@/redux/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -64,6 +65,7 @@ interface InstagramMediaResponse {
 
 export function CreateAutomationForm() {
   const router = useRouter();
+  const user = useAppSelector((state) => state.user);
   const [selectPostOpen, setSelectPostOpen] = useState(true);
   const [dmTypeOpen, setDmTypeOpen] = useState(true);
   const [media, setMedia] = useState<MediaItem[]>([]);
@@ -101,10 +103,8 @@ export function CreateAutomationForm() {
   useEffect(() => {
     const fetchMedia = async () => {
       setIsLoading(true);
-      const userDetail = JSON.parse(localStorage.getItem("user_details"));
-
-      const instagramId = userDetail?.instagramId;
-      const instagramAccessToken = userDetail?.instagramAccessToken;
+      const instagramId = user.instagramId;
+      const instagramAccessToken = user.instagramAccessToken;
 
       if (!instagramId || !instagramAccessToken) {
         console.error(
@@ -149,7 +149,7 @@ export function CreateAutomationForm() {
     };
 
     fetchMedia();
-  }, []);
+  }, [user.instagramId, user.instagramAccessToken]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -163,14 +163,14 @@ export function CreateAutomationForm() {
         throw new Error("Please select a post");
       }
 
-      const userDetail = JSON.parse(localStorage.getItem("user_details"));
-      const userId = userDetail._id;
+      const userId = user._id;
 
       if (!userId) {
         console.error("User ID not found in session data");
         return;
       }
 
+      console.log(user);
       await axios.post("/api/automations", {
         ...values,
         postIds,

@@ -2,31 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { User2, Loader2 } from "lucide-react";
+import { useAppSelector } from "@/redux/hooks";
 
 export function AutomationStats() {
+  const user = useAppSelector((state) => state.user);
   const [status, setStatus] = useState<
     "loading" | "authenticated" | "unauthenticated"
   >("authenticated");
-  const [userData, setUserData] = useState<{
-    instagramUsername?: string;
-    instagramId?: string;
-  } | null>(null);
 
   useEffect(() => {
     try {
-      const userDetailStr = localStorage.getItem("user_details");
-      if (!userDetailStr) {
-        setStatus("authenticated");
+      if (!user.isAuthenticated) {
+        setStatus("unauthenticated");
         return;
       }
 
-      const userDetail = JSON.parse(userDetailStr);
-      setUserData({
-        instagramUsername: userDetail?.instagramUsername,
-        instagramId: userDetail?.instagramId,
-      });
-
-      if (!userDetail?.instagramUsername || !userDetail?.instagramId) {
+      if (!user.instagramUsername || !user.instagramId) {
         setStatus("authenticated");
         return;
       }
@@ -36,7 +27,7 @@ export function AutomationStats() {
       console.error("Error reading user details:", error);
       setStatus("unauthenticated");
     }
-  }, []);
+  }, [user]);
 
   const renderContent = {
     loading: (
@@ -72,7 +63,7 @@ export function AutomationStats() {
                 Username
               </p>
               <p className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
-                {userData?.instagramUsername || "Not available"}
+                {user.instagramUsername || "Not available"}
               </p>
             </div>
           </div>

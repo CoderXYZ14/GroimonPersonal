@@ -4,24 +4,27 @@ import { getToken } from "next-auth/jwt";
 export { default } from "next-auth/middleware";
 
 export async function middleware(request) {
-  const token = await getToken({ req: request });
   const url = request.nextUrl;
 
-  const userDetails = request.cookies.get("user_details")?.value;
-  const isInstagramAuthenticated =
-    userDetails && JSON.parse(userDetails).provider === "instagram";
-
-  const isAuthenticated = token || isInstagramAuthenticated;
-
-  if (
-    isAuthenticated &&
-    (url.pathname.startsWith("/signin") || url.pathname.startsWith("/signup"))
-  ) {
-    return NextResponse.redirect(new URL("/dashboard/automation", request.url));
+  // Allow all API routes and Instagram callback
+  if (url.pathname.startsWith("/api/") || url.pathname === "/your_insta_token") {
+    return NextResponse.next();
   }
 
-  if (!isAuthenticated && url.pathname.startsWith("/dashboard")) {
-    return NextResponse.redirect(new URL("/signin", request.url));
+  // Check if user is accessing dashboard routes
+  if (url.pathname.startsWith("/dashboard")) {
+    // Get authentication state from cookies
+    const token = await getToken({ req: request });
+    const userDetails = request.cookies.get("user_details")?.value;
+
+    const isAuthenticated = token || userDetails;
+
+    if (!isAuthenticated) {
+      // Store the attempted URL to redirect back after auth
+      const response = NextResponse.redirect(new URL("/signin", request.url));
+      response.cookies.set("redirectTo", url.pathname, { path: "/" });
+      return response;
+    }
   }
 
   return NextResponse.next();
