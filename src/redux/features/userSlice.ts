@@ -30,7 +30,7 @@ const userSlice = createSlice({
         isAuthenticated: true,
       };
     },
-    clearUser: (state) => {
+    clearUser: () => {
       return {
         isAuthenticated: false,
       };

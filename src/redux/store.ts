@@ -1,43 +1,54 @@
-import { configureStore, combineReducers, ThunkAction, Action } from '@reduxjs/toolkit';
-import userReducer from './features/userSlice';
-import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist';
-import { WebStorage } from 'redux-persist/lib/types';
+import {
+  combineReducers,
+  ThunkAction,
+  Action,
+  createStore,
+  applyMiddleware,
+} from "@reduxjs/toolkit";
+import userReducer from "./features/userSlice";
+import { persistStore, persistReducer } from "redux-persist";
+import { WebStorage } from "redux-persist/lib/types";
+import { thunk } from "redux-thunk";
 
 // Custom storage with type safety
-const createCustomStorage = (): WebStorage => {
-  if (typeof window !== 'undefined') {
-    return require('redux-persist/lib/storage').default;
+const createCustomStorage = async (): Promise<WebStorage> => {
+  if (typeof window !== "undefined") {
+    const storageModule = await import("redux-persist/lib/storage");
+    return storageModule.default;
   }
-  return require('redux-persist/lib/storage/createWebStorage').default('local');
-};
-
-const persistConfig = {
-  key: 'root',
-  version: 1,
-  storage: createCustomStorage(),
-  whitelist: ['user'], // only user will be persisted
-  blacklist: [], // add any reducers you don't want to persist here
+  const webStorageModule = await import(
+    "redux-persist/lib/storage/createWebStorage"
+  );
+  return webStorageModule.default("local");
 };
 
 const rootReducer = combineReducers({
   user: userReducer,
 });
 
-const persistedReducer = persistReducer(persistConfig, rootReducer);
+const initializeStore = async () => {
+  const storage = await createCustomStorage();
+  const persistConfig = {
+    key: "root",
+    version: 1,
+    storage,
+    whitelist: ["user"], // only user will be persisted
+    blacklist: [], // add any reducers you don't want to persist here
+  };
 
-export const store = configureStore({
-  reducer: persistedReducer,
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: {
-        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-      },
-    }),
-  devTools: process.env.NODE_ENV !== 'production',
-});
+  const persistedReducer = persistReducer(persistConfig, rootReducer);
+  const store = createStore(persistedReducer, applyMiddleware(thunk));
+  const persistor = persistStore(store);
+  return { store, persistor };
+};
 
-export const persistor = persistStore(store);
+export const { store, persistor } = await initializeStore();
 
-export type RootState = ReturnType<typeof store.getState>;
+export type RootState = ReturnType<typeof rootReducer>;
 export type AppDispatch = typeof store.dispatch;
-export type AppThunk<ReturnType = void> = ThunkAction<ReturnType, RootState, unknown, Action<string>>;
+export type AppThunk<ReturnType = void> = ThunkAction<
+  ReturnType,
+  RootState,
+  unknown,
+  Action<string>
+>;
