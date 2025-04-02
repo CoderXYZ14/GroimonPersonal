@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-const RedirectPage = () => {
+const RedirectContent = () => {
   const searchParams = useSearchParams();
   const [countdown, setCountdown] = useState(3);
   const redirectUrl = searchParams.get("url");
@@ -65,6 +65,22 @@ const RedirectPage = () => {
       </div>
     </div>
   );
+};
+
+const RedirectPage = () => {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center p-8 rounded-lg bg-white shadow-lg">
+            <div className="text-xl text-gray-600">Loading...</div>
+          </div>
+        </div>
+      }
+    >
+      <RedirectContent />
+    </Suspense>
+  )
 };
 
 export default RedirectPage;
