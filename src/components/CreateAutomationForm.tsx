@@ -199,7 +199,7 @@ export function CreateAutomationForm() {
         postIds,
         keywords: values.keywords.split(",").map((k) => k.trim()),
         user: userId,
-        buttons: values.messageType === "buttonImage" ? buttons : undefined
+        buttons: values.messageType === "buttonImage" ? buttons : undefined,
       });
 
       toast.success("Automation created successfully!");
@@ -222,7 +222,7 @@ export function CreateAutomationForm() {
     if (messageType === "buttonImage" && buttons.length === 0) {
       setButtons([{ title: "", url: "", buttonText: "" }]);
     }
-  }, [form.watch("messageType")]);
+  }, [buttons.length, form]);
 
   const keywordsCount = form.watch("keywords")
     ? form
@@ -692,7 +692,8 @@ export function CreateAutomationForm() {
                   <div className="space-y-0.5">
                     <Label className="text-base">Remove Branding</Label>
                     <FormDescription>
-                      Remove "This automation is sent by Groimon" from messages
+                      Remove &ldquo;This automation is sent by Groimon&rdquo;
+                      from messages
                     </FormDescription>
                   </div>
                   <FormControl>
