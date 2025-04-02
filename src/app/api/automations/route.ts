@@ -13,7 +13,9 @@ export async function POST(request: Request) {
       name,
       postIds,
       keywords,
+      messageType,
       message,
+      buttons,
       user,
       enableCommentAutomation,
       commentMessage,
@@ -23,10 +25,12 @@ export async function POST(request: Request) {
     if (
       !name ||
       !keywords ||
+      !messageType ||
       !message ||
       !user ||
       !enableCommentAutomation ||
-      !commentMessage
+      !commentMessage ||
+      (messageType === "buttonImage" && (!buttons || buttons.length === 0))
     ) {
       return NextResponse.json(
         { message: "Missing required fields" },
@@ -38,7 +42,9 @@ export async function POST(request: Request) {
       name,
       postIds,
       keywords,
+      messageType,
       message,
+      buttons,
       user,
       enableCommentAutomation,
       commentMessage,

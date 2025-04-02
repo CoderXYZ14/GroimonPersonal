@@ -198,6 +198,7 @@ export function CreateAutomationForm() {
         postIds,
         keywords: values.keywords.split(",").map((k) => k.trim()),
         user: userId,
+        buttons: values.messageType === "buttonImage" ? buttons : undefined
       });
 
       toast.success("Automation created successfully!");
@@ -213,6 +214,14 @@ export function CreateAutomationForm() {
       }
     }
   }
+
+  // Add initial button when messageType changes to buttonImage
+  useEffect(() => {
+    const messageType = form.watch("messageType");
+    if (messageType === "buttonImage" && buttons.length === 0) {
+      setButtons([{ title: "", url: "", buttonText: "" }]);
+    }
+  }, [form.watch("messageType")]);
 
   const keywordsCount = form.watch("keywords")
     ? form
