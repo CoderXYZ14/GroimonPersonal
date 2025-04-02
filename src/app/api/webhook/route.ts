@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
-import AutomationModel from "@/models/Automation";
+import AutomationModel, {
+  IAutomation as AutomationType,
+} from "@/models/Automation";
 
 import axios from "axios";
 import { IUser } from "@/models/User";
@@ -18,16 +20,9 @@ interface InstagramComment {
   text: string;
 }
 
-interface IAutomation {
+interface IAutomation extends Omit<AutomationType, keyof Document> {
   _id: { toString: () => string };
-  name: string;
-  keywords: string[];
-  message: string;
-  postIds: string[];
   user: IUser;
-  enableCommentAutomation: boolean;
-  commentMessage: string;
-  isFollowed: boolean;
 }
 
 export async function GET(request: NextRequest) {
@@ -256,14 +251,42 @@ async function sendDM(
       "Content-Type": "application/json",
     };
 
-    const body = {
-      recipient: {
-        comment_id: comment.id,
-      },
-      message: {
-        text: message,
-      },
-    };
+    let body;
+
+    if (
+      automation.messageType === "buttonImage" &&
+      automation.buttons &&
+      automation.buttons.length > 0
+    ) {
+      body = {
+        recipient: {
+          comment_id: comment.id,
+        },
+        message: {
+          attachment: {
+            type: "template",
+            payload: {
+              template_type: "button",
+              text: message,
+              buttons: automation.buttons.map((button) => ({
+                type: "web_url",
+                url: button.url,
+                title: button.buttonText,
+              })),
+            },
+          },
+        },
+      };
+    } else {
+      body = {
+        recipient: {
+          comment_id: comment.id,
+        },
+        message: {
+          text: message,
+        },
+      };
+    }
 
     console.log(
       `Attempting to send DM to user ${comment.from.username} (${comment.from.id}) for automation "${automationName}"`

@@ -27,6 +27,12 @@ import { useRouter } from "next/navigation";
 import { Switch } from "@/components/ui/switch";
 import axios from "axios";
 
+const buttonSchema = z.object({
+  title: z.string().min(1, "Button title is required"),
+  url: z.string().url("Must be a valid URL"),
+  buttonText: z.string().min(1, "Button text is required"),
+});
+
 const formSchema = z.object({
   name: z
     .string()
@@ -35,7 +41,9 @@ const formSchema = z.object({
   applyOption: z.enum(["all", "selected"]),
   postId: z.string().optional(),
   keywords: z.string().min(1, "At least one keyword is required"),
+  messageType: z.enum(["message", "buttonImage"]).default("message"),
   message: z.string().min(1, "Message template is required"),
+  buttons: z.array(buttonSchema).optional(),
   enableCommentAutomation: z.boolean(),
   commentMessage: z.string().min(1, "Comment message is required"),
   isFollowed: z.boolean().default(false),
@@ -71,6 +79,9 @@ export function CreateAutomationForm() {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [commentAutomationOpen, setCommentAutomationOpen] = useState(false);
+  const [buttons, setButtons] = useState<
+    Array<{ title: string; url: string; buttonText: string }>
+  >([]);
 
   const toggleSelectPost = () => {
     setSelectPostOpen(!selectPostOpen);
@@ -91,6 +102,7 @@ export function CreateAutomationForm() {
       applyOption: "selected",
       postId: "",
       keywords: "",
+      messageType: "message",
       message: "",
       enableCommentAutomation: false,
       commentMessage: "",
@@ -99,6 +111,16 @@ export function CreateAutomationForm() {
   });
 
   const applyOption = form.watch("applyOption");
+
+  // Add or remove button when message type changes
+  useEffect(() => {
+    const messageType = form.watch("messageType");
+    if (messageType === "buttonImage" && buttons.length === 0) {
+      setButtons([{ title: "", url: "", buttonText: "" }]);
+    } else if (messageType === "message") {
+      setButtons([]);
+    }
+  }, [form.watch("messageType"), buttons.length]);
 
   useEffect(() => {
     const fetchMedia = async () => {
@@ -430,7 +452,35 @@ export function CreateAutomationForm() {
             </div>
 
             {dmTypeOpen && (
-              <div className="mt-4">
+              <div className="mt-4 space-y-4">
+                <FormField
+                  control={form.control}
+                  name="messageType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex space-x-4"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="message" id="message" />
+                            <Label htmlFor="message">Message</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem
+                              value="buttonImage"
+                              id="buttonImage"
+                            />
+                            <Label htmlFor="buttonImage">Button Image</Label>
+                          </div>
+                        </RadioGroup>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
                 <FormField
                   control={form.control}
                   name="message"
@@ -447,6 +497,81 @@ export function CreateAutomationForm() {
                     </FormItem>
                   )}
                 />
+
+                {form.watch("messageType") === "buttonImage" && (
+                  <div className="space-y-4">
+                    {buttons.map((button, index) => (
+                      <Card key={index} className="p-4">
+                        <div className="space-y-4">
+                          <div>
+                            <Label>Button Title</Label>
+                            <Input
+                              value={button.title}
+                              onChange={(e) => {
+                                const newButtons = [...buttons];
+                                newButtons[index].title = e.target.value;
+                                setButtons(newButtons);
+                              }}
+                              placeholder="Enter Title"
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label>URL</Label>
+                            <Input
+                              value={button.url}
+                              onChange={(e) => {
+                                const newButtons = [...buttons];
+                                newButtons[index].url = e.target.value;
+                                setButtons(newButtons);
+                              }}
+                              placeholder="Enter URL"
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label>Button Text</Label>
+                            <Input
+                              value={button.buttonText}
+                              onChange={(e) => {
+                                const newButtons = [...buttons];
+                                newButtons[index].buttonText = e.target.value;
+                                setButtons(newButtons);
+                              }}
+                              placeholder="Click here"
+                              className="mt-1"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={() => {
+                              const newButtons = buttons.filter(
+                                (_, i) => i !== index
+                              );
+                              setButtons(newButtons);
+                            }}
+                          >
+                            Remove Button
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setButtons([
+                          ...buttons,
+                          { title: "", url: "", buttonText: "" },
+                        ]);
+                      }}
+                      className="w-full mt-4"
+                    >
+                      Add Button
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>
