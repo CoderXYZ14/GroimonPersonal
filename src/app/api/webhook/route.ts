@@ -275,7 +275,12 @@ async function sendDM(
               text: messageWithBranding,
               buttons: automation.buttons.map((button) => ({
                 type: "web_url",
-                url: button.url,
+                url:
+                  `${
+                    process.env.NEXT_PUBLIC_APP_URL ||
+                    "https://www.groimon.vercel.app"
+                  }/redirect?url=${encodeURIComponent(button.url)}` ||
+                  button.url,
                 title: button.buttonText,
               })),
             },
