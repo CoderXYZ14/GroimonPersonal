@@ -251,6 +251,11 @@ async function sendDM(
       "Content-Type": "application/json",
     };
 
+    // Add branding if not removed
+    const messageWithBranding = automation.removeBranding
+      ? message
+      : `${message}\n\nThis automation is sent by Groimon.`;
+
     let body;
 
     if (
@@ -267,7 +272,7 @@ async function sendDM(
             type: "template",
             payload: {
               template_type: "button",
-              text: message,
+              text: messageWithBranding,
               buttons: automation.buttons.map((button) => ({
                 type: "web_url",
                 url: button.url,
@@ -283,7 +288,7 @@ async function sendDM(
           comment_id: comment.id,
         },
         message: {
-          text: message,
+          text: messageWithBranding,
         },
       };
     }

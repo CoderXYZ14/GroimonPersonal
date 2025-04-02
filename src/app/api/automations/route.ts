@@ -20,6 +20,7 @@ export async function POST(request: Request) {
       enableCommentAutomation,
       commentMessage,
       isFollowed,
+      removeBranding,
     } = body;
 
     if (
@@ -49,6 +50,7 @@ export async function POST(request: Request) {
       enableCommentAutomation,
       commentMessage,
       isFollowed,
+      removeBranding,
     });
 
     await automation.save();

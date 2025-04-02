@@ -17,6 +17,7 @@ export interface IAutomation extends Document {
   enableCommentAutomation: boolean;
   commentMessage?: string;
   isFollowed: boolean;
+  removeBranding: boolean;
   user: mongoose.Types.ObjectId | IUser;
 }
 
@@ -40,6 +41,7 @@ const AutomationSchema: Schema<IAutomation> = new Schema(
     enableCommentAutomation: { type: Boolean, default: false },
     commentMessage: { type: String, default: "" },
     isFollowed: { type: Boolean, default: false },
+    removeBranding: { type: Boolean, default: false },
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }

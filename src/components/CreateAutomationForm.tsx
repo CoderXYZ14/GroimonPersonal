@@ -47,6 +47,7 @@ const formSchema = z.object({
   enableCommentAutomation: z.boolean(),
   commentMessage: z.string().min(1, "Comment message is required"),
   isFollowed: z.boolean().default(false),
+  removeBranding: z.boolean().default(false),
 });
 
 interface InstagramMediaItem {
@@ -675,6 +676,34 @@ export function CreateAutomationForm() {
                 />
               </div>
             )}
+          </div>
+
+          {/* Remove Branding section */}
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium">Branding</h2>
+            </div>
+
+            <FormField
+              control={form.control}
+              name="removeBranding"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Remove Branding</Label>
+                    <FormDescription>
+                      Remove "This automation is sent by Groimon" from messages
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
           </div>
         </form>
       </Form>
