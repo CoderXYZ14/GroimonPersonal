@@ -15,8 +15,14 @@ export default function YourInstaToken() {
 
   useEffect(() => {
     const processInstagramAuth = async () => {
+      // Prevent multiple processing attempts
+      if (isProcessing) return;
+      
       const urlParams = new URLSearchParams(window.location.search);
       const authorizationCode = urlParams.get("code");
+      
+      // Clear the URL to prevent reuse of the code
+      window.history.replaceState({}, document.title, window.location.pathname);
 
       if (!authorizationCode) {
         toast.error("Authorization code not found");
