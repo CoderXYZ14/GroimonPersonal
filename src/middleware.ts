@@ -13,9 +13,7 @@ export async function middleware(request) {
   if (url.pathname.startsWith("/dashboard")) {
     const userDetails = request.cookies.get("user_details")?.value;
     if (!userDetails) {
-      const response = NextResponse.redirect(new URL("/signin", request.url));
-      response.cookies.set("redirectTo", url.pathname, { path: "/" });
-      return response;
+      return NextResponse.redirect(new URL("/signin", request.url));
     }
   }
   return NextResponse.next();

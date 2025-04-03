@@ -8,8 +8,6 @@ export const usePostAutomation = () => {
   const user = useAppSelector((state) => state.user);
 
   return async () => {
-    document.cookie = `redirectTo=/dashboard/automation/create; path=/; max-age=3600`;
-
     if (user?.instagramAccessToken) {
       router.push("/dashboard/automation/create");
     } else {
