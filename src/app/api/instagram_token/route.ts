@@ -58,14 +58,18 @@ export async function POST(req: Request) {
     );
     const longLivedAccessToken = longLivedTokenResponse?.data.access_token;
 
-    const userDetailsResponse = await axios.post(
-      `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/api/insta_details`,
+    // Get user details directly from Instagram Graph API
+    const userDetailsResponse = await axios.get(
+      `https://graph.instagram.com/me`,
       {
-        accessToken: longLivedAccessToken,
+        params: {
+          fields: "id,username",
+          access_token: longLivedAccessToken,
+        },
       }
     );
 
-    const { user_id, username } = userDetailsResponse.data;
+    const { id: user_id, username } = userDetailsResponse.data;
 
     console.log("access token:", longLivedAccessToken);
     let user = await UserModel.findOne({
