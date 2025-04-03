@@ -11,19 +11,15 @@ interface InstagramTokenResponse {
 
 export async function POST(req: Request) {
   try {
-    console.log("Starting Instagram token exchange...");
     await dbConnect();
-    console.log("Database connected successfully");
+
     const { code } = await req.json();
 
-    // First check if this auth code has been used before
     const existingUserWithCode = await UserModel.findOne({
       lastAuthCode: code,
     });
 
     if (existingUserWithCode) {
-      // User exists and has used this code before - return their existing token
-      console.log("Found existing user with this auth code");
       const userData = {
         _id: existingUserWithCode._id.toString(),
         instagramUsername: existingUserWithCode.instagramUsername,
@@ -52,16 +48,6 @@ export async function POST(req: Request) {
 
       return response;
     }
-
-    if (
-      !process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID ||
-      !process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_SECRET
-    ) {
-      console.error("Missing Instagram credentials in environment variables");
-      throw new Error("Missing Instagram credentials");
-    }
-
-    console.log("Received authorization code:", code);
 
     const payload = new URLSearchParams({
       client_id: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID!,
@@ -107,7 +93,6 @@ export async function POST(req: Request) {
 
     const { id: user_id, username } = userDetailsResponse.data;
 
-    console.log("access token:", longLivedAccessToken);
     let user = await UserModel.findOne({
       instagramId: user_id,
     });
@@ -117,11 +102,10 @@ export async function POST(req: Request) {
         instagramAccessToken: longLivedAccessToken,
         instagramId: user_id,
         instagramUsername: username,
-        automations: [],
-        lastAuthCode: code, // Store the auth code used
+
+        lastAuthCode: code,
       });
     } else {
-      // Update existing user with new token and auth code
       user.instagramAccessToken = longLivedAccessToken;
       user.lastAuthCode = code;
       await user.save();
