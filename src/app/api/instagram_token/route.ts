@@ -72,17 +72,7 @@ export async function POST(req: Request) {
       instagramId: user_id,
     });
     console.log(user);
-    if (user) {
-      user = await UserModel.findByIdAndUpdate(
-        user._id,
-        {
-          instagramAccessToken: longLivedAccessToken,
-          instagramUsername: username,
-          instagramId: user_id,
-        },
-        { new: true }
-      );
-    } else {
+    if (!user) {
       user = await UserModel.create({
         instagramAccessToken: longLivedAccessToken,
         instagramId: user_id,
