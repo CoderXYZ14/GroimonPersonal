@@ -6,6 +6,7 @@ export interface IUser extends Document {
   instagramAccessToken?: string;
   instaProfilePic?: string;
   automations: mongoose.Types.ObjectId[];
+  lastAuthCode?: string;
 }
 
 const UserSchema: Schema<IUser> = new Schema(
@@ -15,6 +16,7 @@ const UserSchema: Schema<IUser> = new Schema(
     instagramAccessToken: { type: String },
     instaProfilePic: { type: String },
     automations: [{ type: Schema.Types.ObjectId, ref: "Automation" }],
+    lastAuthCode: { type: String },
   },
   { timestamps: true }
 );

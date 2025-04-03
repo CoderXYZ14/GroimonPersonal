@@ -16,6 +16,43 @@ export async function POST(req: Request) {
     console.log("Database connected successfully");
     const { code } = await req.json();
 
+    // First check if this auth code has been used before
+    const existingUserWithCode = await UserModel.findOne({
+      lastAuthCode: code,
+    });
+
+    if (existingUserWithCode) {
+      // User exists and has used this code before - return their existing token
+      console.log("Found existing user with this auth code");
+      const userData = {
+        _id: existingUserWithCode._id.toString(),
+        instagramUsername: existingUserWithCode.instagramUsername,
+        instagramId: existingUserWithCode.instagramId,
+        instagramAccessToken: existingUserWithCode.instagramAccessToken,
+        automations: existingUserWithCode.automations || [],
+      };
+
+      const response = NextResponse.json({
+        user: userData,
+        tokenData: {
+          access_token: existingUserWithCode.instagramAccessToken,
+          user_id: existingUserWithCode.instagramId,
+        },
+      });
+
+      response.cookies.set({
+        name: "user_details",
+        value: JSON.stringify(userData),
+        httpOnly: false,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 30 * 24 * 60 * 60,
+      });
+
+      return response;
+    }
+
     if (
       !process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID ||
       !process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_SECRET
@@ -81,7 +118,13 @@ export async function POST(req: Request) {
         instagramId: user_id,
         instagramUsername: username,
         automations: [],
+        lastAuthCode: code, // Store the auth code used
       });
+    } else {
+      // Update existing user with new token and auth code
+      user.instagramAccessToken = longLivedAccessToken;
+      user.lastAuthCode = code;
+      await user.save();
     }
 
     const userData: Partial<IUser> & { _id: string } = {

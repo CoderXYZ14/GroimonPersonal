@@ -15,8 +15,15 @@ const AvatarDropdown = () => {
   const dispatch = useAppDispatch();
 
   const handleSignOut = async () => {
+    // Clear localStorage items
     localStorage.removeItem("instagram_token");
     localStorage.removeItem("user_details");
+
+    // Clear cookies
+    document.cookie =
+      "user_details=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie =
+      "redirectTo=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
     dispatch(clearUser());
 
