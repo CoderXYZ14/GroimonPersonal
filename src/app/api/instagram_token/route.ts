@@ -58,7 +58,6 @@ export async function POST(req: Request) {
     );
     const longLivedAccessToken = longLivedTokenResponse?.data.access_token;
 
-    // Get user details directly from Instagram Graph API
     const userDetailsResponse = await axios.get(
       `https://graph.instagram.com/me`,
       {

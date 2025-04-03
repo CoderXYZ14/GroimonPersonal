@@ -15,14 +15,8 @@ export default function YourInstaToken() {
 
   useEffect(() => {
     const processInstagramAuth = async () => {
-      // Prevent multiple processing attempts
-      if (isProcessing) return;
-
       const urlParams = new URLSearchParams(window.location.search);
       const authorizationCode = urlParams.get("code");
-
-      // Clear the URL to prevent reuse of the code
-      window.history.replaceState({}, document.title, window.location.pathname);
 
       if (!authorizationCode) {
         toast.error("Authorization code not found");
@@ -61,21 +55,20 @@ export default function YourInstaToken() {
         );
         localStorage.setItem("instagram_token", tokenData.access_token);
 
-        // Set the cookie with the same data
-        document.cookie = `user_details=${JSON.stringify(
-          userDataForStorage
-        )}; path=/; max-age=${30 * 24 * 60 * 60}`;
+        const cookies = document.cookie.split(";");
+        const redirectCookie = cookies.find((c) =>
+          c.trim().startsWith("redirectTo=")
+        );
+        const redirectTo = redirectCookie
+          ? decodeURIComponent(redirectCookie.split("=")[1])
+          : "/dashboard/automation";
 
-        // Clear redirect cookie
         document.cookie =
           "redirectTo=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
         toast.success("Successfully connected to Instagram");
 
-        // Small delay to ensure cookie is set
-        setTimeout(() => {
-          router.push("/dashboard/automation");
-        }, 100);
+        router.replace(redirectTo);
       } catch (error) {
         const errorMessage =
           error instanceof AxiosError
