@@ -11,8 +11,20 @@ interface InstagramTokenResponse {
 
 export async function POST(req: Request) {
   try {
+    console.log("Starting Instagram token exchange...");
     await dbConnect();
+    console.log("Database connected successfully");
     const { code } = await req.json();
+
+    if (
+      !process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID ||
+      !process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_SECRET
+    ) {
+      console.error("Missing Instagram credentials in environment variables");
+      throw new Error("Missing Instagram credentials");
+    }
+
+    console.log("Received authorization code:", code);
 
     const payload = new URLSearchParams({
       client_id: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID!,
@@ -106,9 +118,19 @@ export async function POST(req: Request) {
     });
 
     return response;
-  } catch (error) {
-    console.error("Detailed error:", error);
-
-    return NextResponse.json(error, { status: 500 });
+  } catch (error: any) {
+    console.error("Instagram token exchange error:", {
+      message: error.message,
+      response: error.response?.data,
+      stack: error.stack,
+    });
+    return NextResponse.json(
+      {
+        error: "Failed to exchange Instagram token",
+        details: error.message,
+        responseData: error.response?.data,
+      },
+      { status: 500 }
+    );
   }
 }
