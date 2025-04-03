@@ -142,7 +142,11 @@ async function handleAutomationResponse(
     const user = automation.user as IUser;
 
     if (!user.instagramAccessToken) {
-      console.error(`Instagram access token not found for user ${user.name}`);
+      console.error(
+        `Instagram access token not found for user ${
+          user.instagramUsername ?? "unknown"
+        }`
+      );
       return;
     }
 
@@ -231,7 +235,9 @@ async function sendDM(
 
     if (!user.instagramAccessToken) {
       console.error(
-        `Instagram access token not found for user ${user.name} (${user._id})`
+        `Instagram access token not found for user ${
+          user.instagramUsername ?? "unknown"
+        } (${user._id})`
       );
       return;
     }
@@ -239,7 +245,7 @@ async function sendDM(
     const ownerId = user.instagramId;
     if (!ownerId) {
       console.error(
-        `Instagram ID not found for user ${user.name} (${user._id})`
+        `Instagram ID not found for user ${user.instagramUsername ?? 'unknown'} (${user._id})`
       );
       return;
     }

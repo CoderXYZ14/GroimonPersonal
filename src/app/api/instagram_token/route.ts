@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import axios, { AxiosError } from "axios";
-import UserModel from "@/models/User";
+import axios from "axios";
+import UserModel, { IUser } from "@/models/User";
 
 import dbConnect from "@/lib/dbConnect";
 interface InstagramTokenResponse {
@@ -9,15 +9,10 @@ interface InstagramTokenResponse {
   expires_in?: number;
 }
 
-interface ErrorResponse {
-  error: string;
-  status?: number;
-}
-
 export async function POST(req: Request) {
   try {
     await dbConnect();
-    const { code, userId, isInstagramLogin } = await req.json();
+    const { code } = await req.json();
 
     const payload = new URLSearchParams({
       client_id: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID!,
@@ -61,68 +56,37 @@ export async function POST(req: Request) {
     const { user_id, username } = userDetailsResponse.data;
 
     console.log("access token:", longLivedAccessToken);
-    let user;
-    if (isInstagramLogin) {
-      user = await UserModel.findOne({
-        instagramId: user_id,
+    let user = await UserModel.findOne({
+      instagramId: user_id,
+    });
 
-        provider: "instagram",
-      });
-
-      if (user) {
-        user = await UserModel.findByIdAndUpdate(
-          user._id,
-          {
-            instagramAccessToken: longLivedAccessToken,
-            instagramUsername: username,
-          },
-          { new: true }
-        );
-      } else {
-        user = await UserModel.create({
-          provider: "instagram",
-          instagramAccessToken: longLivedAccessToken,
-          instagramId: user_id,
-          instagramUsername: username,
-        });
-      }
-    } else {
+    if (user) {
       user = await UserModel.findByIdAndUpdate(
-        userId,
+        user._id,
         {
           instagramAccessToken: longLivedAccessToken,
-          instagramId: user_id,
           instagramUsername: username,
+          instagramId: user_id,
         },
-        {
-          new: true,
-          select:
-            "_id name email provider instagramId instagramUsername instagramAccessToken ",
-        }
+        { new: true }
       );
-
-      if (!user) {
-        return NextResponse.json({ error: "User not found" }, { status: 404 });
-      }
+    } else {
+      user = await UserModel.create({
+        instagramAccessToken: longLivedAccessToken,
+        instagramId: user_id,
+        instagramUsername: username,
+        automations: [],
+      });
     }
 
-    // Prepare user data with all necessary fields
-    const userData = {
-      _id: user._id,
-      name: user.name || username,
-      email: user.email,
-      // Keep original provider if user was logged in with Google
-      provider: isInstagramLogin ? "instagram" : user.provider || "instagram",
+    const userData: Partial<IUser> & { _id: string } = {
+      _id: user._id.toString(),
       instagramUsername: username,
       instagramId: user_id,
       instagramAccessToken: longLivedAccessToken,
-      // Preserve Google data if it exists
-      googleId: user.googleId,
-      googleEmail: user.googleEmail,
-      googleImage: user.googleImage,
+      automations: user.automations || [],
     };
 
-    // Create response with user data
     const response = NextResponse.json({
       user: userData,
       tokenData: {
@@ -131,50 +95,20 @@ export async function POST(req: Request) {
       },
     });
 
-    // Set cookie with user details that expires in 30 days
     response.cookies.set({
       name: "user_details",
       value: JSON.stringify(userData),
-      httpOnly: false, // Allow client-side access
+      httpOnly: false,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 30 * 24 * 60 * 60, // 30 days
+      maxAge: 30 * 24 * 60 * 60,
     });
 
     return response;
   } catch (error) {
     console.error("Detailed error:", error);
 
-    if (error instanceof AxiosError) {
-      console.error(
-        "Instagram API Error:",
-        error.response?.data || error.message
-      );
-
-      const errorResponse: ErrorResponse = {
-        error:
-          (error.response?.data as string) || "Instagram API error occurred",
-        status: error.response?.status,
-      };
-
-      return NextResponse.json(errorResponse, {
-        status: error.response?.status || 500,
-      });
-    } else if (error instanceof Error && error.name === "MongooseError") {
-      console.error("MongoDB Error:", error.message);
-      const errorResponse: ErrorResponse = {
-        error: "Database operation timed out. Please try again.",
-        status: 503,
-      };
-      return NextResponse.json(errorResponse, { status: 503 });
-    } else {
-      console.error("Unknown error:", error);
-      const errorResponse: ErrorResponse = {
-        error: "An unknown error occurred",
-        status: 500,
-      };
-      return NextResponse.json(errorResponse, { status: 500 });
-    }
+    return NextResponse.json(error, { status: 500 });
   }
 }

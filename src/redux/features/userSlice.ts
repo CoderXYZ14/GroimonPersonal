@@ -2,10 +2,7 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface UserState {
   _id?: string;
-  name?: string;
-  email?: string;
-  image?: string;
-  provider?: string;
+
   instagramId?: string;
   instagramUsername?: string;
   instagramAccessToken?: string;
@@ -22,19 +19,19 @@ const userSlice = createSlice({
   reducers: {
     setUser: (
       state,
-      action: PayloadAction<Omit<UserState, "isAuthenticated">>
+      action: PayloadAction<{
+        _id?: string;
+        instagramId: string;
+        instagramUsername: string;
+        instagramAccessToken: string;
+      }>
     ) => {
       return {
-        ...state,
         ...action.payload,
         isAuthenticated: true,
       };
     },
-    clearUser: () => {
-      return {
-        isAuthenticated: false,
-      };
-    },
+    clearUser: () => initialState,
   },
 });
 

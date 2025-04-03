@@ -16,7 +16,6 @@ export async function GET(request: Request) {
     }
 
     const response = {
-      image: user.image,
       numberOfAutomations: user.automations.length,
     };
 

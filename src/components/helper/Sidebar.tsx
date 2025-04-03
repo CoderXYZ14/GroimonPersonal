@@ -76,10 +76,8 @@ export function AppSidebar() {
         "fixed"
       )}
     >
-      {/* Modern gradient overlay */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-400/10 via-pink-300/5 to-transparent dark:from-purple-900/20 dark:via-pink-900/10 dark:to-transparent"></div>
 
-      {/* Collapse button */}
       <button
         onClick={toggleSidebar}
         className={cn(
@@ -134,7 +132,6 @@ export function AppSidebar() {
 
       <SidebarContent className="relative z-10">
         <div className="flex flex-1 flex-col gap-6 py-4">
-          {/* Menu sections */}
           <div className="px-3">
             <h2
               className={cn(

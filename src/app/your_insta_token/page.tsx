@@ -5,19 +5,15 @@ import { useRouter } from "next/navigation";
 import axios, { AxiosError } from "axios";
 import { toast } from "sonner";
 import { BeatLoader } from "react-spinners";
-import { useSession } from "next-auth/react";
 import { useAppDispatch } from "@/redux/hooks";
 import { setUser } from "@/redux/features/userSlice";
 
 export default function YourInstaToken() {
-  const { data: session, status } = useSession();
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    if (status === "loading") return;
-
     const processInstagramAuth = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const authorizationCode = urlParams.get("code");
@@ -33,50 +29,32 @@ export default function YourInstaToken() {
       try {
         const { data } = await axios.post("/api/instagram_token", {
           code: authorizationCode,
-          userId: session?.user?.id || null,
-          isInstagramLogin: !session?.user?.id,
         });
 
-        // Extract user data and token
         const { user: userData, tokenData } = data;
-        
-        // Store user data in Redux
+
         await dispatch(
           setUser({
             _id: userData._id,
-            name: userData.name,
-            email: userData.email,
-            // Keep original provider if user was logged in with Google
-            provider: session ? "google" : "instagram",
             instagramId: userData.instagramId,
             instagramUsername: userData.instagramUsername,
             instagramAccessToken: tokenData.access_token,
-            // Preserve Google data if it exists
-            googleId: session?.user?.id,
-            googleEmail: session?.user?.email,
-            googleImage: session?.user?.image,
           })
         );
 
-        // Set user data in localStorage
         const userDataForStorage = {
-          ...userData,
-          provider: session ? "google" : "instagram",
+          _id: userData._id,
+          instagramId: userData.instagramId,
+          instagramUsername: userData.instagramUsername,
           instagramAccessToken: tokenData.access_token,
-          isAuthenticated: true,
-          // Preserve Google data
-          googleId: session?.user?.id,
-          googleEmail: session?.user?.email,
-          googleImage: session?.user?.image,
         };
 
-        // Store in localStorage
-        localStorage.setItem("user_details", JSON.stringify(userDataForStorage));
+        localStorage.setItem(
+          "user_details",
+          JSON.stringify(userDataForStorage)
+        );
         localStorage.setItem("instagram_token", tokenData.access_token);
 
-        // Cookie is already set by the API response, no need to set it here
-
-        // Get redirect path from cookie or default
         const cookies = document.cookie.split(";");
         const redirectCookie = cookies.find((c) =>
           c.trim().startsWith("redirectTo=")
@@ -85,13 +63,11 @@ export default function YourInstaToken() {
           ? decodeURIComponent(redirectCookie.split("=")[1])
           : "/dashboard/automation";
 
-        // Clear redirect cookie
         document.cookie =
           "redirectTo=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
         toast.success("Successfully connected to Instagram");
 
-        // Use replace instead of push to prevent back button issues
         router.replace(redirectTo);
       } catch (error) {
         const errorMessage =
@@ -108,7 +84,7 @@ export default function YourInstaToken() {
     };
 
     processInstagramAuth();
-  }, [session, status, router, dispatch]);
+  }, [router, dispatch]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

@@ -5,7 +5,6 @@ import AvatarDropdown from "./AvatarDropdown";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import { useAppSelector } from "@/redux/hooks";
-// import { useSession } from "next-auth/react";
 
 const NavbarSigninAvatar = () => {
   const user = useAppSelector((state) => state.user);

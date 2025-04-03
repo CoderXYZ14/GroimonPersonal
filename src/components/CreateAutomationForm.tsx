@@ -113,15 +113,15 @@ export function CreateAutomationForm() {
 
   const applyOption = form.watch("applyOption");
 
-  // Add or remove button when message type changes
+  const messageType = form.watch("messageType");
+
   useEffect(() => {
-    const messageType = form.watch("messageType");
     if (messageType === "buttonImage" && buttons.length === 0) {
       setButtons([{ title: "", url: "", buttonText: "" }]);
     } else if (messageType === "message") {
       setButtons([]);
     }
-  }, [form.watch("messageType"), buttons.length]);
+  }, [messageType, buttons.length, form]);
 
   useEffect(() => {
     const fetchMedia = async () => {
@@ -172,7 +172,7 @@ export function CreateAutomationForm() {
     };
 
     fetchMedia();
-  }, [user.instagramId, user.instagramAccessToken]);
+  }, [user.instagramId, user.instagramAccessToken, form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -189,11 +189,10 @@ export function CreateAutomationForm() {
       const userId = user._id;
 
       if (!userId) {
-        console.error("User ID not found in session data");
+        console.error("User ID not found");
         return;
       }
 
-      console.log(user);
       await axios.post("/api/automations", {
         ...values,
         postIds,
@@ -215,8 +214,6 @@ export function CreateAutomationForm() {
       }
     }
   }
-
-  // Add initial button when messageType changes to buttonImage
   useEffect(() => {
     const messageType = form.watch("messageType");
     if (messageType === "buttonImage" && buttons.length === 0) {

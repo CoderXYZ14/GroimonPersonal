@@ -1,11 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IUser extends Document {
-  name?: string;
-  email?: string;
-  image?: string;
-  provider: string;
-  instagramId?: string;
+  instagramId: string;
   instagramUsername?: string;
   instagramAccessToken?: string;
   instaProfilePic?: string;
@@ -14,12 +10,8 @@ export interface IUser extends Document {
 
 const UserSchema: Schema<IUser> = new Schema(
   {
-    name: { type: String },
-    email: { type: String, sparse: true, unique: true },
-    image: { type: String },
-    provider: { type: String, required: true },
-    instagramId: { type: String },
-    instagramUsername: { type: String },
+    instagramId: { type: String, unique: true },
+    instagramUsername: { type: String, unique: true },
     instagramAccessToken: { type: String },
     instaProfilePic: { type: String },
     automations: [{ type: Schema.Types.ObjectId, ref: "Automation" }],

@@ -12,7 +12,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // First get the user ID and username
     const userResponse = await axios.get(
       `https://graph.instagram.com/v22.0/me`,
       {

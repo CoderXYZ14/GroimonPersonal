@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^4.1.2",
-    "@next-auth/mongodb-adapter": "^1.1.3",
     "@radix-ui/react-avatar": "^1.1.3",
     "@radix-ui/react-dialog": "^1.1.6",
     "@radix-ui/react-dropdown-menu": "^2.1.6",
@@ -32,7 +31,6 @@
     "mongoose": "^8.10.1",
     "motion": "^12.4.7",
     "next": "15.1.7",
-    "next-auth": "^4.24.11",
     "next-themes": "^0.4.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

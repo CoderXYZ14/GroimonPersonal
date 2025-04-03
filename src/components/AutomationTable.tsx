@@ -1,5 +1,5 @@
 "use client";
-import { MoreHorizontal, Plus, Loader2, Search } from "lucide-react";
+import { MoreHorizontal, Plus, Loader2, Search, User2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,13 +45,14 @@ export function AutomationTable() {
   useEffect(() => {
     const fetchAutomations = async () => {
       try {
-        if (!user.isAuthenticated || !user._id) {
-          console.error("User not authenticated or ID not found");
+        if (!user.instagramId || !user.instagramUsername) {
+          console.error("Instagram authentication required");
+          setLoading(false);
           return;
         }
 
         const { data } = await axios.get(`/api/automations`, {
-          params: { userId: user._id },
+          params: { instagramId: user.instagramId },
         });
         setAutomations(data);
       } catch (error) {
@@ -62,7 +63,7 @@ export function AutomationTable() {
     };
 
     fetchAutomations();
-  }, [user._id, setAutomations, user.isAuthenticated, user]);
+  }, [user.instagramId, user.instagramUsername]);
 
   const filteredAutomations = automations.filter(
     (automation) =>
@@ -88,9 +89,27 @@ export function AutomationTable() {
     }
   };
 
+  if (!user.isAuthenticated) {
+    return (
+      <div className="flex flex-col items-center justify-center h-40 space-y-4">
+        <div className="p-4 rounded-full bg-purple-100 dark:bg-purple-900/30">
+          <User2 className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+        </div>
+        <div className="text-center">
+          <h3 className="text-lg font-medium text-purple-700 dark:text-purple-300">
+            Instagram Account Required
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Connect your Instagram account to create automations
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center ">
+      <div className="flex items-center justify-center">
         <div className="flex flex-col items-center gap-1.5">
           <Loader2 className="h-6 w-6 animate-spin text-purple-500" />
           <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -150,7 +169,6 @@ export function AutomationTable() {
         </Button>
       </div>
 
-      {/* Mobile View */}
       <div className="md:hidden space-y-2 px-3">
         {filteredAutomations.map((automation) => (
           <div

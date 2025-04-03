@@ -1,42 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { User2, Loader2 } from "lucide-react";
+import { User2 } from "lucide-react";
 import { useAppSelector } from "@/redux/hooks";
 
 export function AutomationStats() {
   const user = useAppSelector((state) => state.user);
-  const [status, setStatus] = useState<
-    "loading" | "authenticated" | "unauthenticated"
-  >("authenticated");
+  const hasInstagramAuth = user.instagramUsername && user.instagramId;
 
-  useEffect(() => {
-    try {
-      if (!user.isAuthenticated) {
-        setStatus("unauthenticated");
-        return;
-      }
-
-      if (!user.instagramUsername || !user.instagramId) {
-        setStatus("authenticated");
-        return;
-      }
-
-      setStatus("authenticated");
-    } catch (error) {
-      console.error("Error reading user details:", error);
-      setStatus("unauthenticated");
-    }
-  }, [user]);
-
-  const renderContent = {
-    loading: (
-      <div className="flex items-center justify-center h-40 text-gray-500 dark:text-gray-400">
-        <Loader2 className="w-6 h-6 animate-spin mr-2" />
-        <span>Loading creator data...</span>
-      </div>
-    ),
-    unauthenticated: (
+  if (!hasInstagramAuth) {
+    return (
       <div className="flex flex-col items-center justify-center h-40 space-y-4">
         <div className="p-4 rounded-full bg-purple-100 dark:bg-purple-900/30">
           <User2 className="w-8 h-8 text-purple-600 dark:text-purple-400" />
@@ -50,27 +22,27 @@ export function AutomationStats() {
           </p>
         </div>
       </div>
-    ),
-    authenticated: (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl p-4">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-800 shrink-0">
-              <User2 className="w-5 h-5 text-purple-600 dark:text-purple-300" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Username
-              </p>
-              <p className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
-                {user.instagramUsername || "Not available"}
-              </p>
-            </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl p-4">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-800 shrink-0">
+            <User2 className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+          </div>
+
+          <div className="min-w-0">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Instagram Username
+            </p>
+            <p className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
+              @{user.instagramUsername}
+            </p>
           </div>
         </div>
       </div>
-    ),
-  };
-
-  return <div className="w-full">{renderContent[status]}</div>;
+    </div>
+  );
 }

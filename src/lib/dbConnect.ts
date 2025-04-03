@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 
 async function dbConnect(): Promise<void> {
-  // Check if already connected using mongoose's built-in state tracking
   if (mongoose.connection.readyState === 1) {
     return;
   }

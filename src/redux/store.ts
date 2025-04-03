@@ -10,7 +10,6 @@ import { persistStore, persistReducer } from "redux-persist";
 import { WebStorage } from "redux-persist/lib/types";
 import { thunk } from "redux-thunk";
 
-// Custom storage with type safety
 const createCustomStorage = async (): Promise<WebStorage> => {
   if (typeof window !== "undefined") {
     const storageModule = await import("redux-persist/lib/storage");
@@ -32,8 +31,8 @@ const initializeStore = async () => {
     key: "root",
     version: 1,
     storage,
-    whitelist: ["user"], // only user will be persisted
-    blacklist: [], // add any reducers you don't want to persist here
+    whitelist: ["user"],
+    blacklist: [],
   };
 
   const persistedReducer = persistReducer(persistConfig, rootReducer);

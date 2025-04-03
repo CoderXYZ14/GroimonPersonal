@@ -7,20 +7,23 @@ const AUTOMATION_TABS = [
   {
     id: "post",
     label: "Post",
+    description: "Automate responses to Instagram posts",
     icon: <ImageIcon className="h-3.5 w-3.5" />,
     isActive: true,
   },
   {
     id: "story",
     label: "Story",
+    description: "Automate responses to Instagram stories",
     icon: <Play className="h-3.5 w-3.5" />,
     comingSoon: true,
     gradient: "from-purple-600/20 to-pink-600/20",
     iconColor: "text-purple-600 dark:text-purple-400",
   },
   {
-    id: "chat",
-    label: "Chat",
+    id: "dm",
+    label: "DM",
+    description: "Automate Instagram direct message responses",
     icon: <MessageCircle className="h-3.5 w-3.5" />,
     comingSoon: true,
     gradient: "from-blue-600/20 to-purple-600/20",
@@ -82,8 +85,10 @@ export function AutomationTabs() {
                   {tab.label} Automation
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Coming soon! We&apos;re working on bringing automated{" "}
-                  {tab.label.toLowerCase()} features.
+                  {tab.description}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Coming soon! We&apos;re working on this feature.
                 </p>
                 <div className="inline-flex items-center gap-1.5 text-xs text-purple-600 dark:text-purple-400">
                   <span>✨</span>
