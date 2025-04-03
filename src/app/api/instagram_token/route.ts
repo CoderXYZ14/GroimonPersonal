@@ -71,7 +71,7 @@ export async function POST(req: Request) {
     let user = await UserModel.findOne({
       instagramId: user_id,
     });
-
+    console.log(user);
     if (user) {
       user = await UserModel.findByIdAndUpdate(
         user._id,
@@ -118,7 +118,7 @@ export async function POST(req: Request) {
     });
 
     return response;
-  } catch (error: any) {
+  } catch (error) {
     console.error("Instagram token exchange error:", {
       message: error.message,
       response: error.response?.data,
