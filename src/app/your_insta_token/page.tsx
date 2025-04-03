@@ -15,12 +15,6 @@ export default function YourInstaToken() {
 
   useEffect(() => {
     const processInstagramAuth = async () => {
-      // Prevent double processing by checking localStorage
-      const processingKey = "instagram_auth_processing";
-      if (localStorage.getItem(processingKey)) {
-        return;
-      }
-
       const urlParams = new URLSearchParams(window.location.search);
       const authorizationCode = urlParams.get("code");
 
@@ -30,8 +24,6 @@ export default function YourInstaToken() {
         return;
       }
 
-      // Set processing flag
-      localStorage.setItem(processingKey, "true");
       setIsProcessing(true);
 
       try {
@@ -64,7 +56,7 @@ export default function YourInstaToken() {
         localStorage.setItem("instagram_token", tokenData.access_token);
 
         toast.success("Successfully connected to Instagram");
-        router.replace("/dashboard/automation");
+        router.push("/dashboard/automation");
       } catch (error) {
         const errorMessage =
           error instanceof AxiosError
@@ -76,10 +68,9 @@ export default function YourInstaToken() {
         router.push("/dashboard/automation");
       } finally {
         setIsProcessing(false);
-        // Clear processing flag
-        localStorage.removeItem(processingKey);
-        // Remove code from URL to prevent reuse
+
         window.history.replaceState({}, "", window.location.pathname);
+        router.push("/dashboard/automation");
       }
     };
 
