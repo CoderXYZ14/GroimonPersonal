@@ -100,22 +100,8 @@ export async function POST(req: Request) {
     let user = await UserModel.findOne({
       instagramId: user_id,
     });
-    console.log("Found user:", user);
-
-    if (user) {
-      // Update existing user
-      user = await UserModel.findByIdAndUpdate(
-        user._id,
-        {
-          instagramAccessToken: longLivedAccessToken,
-          instagramUsername: username,
-          meta: { lastUsedAuthCode: code },
-        },
-        { new: true }
-      );
-      console.log("Updated user:", user);
-    } else {
-      // Create new user
+    console.log(user);
+    if (!user) {
       user = await UserModel.create({
         instagramAccessToken: longLivedAccessToken,
         instagramId: user_id,
@@ -123,7 +109,6 @@ export async function POST(req: Request) {
         automations: [],
         meta: { lastUsedAuthCode: code },
       });
-      console.log("Created new user:", user);
     }
 
     const userData: Partial<IUser> & { _id: string } = {
