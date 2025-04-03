@@ -46,13 +46,11 @@ export async function POST(req: Request) {
         }
       );
       shortLivedAccessToken = tokenResponse?.data.access_token;
-    } catch (error: any) {
-      // If code is already used, try to get user info directly
+    } catch (error) {
       if (
         error?.response?.data?.error_message ===
         "This authorization code has been used"
       ) {
-        // Try to find existing user with this code
         const existingUser = await UserModel.findOne({
           "meta.lastUsedAuthCode": code,
         });
