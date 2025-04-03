@@ -34,46 +34,17 @@ export async function POST(req: Request) {
       code,
     });
 
-    let shortLivedAccessToken;
-    try {
-      const tokenResponse = await axios.post<InstagramTokenResponse>(
-        "https://api.instagram.com/oauth/access_token",
-        payload,
-        {
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-        }
-      );
-      shortLivedAccessToken = tokenResponse?.data.access_token;
-    } catch (error) {
-      if (
-        error?.response?.data?.error_message ===
-        "This authorization code has been used"
-      ) {
-        const existingUser = await UserModel.findOne({
-          "meta.lastUsedAuthCode": code,
-        });
-
-        if (existingUser && existingUser.instagramAccessToken) {
-          console.log("Found existing user with token");
-          return NextResponse.json({
-            user: {
-              _id: existingUser._id.toString(),
-              instagramId: existingUser.instagramId,
-              instagramUsername: existingUser.instagramUsername,
-              instagramAccessToken: existingUser.instagramAccessToken,
-              automations: existingUser.automations || [],
-            },
-            tokenData: {
-              access_token: existingUser.instagramAccessToken,
-              user_id: existingUser.instagramId,
-            },
-          });
-        }
+    const tokenResponse = await axios.post<InstagramTokenResponse>(
+      "https://api.instagram.com/oauth/access_token",
+      payload,
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
       }
-      throw error;
-    }
+    );
+
+    const shortLivedAccessToken = tokenResponse?.data.access_token;
 
     const longLivedTokenResponse = await axios.get<InstagramTokenResponse>(
       `https://graph.instagram.com/access_token`,
@@ -107,7 +78,6 @@ export async function POST(req: Request) {
         instagramId: user_id,
         instagramUsername: username,
         automations: [],
-        meta: { lastUsedAuthCode: code },
       });
     }
 

@@ -55,25 +55,26 @@ export default function YourInstaToken() {
           instagramAccessToken: tokenData.access_token,
         };
 
-        // Set both localStorage and cookie
         localStorage.setItem(
           "user_details",
           JSON.stringify(userDataForStorage)
         );
         localStorage.setItem("instagram_token", tokenData.access_token);
-        
-        // Set the cookie with the same data
-        document.cookie = `user_details=${JSON.stringify(userDataForStorage)}; path=/; max-age=${30 * 24 * 60 * 60}`;
 
-        // Clear redirect cookie
-        document.cookie = "redirectTo=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        const cookies = document.cookie.split(";");
+        const redirectCookie = cookies.find((c) =>
+          c.trim().startsWith("redirectTo=")
+        );
+        const redirectTo = redirectCookie
+          ? decodeURIComponent(redirectCookie.split("=")[1])
+          : "/dashboard/automation";
+
+        document.cookie =
+          "redirectTo=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
         toast.success("Successfully connected to Instagram");
 
-        // Small delay to ensure cookie is set
-        setTimeout(() => {
-          router.push("/dashboard/automation");
-        }, 100);
+        router.replace(redirectTo);
       } catch (error) {
         const errorMessage =
           error instanceof AxiosError
