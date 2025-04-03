@@ -17,10 +17,10 @@ export default function YourInstaToken() {
     const processInstagramAuth = async () => {
       // Prevent multiple processing attempts
       if (isProcessing) return;
-      
+
       const urlParams = new URLSearchParams(window.location.search);
       const authorizationCode = urlParams.get("code");
-      
+
       // Clear the URL to prevent reuse of the code
       window.history.replaceState({}, document.title, window.location.pathname);
 
@@ -61,20 +61,12 @@ export default function YourInstaToken() {
         );
         localStorage.setItem("instagram_token", tokenData.access_token);
 
-        const cookies = document.cookie.split(";");
-        const redirectCookie = cookies.find((c) =>
-          c.trim().startsWith("redirectTo=")
-        );
-        const redirectTo = redirectCookie
-          ? decodeURIComponent(redirectCookie.split("=")[1])
-          : "/dashboard/automation";
-
         document.cookie =
           "redirectTo=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
         toast.success("Successfully connected to Instagram");
 
-        router.replace(redirectTo);
+        router.push("/dashboard/automation");
       } catch (error) {
         const errorMessage =
           error instanceof AxiosError
