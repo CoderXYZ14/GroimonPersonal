@@ -7,16 +7,16 @@ import { toast } from "sonner";
 import { BeatLoader } from "react-spinners";
 import { useAppDispatch } from "@/redux/hooks";
 import { setUser } from "@/redux/features/userSlice";
+import Cookies from "js-cookie"; // Make sure to install this package: npm install js-cookie
 
 export default function YourInstaToken() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [isProcessing, setIsProcessing] = useState(false);
-  const authProcessed = useRef(false); // Use ref to track if auth has been processed
+  const authProcessed = useRef(false);
 
   useEffect(() => {
     const processInstagramAuth = async () => {
-      // Prevent duplicate processing
       if (authProcessed.current || isProcessing) {
         return;
       }
@@ -30,12 +30,11 @@ export default function YourInstaToken() {
         return;
       }
 
-      // Mark as processing immediately
       authProcessed.current = true;
       setIsProcessing(true);
 
       try {
-        // Clear URL parameters early to prevent reuse on page refresh
+        // Clear URL parameters early
         window.history.replaceState({}, "", window.location.pathname);
 
         const { data } = await axios.post("/api/instagram_token", {
@@ -44,15 +43,6 @@ export default function YourInstaToken() {
 
         const { user: userData, tokenData } = data;
 
-        await dispatch(
-          setUser({
-            _id: userData._id,
-            instagramId: userData.instagramId,
-            instagramUsername: userData.instagramUsername,
-            instagramAccessToken: tokenData.access_token,
-          })
-        );
-
         const userDataForStorage = {
           _id: userData._id,
           instagramId: userData.instagramId,
@@ -60,14 +50,28 @@ export default function YourInstaToken() {
           instagramAccessToken: tokenData.access_token,
         };
 
+        // Set in Redux
+        await dispatch(setUser(userDataForStorage));
+
+        // Set in localStorage
         localStorage.setItem(
           "user_details",
           JSON.stringify(userDataForStorage)
         );
         localStorage.setItem("instagram_token", tokenData.access_token);
 
+        // Set in cookies - this is what the middleware checks
+        Cookies.set("user_details", JSON.stringify(userDataForStorage), {
+          expires: 7, // Cookie expires in 7 days
+          path: "/", // Available across the entire site
+        });
+
         toast.success("Successfully connected to Instagram");
-        router.push("/dashboard/automation");
+
+        // Small delay to ensure cookie is set before redirect
+        setTimeout(() => {
+          router.push("/dashboard/automation");
+        }, 500);
       } catch (error) {
         const errorMessage =
           error instanceof AxiosError
@@ -85,9 +89,7 @@ export default function YourInstaToken() {
     };
 
     processInstagramAuth();
-
-    // No dependencies array - we want this to run only once when component mounts
-  }, []); // Empty dependency array
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

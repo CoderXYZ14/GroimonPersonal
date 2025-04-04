@@ -20,5 +20,12 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: ["/signin", "/signup", "/", "/dashboard/:path*", "/verify/:path*"],
+  matcher: [
+    "/signin",
+    "/signup",
+    "/",
+    "/dashboard/:path*",
+    "/verify/:path*",
+    "/your_insta_token",
+  ],
 };
