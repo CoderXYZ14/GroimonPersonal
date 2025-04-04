@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import axios from "axios";
 import UserModel, { IUser } from "@/models/User";
-
 import dbConnect from "@/lib/dbConnect";
+
 interface InstagramTokenResponse {
   access_token: string;
   token_type: string;
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/",
-        maxAge: 30 * 24 * 60 * 60,
+        maxAge: 7 * 24 * 60 * 60, // 7 days
       });
 
       return response;
@@ -134,23 +134,18 @@ export async function POST(req: Request) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 30 * 24 * 60 * 60,
+      maxAge: 7 * 24 * 60 * 60,
     });
 
     return response;
-  } catch (error) {
-    console.error("Instagram token exchange error:", {
-      message: error.message,
-      response: error.response?.data,
-      stack: error.stack,
-    });
+  } catch (error: any) {
+    console.error(
+      "Instagram token exchange error:",
+      error.response?.data || error
+    );
     return NextResponse.json(
-      {
-        error: "Failed to exchange Instagram token",
-        details: error.message,
-        responseData: error.response?.data,
-      },
-      { status: 500 }
+      { error: error.response?.data?.error_message || error.message },
+      { status: 400 }
     );
   }
 }

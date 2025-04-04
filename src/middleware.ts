@@ -3,10 +3,8 @@ import { NextResponse } from "next/server";
 export async function middleware(request) {
   const url = request.nextUrl;
 
-  if (
-    url.pathname.startsWith("/api/") ||
-    url.pathname === "/your_insta_token"
-  ) {
+  // Allow /your_insta_token and API routes to bypass middleware
+  if (url.pathname === "/your_insta_token" || url.pathname.startsWith("/api/")) {
     return NextResponse.next();
   }
 
@@ -20,12 +18,5 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: [
-    "/signin",
-    "/signup",
-    "/",
-    "/dashboard/:path*",
-    "/verify/:path*",
-    "/your_insta_token",
-  ],
+  matcher: ["/signin", "/signup", "/", "/dashboard/:path*", "/verify/:path*", "/your_insta_token"],
 };

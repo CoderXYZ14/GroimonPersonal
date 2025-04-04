@@ -1,26 +1,17 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import axios, { AxiosError } from "axios";
+import axios from "axios";
 import { toast } from "sonner";
 import { BeatLoader } from "react-spinners";
-import { useAppDispatch } from "@/redux/hooks";
-import { setUser } from "@/redux/features/userSlice";
-import Cookies from "js-cookie"; // Make sure to install this package: npm install js-cookie
 
 export default function YourInstaToken() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
   const [isProcessing, setIsProcessing] = useState(false);
-  const authProcessed = useRef(false);
 
   useEffect(() => {
     const processInstagramAuth = async () => {
-      if (authProcessed.current || isProcessing) {
-        return;
-      }
-
       const urlParams = new URLSearchParams(window.location.search);
       const authorizationCode = urlParams.get("code");
 
@@ -30,91 +21,42 @@ export default function YourInstaToken() {
         return;
       }
 
-      authProcessed.current = true;
-      setIsProcessing(true);
-
       try {
-        // Clear URL parameters early
-        window.history.replaceState({}, "", window.location.pathname);
-
         const { data } = await axios.post("/api/instagram_token", {
           code: authorizationCode,
         });
 
         const { user: userData, tokenData } = data;
 
-        const userDataForStorage = {
-          _id: userData._id,
-          instagramId: userData.instagramId,
-          instagramUsername: userData.instagramUsername,
-          instagramAccessToken: tokenData.access_token,
-        };
-
-        // Set in Redux
-        await dispatch(setUser(userDataForStorage));
-
         // Set in localStorage
-        localStorage.setItem(
-          "user_details",
-          JSON.stringify(userDataForStorage)
-        );
+        localStorage.setItem("user_details", JSON.stringify(userData));
         localStorage.setItem("instagram_token", tokenData.access_token);
 
-        // Set in cookies - this is what the middleware checks
-        Cookies.set("user_details", JSON.stringify(userDataForStorage), {
-          expires: 7, // Cookie expires in 7 days
-          path: "/", // Available across the entire site
-        });
-
         toast.success("Successfully connected to Instagram");
-
-        // Small delay to ensure cookie is set before redirect
-        setTimeout(() => {
-          router.push("/dashboard/automation");
-        }, 500);
-      } catch (error) {
-        const errorMessage =
-          error instanceof AxiosError
-            ? error.response?.data?.error ||
-              error.response?.data?.error_message ||
-              "Failed to connect to Instagram"
-            : "An unexpected error occurred";
-
-        toast.error(errorMessage);
+        router.replace("/dashboard/automation");
+      } catch (error: any) {
+        toast.error(
+          error.response?.data?.error || "Failed to connect to Instagram"
+        );
         console.error("Instagram authentication error:", error);
         router.push("/dashboard/automation");
-      } finally {
-        setIsProcessing(false);
       }
     };
 
     processInstagramAuth();
-  }, []);
+  }, [router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
         <div className="text-center">
-          {isProcessing ? (
-            <>
-              <BeatLoader color="#3B82F6" size={15} />
-              <h2 className="mt-6 text-xl font-semibold text-gray-900">
-                Connecting to Instagram
-              </h2>
-              <p className="mt-2 text-sm text-gray-600">
-                Please wait while we process your authentication...
-              </p>
-            </>
-          ) : (
-            <>
-              <h2 className="text-xl font-semibold text-gray-900">
-                Redirecting...
-              </h2>
-              <p className="mt-2 text-sm text-gray-600">
-                You will be redirected shortly
-              </p>
-            </>
-          )}
+          <BeatLoader color="#3B82F6" size={15} />
+          <h2 className="mt-6 text-xl font-semibold text-gray-900">
+            Connecting to Instagram
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Please wait while we process your authentication...
+          </p>
         </div>
       </div>
     </div>
