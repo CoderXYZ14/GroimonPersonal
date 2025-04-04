@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import axios, { AxiosError } from "axios";
 import { toast } from "sonner";
@@ -12,9 +12,15 @@ export default function YourInstaToken() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [isProcessing, setIsProcessing] = useState(false);
+  const authProcessed = useRef(false); // Use ref to track if auth has been processed
 
   useEffect(() => {
     const processInstagramAuth = async () => {
+      // Prevent duplicate processing
+      if (authProcessed.current || isProcessing) {
+        return;
+      }
+
       const urlParams = new URLSearchParams(window.location.search);
       const authorizationCode = urlParams.get("code");
 
@@ -24,9 +30,14 @@ export default function YourInstaToken() {
         return;
       }
 
+      // Mark as processing immediately
+      authProcessed.current = true;
       setIsProcessing(true);
 
       try {
+        // Clear URL parameters early to prevent reuse on page refresh
+        window.history.replaceState({}, "", window.location.pathname);
+
         const { data } = await axios.post("/api/instagram_token", {
           code: authorizationCode,
         });
@@ -60,7 +71,9 @@ export default function YourInstaToken() {
       } catch (error) {
         const errorMessage =
           error instanceof AxiosError
-            ? error.response?.data?.error ?? "Failed to connect to Instagram"
+            ? error.response?.data?.error ||
+              error.response?.data?.error_message ||
+              "Failed to connect to Instagram"
             : "An unexpected error occurred";
 
         toast.error(errorMessage);
@@ -68,14 +81,13 @@ export default function YourInstaToken() {
         router.push("/dashboard/automation");
       } finally {
         setIsProcessing(false);
-
-        window.history.replaceState({}, "", window.location.pathname);
-        router.push("/dashboard/automation");
       }
     };
 
     processInstagramAuth();
-  }, [router, dispatch]);
+
+    // No dependencies array - we want this to run only once when component mounts
+  }, []); // Empty dependency array
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
