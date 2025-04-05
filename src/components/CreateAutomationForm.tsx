@@ -584,7 +584,7 @@ export function CreateAutomationForm() {
           </div>
 
           {/* Is Followed Check section */}
-          {/* <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium">Follow Check</h2>
             </div>
@@ -595,11 +595,9 @@ export function CreateAutomationForm() {
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
-                    <Label className="text-base">
-                      Check if User is Following
-                    </Label>
+                    <Label className="text-base">Add to Follow</Label>
                     <FormDescription>
-                      Only respond to users who follow your account
+                      Automatically follow users who trigger this automation
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -611,7 +609,7 @@ export function CreateAutomationForm() {
                 </FormItem>
               )}
             />
-          </div> */}
+          </div>
 
           {/* Comment Automation section */}
           <div className="p-6 border-b border-gray-100 dark:border-gray-700">
