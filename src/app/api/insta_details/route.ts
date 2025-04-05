@@ -12,17 +12,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const userResponse = await axios.get(
-      `https://graph.instagram.com/v22.0/me`,
-      {
-        params: {
-          fields: "id,user_id,username,account_type,name",
-          access_token: accessToken,
-        },
-      }
-    );
+    const response = await axios.get(`https://graph.instagram.com/v22.0/me`, {
+      params: {
+        fields: "user_id,username",
+        access_token: accessToken,
+      },
+    });
 
-    const { user_id, username } = userResponse.data;
+    const { user_id, username } = response.data;
 
     return NextResponse.json({ user_id, username });
   } catch (error) {
