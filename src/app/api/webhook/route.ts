@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
-import AutomationModel, {
-  IAutomation as AutomationType,
-} from "@/models/Automation";
+import AutomationModel from "@/models/Automation";
 
 import axios from "axios";
 import { IUser } from "@/models/User";
@@ -20,9 +18,16 @@ interface InstagramComment {
   text: string;
 }
 
-interface IAutomation extends Omit<AutomationType, keyof Document> {
+interface IAutomation {
   _id: { toString: () => string };
+  name: string;
+  keywords: string[];
+  message: string;
+  postIds: string[];
   user: IUser;
+  enableCommentAutomation: boolean;
+  commentMessage: string;
+  isFollowed: boolean;
 }
 
 export async function GET(request: NextRequest) {
@@ -90,15 +95,15 @@ async function processComment(comment: InstagramComment) {
     console.log(`Found ${automations.length} automations for this post`);
 
     for (const automation of automations) {
-      // if (
-      //   automation.user &&
-      //   typeof automation.user === "object" &&
-      //   "instagramId" in automation.user &&
-      //   automation.user.instagramId === comment.from.id
-      // ) {
-      //   console.log(`Skipping automation as comment is from the post owner`);
-      //   continue;
-      // }
+      if (
+        automation.user &&
+        typeof automation.user === "object" &&
+        "instagramId" in automation.user &&
+        automation.user.instagramId === comment.from.id
+      ) {
+        console.log(`Skipping automation as comment is from the post owner`);
+        continue;
+      }
 
       if (!automation.keywords || automation.keywords.length === 0) {
         console.log(`Automation ${automation.name} has no keywords, skipping`);
@@ -142,11 +147,7 @@ async function handleAutomationResponse(
     const user = automation.user as IUser;
 
     if (!user.instagramAccessToken) {
-      console.error(
-        `Instagram access token not found for user ${
-          user.instagramUsername ?? "unknown"
-        }`
-      );
+      console.error(`Instagram access token not found for user`);
       return;
     }
 
@@ -234,21 +235,14 @@ async function sendDM(
     const user = automation.user as IUser;
 
     if (!user.instagramAccessToken) {
-      console.error(
-        `Instagram access token not found for user ${
-          user.instagramUsername ?? "unknown"
-        } (${user._id})`
-      );
+      console.error(`Instagram access token not found for user (${user._id})`);
       return;
     }
 
+    // Use the user's Instagram ID as the owner ID
     const ownerId = user.instagramId;
     if (!ownerId) {
-      console.error(
-        `Instagram ID not found for user ${
-          user.instagramUsername ?? "unknown"
-        } (${user._id})`
-      );
+      console.error(`Instagram ID not found for user  (${user._id})`);
       return;
     }
 
@@ -259,52 +253,15 @@ async function sendDM(
       "Content-Type": "application/json",
     };
 
-    // Add branding if not removed
-    const messageWithBranding = automation.removeBranding
-      ? message
-      : `${message}\n\nThis automation is sent by Groimon.`;
-
-    let body;
-
-    if (
-      automation.messageType === "buttonImage" &&
-      automation.buttons &&
-      automation.buttons.length > 0
-    ) {
-      body = {
-        recipient: {
-          comment_id: comment.id,
-        },
-        message: {
-          attachment: {
-            type: "template",
-            payload: {
-              template_type: "button",
-              text: messageWithBranding,
-              buttons: automation.buttons.map((button) => ({
-                type: "web_url",
-                url:
-                  `${
-                    process.env.NEXT_PUBLIC_APP_URL ||
-                    "https://www.groimon.vercel.app"
-                  }/redirect?url=${encodeURIComponent(button.url)}` ||
-                  button.url,
-                title: button.buttonText,
-              })),
-            },
-          },
-        },
-      };
-    } else {
-      body = {
-        recipient: {
-          comment_id: comment.id,
-        },
-        message: {
-          text: messageWithBranding,
-        },
-      };
-    }
+    // Key change: Using comment_id instead of id in the recipient field
+    const body = {
+      recipient: {
+        comment_id: comment.id,
+      },
+      message: {
+        text: message,
+      },
+    };
 
     console.log(
       `Attempting to send DM to user ${comment.from.username} (${comment.from.id}) for automation "${automationName}"`
@@ -324,6 +281,7 @@ async function sendDM(
         console.log(
           `Cannot send DM to ${comment.from.username}: Outside 24-hour messaging window`
         );
+        // Handle gracefully - maybe store this in a queue or mark for follow-up
         return null;
       }
 
