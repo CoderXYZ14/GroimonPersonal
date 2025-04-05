@@ -3,11 +3,6 @@ import { NextResponse } from "next/server";
 export async function middleware(request) {
   const url = request.nextUrl;
 
-  // Allow /your_insta_token and API routes to bypass middleware
-  if (url.pathname === "/your_insta_token" || url.pathname.startsWith("/api/")) {
-    return NextResponse.next();
-  }
-
   if (url.pathname.startsWith("/dashboard")) {
     const userDetails = request.cookies.get("user_details")?.value;
     if (!userDetails) {
@@ -18,5 +13,12 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: ["/signin", "/signup", "/", "/dashboard/:path*", "/verify/:path*", "/your_insta_token"],
+  matcher: [
+    "/signin",
+    "/signup",
+    "/",
+    "/dashboard/:path*",
+    "/verify/:path*",
+    "/your_insta_token",
+  ],
 };

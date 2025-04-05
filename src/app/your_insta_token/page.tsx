@@ -5,10 +5,14 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner";
 import { BeatLoader } from "react-spinners";
+import { useAppDispatch } from "@/redux/hooks";
+import { setUser } from "@/redux/features/userSlice";
 
 export default function YourInstaToken() {
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     const processInstagramAuth = async () => {
@@ -17,7 +21,7 @@ export default function YourInstaToken() {
 
       if (!authorizationCode) {
         toast.error("Authorization code not found");
-        router.push("/dashboard/automation");
+        router.push("/");
         return;
       }
 
@@ -28,13 +32,22 @@ export default function YourInstaToken() {
 
         const { user: userData, tokenData } = data;
 
-        // Set in localStorage
         localStorage.setItem("user_details", JSON.stringify(userData));
         localStorage.setItem("instagram_token", tokenData.access_token);
 
+        await dispatch(
+          setUser({
+            _id: userData._id,
+
+            instagramId: userData.instagramId,
+            instagramUsername: userData.instagramUsername,
+            instagramAccessToken: tokenData.access_token,
+          })
+        );
+
         toast.success("Successfully connected to Instagram");
         router.replace("/dashboard/automation");
-      } catch (error: any) {
+      } catch (error) {
         toast.error(
           error.response?.data?.error || "Failed to connect to Instagram"
         );
@@ -44,7 +57,7 @@ export default function YourInstaToken() {
     };
 
     processInstagramAuth();
-  }, [router]);
+  }, [router, dispatch]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

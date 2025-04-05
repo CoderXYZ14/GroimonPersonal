@@ -5,9 +5,9 @@ import { AutomationStats } from "@/components/AutomationStats";
 import { AutomationTabs } from "@/components/AutomationTabs";
 
 import { usePostAutomation } from "@/hooks/usePostAutomation";
+import Link from "next/link";
 
 export default function AutomationPage() {
-  const handlePostAutomation = usePostAutomation();
   return (
     <div className=" bg-[#fafafa] dark:bg-gray-900">
       <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 via-white to-blue-50/50 dark:from-purple-900/20 dark:via-gray-900 dark:to-blue-900/20 pointer-events-none" />
@@ -25,16 +25,15 @@ export default function AutomationPage() {
                 Streamline your social media presence with automated posting
               </p>
             </div>
-            <Button
-              onClick={handlePostAutomation}
-              className="mt-4 sm:mt-0 relative group overflow-hidden rounded-full px-6 py-2 bg-gradient-to-r from-purple-600 via-pink-500 to-blue-600 hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300 whitespace-nowrap"
-            >
-              <span className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <span className="relative flex items-center">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Automation
-              </span>
-            </Button>
+            <Link href="/dashboard/automation/create">
+              <Button className="mt-4 sm:mt-0 relative group overflow-hidden rounded-full px-6 py-2 bg-gradient-to-r from-purple-600 via-pink-500 to-blue-600 hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300 whitespace-nowrap">
+                <span className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <span className="relative flex items-center">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Automation
+                </span>
+              </Button>
+            </Link>
           </div>
 
           <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-xl shadow-purple-500/5 border border-purple-100/20 dark:border-purple-900/20">

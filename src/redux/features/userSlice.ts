@@ -19,12 +19,7 @@ const userSlice = createSlice({
   reducers: {
     setUser: (
       state,
-      action: PayloadAction<{
-        _id?: string;
-        instagramId: string;
-        instagramUsername: string;
-        instagramAccessToken: string;
-      }>
+      action: PayloadAction<Omit<UserState, "isAuthenticated">>
     ) => {
       return {
         ...action.payload,
