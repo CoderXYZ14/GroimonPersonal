@@ -52,7 +52,7 @@ export function AutomationTable() {
         }
 
         const { data } = await axios.get(`/api/automations`, {
-          params: { instagramId: user.instagramId },
+          params: { userId: user._id },
         });
         setAutomations(data);
       } catch (error) {
