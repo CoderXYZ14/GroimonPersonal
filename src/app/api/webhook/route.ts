@@ -245,7 +245,9 @@ async function sendDM(
     const ownerId = user.instagramId;
     if (!ownerId) {
       console.error(
-        `Instagram ID not found for user ${user.instagramUsername ?? 'unknown'} (${user._id})`
+        `Instagram ID not found for user ${
+          user.instagramUsername ?? "unknown"
+        } (${user._id})`
       );
       return;
     }

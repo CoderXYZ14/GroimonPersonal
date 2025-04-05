@@ -11,7 +11,7 @@ export interface IUser extends Document {
 
 const UserSchema: Schema<IUser> = new Schema(
   {
-    instagramId: { type: String },
+    instagramId: { type: String, unique: true },
     instagramUsername: { type: String },
     instagramAccessToken: { type: String },
     instaProfilePic: { type: String },
