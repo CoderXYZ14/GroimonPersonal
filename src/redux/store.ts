@@ -7,27 +7,28 @@ import {
 } from "@reduxjs/toolkit";
 import userReducer from "./features/userSlice";
 import { persistStore, persistReducer } from "redux-persist";
-import { WebStorage } from "redux-persist/lib/types";
+
 import { thunk } from "redux-thunk";
 import createWebStorage from "redux-persist/lib/storage/createWebStorage";
 
 const createNoopStorage = () => {
   return {
-    getItem(_key: string) {
+    getItem() {
       return Promise.resolve(null);
     },
-    setItem(_key: string, value: any) {
+    setItem(value) {
       return Promise.resolve(value);
     },
-    removeItem(_key: string) {
+    removeItem() {
       return Promise.resolve();
     },
   };
 };
 
-const storage = typeof window !== "undefined" 
-  ? createWebStorage("local")
-  : createNoopStorage();
+const storage =
+  typeof window !== "undefined"
+    ? createWebStorage("local")
+    : createNoopStorage();
 
 const rootReducer = combineReducers({
   user: userReducer,

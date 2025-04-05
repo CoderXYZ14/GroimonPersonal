@@ -3,8 +3,6 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AutomationStats } from "@/components/AutomationStats";
 import { AutomationTabs } from "@/components/AutomationTabs";
-
-import { usePostAutomation } from "@/hooks/usePostAutomation";
 import Link from "next/link";
 
 export default function AutomationPage() {

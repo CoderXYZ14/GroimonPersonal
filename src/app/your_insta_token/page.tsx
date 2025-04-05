@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner";
@@ -10,7 +10,6 @@ import { setUser } from "@/redux/features/userSlice";
 
 export default function YourInstaToken() {
   const router = useRouter();
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const dispatch = useAppDispatch();
 
