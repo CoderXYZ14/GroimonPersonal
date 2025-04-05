@@ -69,7 +69,7 @@ export async function POST(req: Request) {
 
       const { user_id, username } = userDetailsResponse.data;
 
-      // First try to find a user with this Instagram ID
+      console.log("user id", user_id);
       let user = await UserModel.findOne({
         instagramId: user_id,
       });
