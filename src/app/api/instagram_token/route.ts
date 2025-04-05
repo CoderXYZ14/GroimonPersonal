@@ -14,6 +14,7 @@ export async function POST(req: Request) {
     await dbConnect();
 
     const { code } = await req.json();
+    console.log("[Instagram Token] Received authorization code:", code);
 
     if (!code) {
       return NextResponse.json(
@@ -30,6 +31,14 @@ export async function POST(req: Request) {
         redirect_uri: `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/your_insta_token`,
         code,
       });
+      console.log(
+        "[Instagram Token] Requesting short-lived token with payload:",
+        {
+          client_id: process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID,
+          redirect_uri: `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/your_insta_token`,
+          code,
+        }
+      );
 
       const tokenResponse = await axios.post<InstagramTokenResponse>(
         "https://api.instagram.com/oauth/access_token",
@@ -42,8 +51,10 @@ export async function POST(req: Request) {
       );
 
       const shortLivedAccessToken = tokenResponse.data.access_token;
+      console.log("[Instagram Token] Received short-lived token");
 
       // Exchange for long-lived token
+      console.log("[Instagram Token] Exchanging for long-lived token...");
       const longLivedTokenResponse = await axios.get<InstagramTokenResponse>(
         `https://graph.instagram.com/access_token`,
         {
@@ -55,8 +66,10 @@ export async function POST(req: Request) {
         }
       );
       const longLivedAccessToken = longLivedTokenResponse.data.access_token;
+      console.log("[Instagram Token] Received long-lived token");
 
       // Get user details
+      console.log("[Instagram Token] Fetching user details...");
       const userDetailsResponse = await axios.get(
         `https://graph.instagram.com/me`,
         {
@@ -68,13 +81,18 @@ export async function POST(req: Request) {
       );
 
       const { user_id, username } = userDetailsResponse.data;
+      console.log("[Instagram Token] User details received:", {
+        user_id,
+        username,
+      });
 
-      console.log("user id", user_id);
       let user = await UserModel.findOne({
         instagramId: user_id,
       });
+      console.log("[Instagram Token] Existing user found:", !!user);
 
       if (user) {
+        console.log("[Instagram Token] Updating existing user...");
         user = await UserModel.findByIdAndUpdate(
           user._id,
           {
@@ -84,13 +102,18 @@ export async function POST(req: Request) {
           },
           { new: true }
         );
+        console.log("[Instagram Token] User updated successfully");
       } else {
-        console.log("Creating new user:", username);
+        console.log("[Instagram Token] Creating new user:", username);
         user = await UserModel.create({
           instagramAccessToken: longLivedAccessToken,
           instagramId: user_id,
           instagramUsername: username,
         });
+        console.log(
+          "[Instagram Token] New user created successfully:",
+          user._id.toString()
+        );
       }
 
       const userData: Partial<IUser> & { _id: string } = {

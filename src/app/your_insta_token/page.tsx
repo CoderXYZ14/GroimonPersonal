@@ -17,23 +17,33 @@ export default function YourInstaToken() {
     const processInstagramAuth = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const authorizationCode = urlParams.get("code");
+      console.log("[Instagram Token Page] Authorization code from URL:", authorizationCode);
 
       if (!authorizationCode) {
+        console.log("[Instagram Token Page] No authorization code found in URL");
         toast.error("Authorization code not found");
         router.push("/");
         return;
       }
 
       try {
+        console.log("[Instagram Token Page] Sending authorization code to backend");
         const { data } = await axios.post("/api/instagram_token", {
           code: authorizationCode,
         });
 
         const { user: userData, tokenData } = data;
+        console.log("[Instagram Token Page] Received response from backend:", {
+          userId: userData._id,
+          username: userData.instagramUsername,
+          hasToken: !!tokenData.access_token,
+        });
 
+        console.log("[Instagram Token Page] Storing user details in localStorage");
         localStorage.setItem("user_details", JSON.stringify(userData));
         localStorage.setItem("instagram_token", tokenData.access_token);
 
+        console.log("[Instagram Token Page] Dispatching user data to Redux store");
         await dispatch(
           setUser({
             _id: userData._id,
@@ -44,9 +54,15 @@ export default function YourInstaToken() {
           })
         );
 
+        console.log("[Instagram Token Page] Authentication successful, redirecting to dashboard");
         toast.success("Successfully connected to Instagram");
         router.replace("/dashboard/automation");
       } catch (error) {
+        console.error("[Instagram Token Page] Authentication error:", {
+          message: error.response?.data?.error || error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+        });
         toast.error(
           error.response?.data?.error || "Failed to connect to Instagram"
         );
