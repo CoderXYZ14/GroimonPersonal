@@ -8,6 +8,13 @@ import { BeatLoader } from "react-spinners";
 import { useAppDispatch } from "@/redux/hooks";
 import { setUser } from "@/redux/features/userSlice";
 
+// Declare the window property
+declare global {
+  interface Window {
+    isProcessingAuth?: boolean;
+  }
+}
+
 export default function YourInstaToken() {
   const router = useRouter();
 
@@ -15,22 +22,44 @@ export default function YourInstaToken() {
 
   useEffect(() => {
     const processInstagramAuth = async () => {
+      // Add a check for an in-progress request
+      if (window.isProcessingAuth) return;
+      window.isProcessingAuth = true;
+
       const urlParams = new URLSearchParams(window.location.search);
       const authorizationCode = urlParams.get("code");
-      console.log("[Instagram Token Page] Authorization code from URL:", authorizationCode);
+
+      // Check if we've already processed this code
+      const processedCode = sessionStorage.getItem("processed_auth_code");
+      if (processedCode === authorizationCode) {
+        console.log("[Instagram Token Page] Code already processed, skipping");
+        return;
+      }
+
+      console.log(
+        "[Instagram Token Page] Authorization code from URL:",
+        authorizationCode
+      );
 
       if (!authorizationCode) {
-        console.log("[Instagram Token Page] No authorization code found in URL");
+        console.log(
+          "[Instagram Token Page] No authorization code found in URL"
+        );
         toast.error("Authorization code not found");
         router.push("/");
         return;
       }
 
       try {
-        console.log("[Instagram Token Page] Sending authorization code to backend");
+        console.log(
+          "[Instagram Token Page] Sending authorization code to backend"
+        );
         const { data } = await axios.post("/api/instagram_token", {
           code: authorizationCode,
         });
+
+        // Mark this code as processed
+        sessionStorage.setItem("processed_auth_code", authorizationCode);
 
         const { user: userData, tokenData } = data;
         console.log("[Instagram Token Page] Received response from backend:", {
@@ -39,11 +68,15 @@ export default function YourInstaToken() {
           hasToken: !!tokenData.access_token,
         });
 
-        console.log("[Instagram Token Page] Storing user details in localStorage");
+        console.log(
+          "[Instagram Token Page] Storing user details in localStorage"
+        );
         localStorage.setItem("user_details", JSON.stringify(userData));
         localStorage.setItem("instagram_token", tokenData.access_token);
 
-        console.log("[Instagram Token Page] Dispatching user data to Redux store");
+        console.log(
+          "[Instagram Token Page] Dispatching user data to Redux store"
+        );
         await dispatch(
           setUser({
             _id: userData._id,
@@ -54,7 +87,9 @@ export default function YourInstaToken() {
           })
         );
 
-        console.log("[Instagram Token Page] Authentication successful, redirecting to dashboard");
+        console.log(
+          "[Instagram Token Page] Authentication successful, redirecting to dashboard"
+        );
         toast.success("Successfully connected to Instagram");
         router.replace("/dashboard/automation");
       } catch (error) {
@@ -68,6 +103,8 @@ export default function YourInstaToken() {
         );
         console.error("Instagram authentication error:", error);
         router.push("/dashboard/automation");
+      } finally {
+        window.isProcessingAuth = false;
       }
     };
 
