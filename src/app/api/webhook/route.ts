@@ -205,7 +205,6 @@ async function replyToComment(
     throw error;
   }
 }
-
 async function sendDM(
   comment: InstagramComment,
   message: string,
@@ -252,6 +251,12 @@ async function sendDM(
       return;
     }
 
+    // Check if the commenter is following the business account
+    const isFollowing = await checkIfUserFollowsBusiness(
+      comment.from.id,
+      user.instagramAccessToken
+    );
+
     const url = `https://graph.instagram.com/v22.0/${ownerId}/messages`;
 
     const headers = {
@@ -259,18 +264,46 @@ async function sendDM(
       "Content-Type": "application/json",
     };
 
-    // Add branding if not removed
     const messageWithBranding = automation.removeBranding
       ? message
       : `${message}\n\nThis automation is sent by Groimon.`;
 
     let body;
 
-    if (
+    if (!isFollowing && automation.isFollowed) {
+      // Send follow request button if user is not following
+      body = {
+        recipient: {
+          comment_id: comment.id,
+        },
+        message: {
+          attachment: {
+            type: "template",
+            payload: {
+              template_type: "button",
+              text: "Thanks for your comment! Follow our account to receive the information you requested.",
+              buttons: [
+                {
+                  type: "postback",
+                  title: "I'm following now",
+                  payload: JSON.stringify({
+                    action: "followConfirmed",
+                    automationId: automationId,
+                    commentId: comment.id,
+                    userId: comment.from.id,
+                  }),
+                },
+              ],
+            },
+          },
+        },
+      };
+    } else if (
       automation.messageType === "buttonImage" &&
       automation.buttons &&
       automation.buttons.length > 0
     ) {
+      // Send button message if specified in automation
       body = {
         recipient: {
           comment_id: comment.id,
@@ -296,6 +329,7 @@ async function sendDM(
         },
       };
     } else {
+      // Send regular text message
       body = {
         recipient: {
           comment_id: comment.id,
@@ -312,9 +346,7 @@ async function sendDM(
 
     try {
       const response = await axios.post(url, body, { headers });
-      console.log(
-        `DM sent successfully to ${comment.from.username} with message: "${message}"`
-      );
+      console.log(`DM sent successfully to ${comment.from.username}`);
       return response.data;
     } catch (error) {
       if (
@@ -338,5 +370,131 @@ async function sendDM(
   } catch (error) {
     console.error("Error in sendDM function:", error);
     throw error;
+  }
+}
+
+// Updated function to check if user follows the business using the proper Instagram API endpoint
+async function checkIfUserFollowsBusiness(
+  instagramScopedId: string,
+  accessToken: string
+): Promise<boolean> {
+  try {
+    const url = `https://graph.instagram.com/v22.0/${instagramScopedId}`;
+
+    const params = {
+      fields: "is_user_follow_business",
+      access_token: accessToken,
+    };
+
+    const response = await axios.get(url, { params });
+
+    console.log(
+      `Follow check response for user ${instagramScopedId}:`,
+      response.data
+    );
+
+    // Return true if the user follows the business, false otherwise
+    return response.data && response.data.is_user_follow_business === true;
+  } catch (error) {
+    console.error("Error checking if user follows business:", error);
+    return true;
+  }
+}
+
+// Handle the postback when user confirms they're following
+export async function handlePostback(request: NextRequest) {
+  try {
+    const payload = await request.json();
+    console.log("Postback payload received:", JSON.stringify(payload, null, 2));
+
+    if (
+      payload.object === "instagram" &&
+      payload.entry &&
+      payload.entry.length > 0
+    ) {
+      for (const entry of payload.entry) {
+        if (entry.messaging && entry.messaging.length > 0) {
+          for (const messaging of entry.messaging) {
+            if (messaging.postback && messaging.postback.payload) {
+              try {
+                const postbackData = JSON.parse(messaging.postback.payload);
+
+                if (postbackData.action === "followConfirmed") {
+                  // Verify if the user is actually following now
+                  const automation = await AutomationModel.findById(
+                    postbackData.automationId
+                  ).populate("user");
+
+                  if (!automation || !automation.user) {
+                    console.log("Automation or user not found for postback");
+                    continue;
+                  }
+
+                  const user = automation.user as IUser;
+
+                  const isNowFollowing = await checkIfUserFollowsBusiness(
+                    postbackData.userId,
+                    user.instagramAccessToken
+                  );
+
+                  if (isNowFollowing) {
+                    // Create a mock comment object from stored data
+                    const mockComment: InstagramComment = {
+                      id: postbackData.commentId,
+                      from: {
+                        id: postbackData.userId,
+                        username: messaging.sender?.id || "unknown",
+                      },
+                      media: {
+                        id: "", // This might need to be retrieved separately
+                      },
+                      text: "", // Original text not needed for resending
+                    };
+
+                    // Send the actual message now that they're following
+                    await sendDM(
+                      mockComment,
+                      automation.message,
+                      automation.name,
+                      automation._id.toString()
+                    );
+                  } else {
+                    // Send a message informing them they need to follow first
+                    const ownerId = user.instagramId;
+                    const url = `https://graph.instagram.com/v22.0/${ownerId}/messages`;
+
+                    const headers = {
+                      Authorization: `Bearer ${user.instagramAccessToken}`,
+                      "Content-Type": "application/json",
+                    };
+
+                    const body = {
+                      recipient: {
+                        id: postbackData.userId,
+                      },
+                      message: {
+                        text: "It looks like you haven't followed our account yet. Please follow us to receive the information you requested.",
+                      },
+                    };
+
+                    await axios.post(url, body, { headers });
+                  }
+                }
+              } catch (error) {
+                console.error("Error processing postback data:", error);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return NextResponse.json({ status: "success" });
+  } catch (error) {
+    console.error("Error processing postback webhook:", error);
+    return NextResponse.json(
+      { message: "Failed to process postback webhook", error: String(error) },
+      { status: 500 }
+    );
   }
 }
