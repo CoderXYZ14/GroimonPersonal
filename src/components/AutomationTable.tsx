@@ -63,7 +63,7 @@ export function AutomationTable() {
     };
 
     fetchAutomations();
-  }, [user.instagramId, user.instagramUsername]);
+  }, [user.instagramId, user.instagramUsername, user._id]);
 
   const filteredAutomations = automations.filter(
     (automation) =>

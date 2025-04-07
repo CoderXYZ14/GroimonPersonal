@@ -7,7 +7,6 @@ import AutomationModel, {
 import axios from "axios";
 import { IUser } from "@/models/User";
 import "../../../models/User";
-import { send } from "process";
 
 interface InstagramComment {
   id: string;
@@ -24,6 +23,20 @@ interface InstagramComment {
 interface IAutomation extends Omit<AutomationType, keyof Document> {
   _id: { toString: () => string };
   user: IUser;
+}
+
+interface InstagramWebhookPayload {
+  object: string;
+  entry: Array<{
+    id: string;
+    time: number;
+    messaging: Array<{
+      sender: { id: string };
+      recipient: { id: string };
+      timestamp: number;
+      postback: { payload: string; title: string; mid: string };
+    }>;
+  }>;
 }
 
 export async function GET(request: NextRequest) {
@@ -414,7 +427,7 @@ async function checkIfUserFollowsBusiness(
   }
 }
 
-export async function handlePostback(payload: any) {
+async function handlePostback(payload: InstagramWebhookPayload) {
   try {
     console.log("Postback payload received:", JSON.stringify(payload, null, 2));
 
