@@ -7,6 +7,7 @@ import AutomationModel, {
 import axios from "axios";
 import { IUser } from "@/models/User";
 import "../../../models/User";
+import { send } from "process";
 
 interface InstagramComment {
   id: string;
@@ -46,6 +47,15 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
+    // Check if this is a postback request
+    if (
+      payload.object === "instagram" &&
+      payload.entry?.[0]?.messaging?.[0]?.postback
+    ) {
+      return handlePostback(payload);
+    }
+
+    // Handle regular webhook (comments)
     if (
       payload.object === "instagram" &&
       payload.entry &&
@@ -205,6 +215,7 @@ async function replyToComment(
     throw error;
   }
 }
+
 async function sendDM(
   comment: InstagramComment,
   message: string,
@@ -217,6 +228,9 @@ async function sendDM(
     const automation = await AutomationModel.findById(automationId).populate(
       "user"
     );
+
+    // Store the original message for later use after follow check
+    const originalMessage = message;
 
     if (!automation) {
       console.error(`Automation with ID ${automationId} not found`);
@@ -251,7 +265,6 @@ async function sendDM(
       return;
     }
 
-    // Check if the commenter is following the business account
     const isFollowing = await checkIfUserFollowsBusiness(
       comment.from.id,
       user.instagramAccessToken
@@ -265,32 +278,34 @@ async function sendDM(
     };
 
     const messageWithBranding = automation.removeBranding
-      ? message
-      : `${message}\n\nThis automation is sent by Groimon.`;
+      ? originalMessage
+      : `${originalMessage}\n\nThis automation is sent by Groimon.`;
 
     let body;
 
     if (!isFollowing && automation.isFollowed) {
-      // Send follow request button if user is not following
       body = {
         recipient: {
-          comment_id: comment.id,
+          id: comment.from.id,
         },
         message: {
           attachment: {
             type: "template",
             payload: {
               template_type: "button",
-              text: "Thanks for your comment! Follow our account to receive the information you requested.",
+              text: "Please follow our account to receive the information you requested. Once you've followed, click the button below.",
               buttons: [
                 {
                   type: "postback",
                   title: "I'm following now",
                   payload: JSON.stringify({
                     action: "followConfirmed",
-                    automationId: automationId,
+                    automationId,
                     commentId: comment.id,
                     userId: comment.from.id,
+                    username: comment.from.username,
+                    mediaId: comment.media.id,
+                    originalMessage: originalMessage,
                   }),
                 },
               ],
@@ -303,10 +318,9 @@ async function sendDM(
       automation.buttons &&
       automation.buttons.length > 0
     ) {
-      // Send button message if specified in automation
       body = {
         recipient: {
-          comment_id: comment.id,
+          id: comment.from.id,
         },
         message: {
           attachment: {
@@ -329,10 +343,9 @@ async function sendDM(
         },
       };
     } else {
-      // Send regular text message
       body = {
         recipient: {
-          comment_id: comment.id,
+          id: comment.from.id,
         },
         message: {
           text: messageWithBranding,
@@ -401,10 +414,8 @@ async function checkIfUserFollowsBusiness(
   }
 }
 
-// Handle the postback when user confirms they're following
-export async function handlePostback(request: NextRequest) {
+export async function handlePostback(payload: any) {
   try {
-    const payload = await request.json();
     console.log("Postback payload received:", JSON.stringify(payload, null, 2));
 
     if (
@@ -418,9 +429,9 @@ export async function handlePostback(request: NextRequest) {
             if (messaging.postback && messaging.postback.payload) {
               try {
                 const postbackData = JSON.parse(messaging.postback.payload);
+                const senderId = messaging.sender?.id;
 
                 if (postbackData.action === "followConfirmed") {
-                  // Verify if the user is actually following now
                   const automation = await AutomationModel.findById(
                     postbackData.automationId
                   ).populate("user");
@@ -432,52 +443,116 @@ export async function handlePostback(request: NextRequest) {
 
                   const user = automation.user as IUser;
 
+                  if (!user.instagramAccessToken) {
+                    console.log("Instagram access token not found for user");
+                    continue;
+                  }
+
                   const isNowFollowing = await checkIfUserFollowsBusiness(
-                    postbackData.userId,
+                    senderId,
                     user.instagramAccessToken
                   );
 
+                  const ownerId = user.instagramId;
+                  const url = `https://graph.instagram.com/v22.0/${ownerId}/messages`;
+                  const headers = {
+                    Authorization: `Bearer ${user.instagramAccessToken}`,
+                    "Content-Type": "application/json",
+                  };
+
                   if (isNowFollowing) {
-                    // Create a mock comment object from stored data
-                    const mockComment: InstagramComment = {
-                      id: postbackData.commentId,
-                      from: {
-                        id: postbackData.userId,
-                        username: messaging.sender?.id || "unknown",
-                      },
-                      media: {
-                        id: "", // This might need to be retrieved separately
-                      },
-                      text: "", // Original text not needed for resending
-                    };
-
-                    // Send the actual message now that they're following
-                    await sendDM(
-                      mockComment,
-                      automation.message,
-                      automation.name,
-                      automation._id.toString()
+                    console.log(
+                      `User ${senderId} (${postbackData.username}) is now following, sending automated message`
                     );
+
+                    const messageWithBranding = automation.removeBranding
+                      ? postbackData.originalMessage
+                      : `${postbackData.originalMessage}\n\nThis automation is sent by Groimon.`;
+
+                    let messageBody;
+
+                    if (
+                      automation.messageType === "buttonImage" &&
+                      automation.buttons &&
+                      automation.buttons.length > 0
+                    ) {
+                      messageBody = {
+                        recipient: {
+                          id: senderId,
+                        },
+                        message: {
+                          attachment: {
+                            type: "template",
+                            payload: {
+                              template_type: "button",
+                              text: messageWithBranding,
+                              buttons: automation.buttons.map((button) => ({
+                                type: "web_url",
+                                url:
+                                  `${
+                                    process.env.NEXT_PUBLIC_APP_URL ||
+                                    "https://www.groimon.vercel.app"
+                                  }/redirect?url=${encodeURIComponent(
+                                    button.url
+                                  )}` || button.url,
+                                title: button.buttonText,
+                              })),
+                            },
+                          },
+                        },
+                      };
+                    } else {
+                      messageBody = {
+                        recipient: {
+                          id: senderId,
+                        },
+                        message: {
+                          text: messageWithBranding,
+                        },
+                      };
+                    }
+
+                    await axios.post(url, messageBody, { headers });
+                    console.log(`Automation message sent to user ${senderId}`);
                   } else {
-                    // Send a message informing them they need to follow first
-                    const ownerId = user.instagramId;
-                    const url = `https://graph.instagram.com/v22.0/${ownerId}/messages`;
+                    console.log(
+                      `User ${senderId} (${postbackData.username}) is not following yet, sending follow button again`
+                    );
 
-                    const headers = {
-                      Authorization: `Bearer ${user.instagramAccessToken}`,
-                      "Content-Type": "application/json",
-                    };
-
-                    const body = {
+                    const followRequestBody = {
                       recipient: {
-                        id: postbackData.userId,
+                        id: senderId,
                       },
                       message: {
-                        text: "It looks like you haven't followed our account yet. Please follow us to receive the information you requested.",
+                        attachment: {
+                          type: "template",
+                          payload: {
+                            template_type: "button",
+                            text: "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
+                            buttons: [
+                              {
+                                type: "postback",
+                                title: "I'm following now",
+                                payload: JSON.stringify({
+                                  action: "followConfirmed",
+                                  automationId: postbackData.automationId,
+                                  commentId: postbackData.commentId,
+                                  userId: senderId,
+                                  username: postbackData.username,
+                                  mediaId: postbackData.mediaId,
+                                  originalMessage: postbackData.originalMessage,
+                                }),
+                              },
+                            ],
+                          },
+                        },
                       },
                     };
 
-                    await axios.post(url, body, { headers });
+                    await axios.post(url, followRequestBody, { headers });
+                    console.log(
+                      `Follow request button sent again to user ${senderId}`
+                    );
                   }
                 }
               } catch (error) {
