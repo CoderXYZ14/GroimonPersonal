@@ -111,7 +111,7 @@ async function fetchPreviousComments(mediaId: string, accessToken: string) {
   }
 }
 
-async function processComment(
+export async function processComment(
   comment: InstagramComment,
   isBacktrackComment: boolean = false
 ) {
