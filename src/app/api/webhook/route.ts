@@ -22,7 +22,10 @@ interface InstagramComment {
 
 interface IAutomation extends Omit<AutomationType, keyof Document> {
   _id: { toString: () => string };
-  user: IUser;
+  user: IUser & {
+    instagramAccessToken?: string;
+  };
+  enableBacktrack: boolean;
 }
 
 interface InstagramWebhookPayload {
@@ -68,7 +71,6 @@ export async function POST(request: NextRequest) {
       return handlePostback(payload);
     }
 
-    // Handle regular webhook (comments)
     if (
       payload.object === "instagram" &&
       payload.entry &&
@@ -95,9 +97,30 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function processComment(comment: InstagramComment) {
+async function fetchPreviousComments(mediaId: string, accessToken: string) {
   try {
-    console.log(`Processing comment on post ID: ${comment.media.id}`);
+    const url = `https://graph.instagram.com/v22.0/${mediaId}/comments?access_token=${accessToken}`;
+    const response = await axios.get(url);
+    return response.data.data || [];
+  } catch (error) {
+    console.error(
+      `Error fetching previous comments for media ${mediaId}:`,
+      error
+    );
+    return [];
+  }
+}
+
+async function processComment(
+  comment: InstagramComment,
+  isBacktrackComment: boolean = false
+) {
+  try {
+    console.log(
+      `Processing ${
+        isBacktrackComment ? "backtrack " : ""
+      }comment on post ID: ${comment.media.id}`
+    );
     console.log(`Comment from user: ${comment.from.username}`);
     console.log(`Comment text: "${comment.text}"`);
 
@@ -108,6 +131,44 @@ async function processComment(comment: InstagramComment) {
     if (!automations || automations.length === 0) {
       console.log(`No automations found for post ID: ${comment.media.id}`);
       return;
+    }
+
+    // If this is a new comment and there are automations with backtrack enabled,
+    // fetch and process previous comments
+    if (!isBacktrackComment) {
+      for (const automation of automations) {
+        if (
+          automation.enableBacktrack &&
+          "instagramAccessToken" in automation.user &&
+          automation.user.instagramAccessToken
+        ) {
+          console.log(
+            `Fetching previous comments for post ${comment.media.id} due to backtrack enabled`
+          );
+          const previousComments = await fetchPreviousComments(
+            comment.media.id,
+            automation.user.instagramAccessToken
+          );
+
+          for (const prevComment of previousComments) {
+            // Skip if it's the same comment we're currently processing
+            if (prevComment.id === comment.id) continue;
+
+            await processComment(
+              {
+                id: prevComment.id,
+                from: {
+                  id: prevComment.from.id,
+                  username: prevComment.from.username,
+                },
+                media: { id: comment.media.id },
+                text: prevComment.text,
+              },
+              true // Mark as backtrack comment
+            );
+          }
+        }
+      }
     }
 
     console.log(`Found ${automations.length} automations for this post`);
@@ -188,7 +249,7 @@ async function handleAutomationResponse(
   }
 }
 
-async function replyToComment(
+export async function replyToComment(
   comment: InstagramComment,
   message: string,
   accessToken: string
@@ -229,11 +290,12 @@ async function replyToComment(
   }
 }
 
-async function sendDM(
+export async function sendDM(
   comment: InstagramComment,
   message: string,
   automationName: string,
-  automationId: string
+  automationId: string,
+  isBacktrack: boolean = false
 ) {
   try {
     await dbConnect();
@@ -278,11 +340,6 @@ async function sendDM(
       return;
     }
 
-    const isFollowing = await checkIfUserFollowsBusiness(
-      comment.from.id,
-      user.instagramAccessToken
-    );
-
     const url = `https://graph.instagram.com/v22.0/${ownerId}/messages`;
 
     const headers = {
@@ -296,74 +353,86 @@ async function sendDM(
 
     let body;
 
-    if (!isFollowing && automation.isFollowed) {
-      body = {
-        recipient: {
-          id: comment.from.id,
-        },
-        message: {
-          attachment: {
-            type: "template",
-            payload: {
-              template_type: "button",
-              text: "Please follow our account to receive the information you requested. Once you've followed, click the button below.",
-              buttons: [
-                {
-                  type: "postback",
-                  title: "I'm following now",
-                  payload: JSON.stringify({
-                    action: "followConfirmed",
-                    automationId,
-                    commentId: comment.id,
-                    userId: comment.from.id,
-                    username: comment.from.username,
-                    mediaId: comment.media.id,
-                    originalMessage: originalMessage,
-                  }),
-                },
-              ],
+    // For backtrack, always use comment_id
+    const recipient = isBacktrack
+      ? { comment_id: comment.id }
+      : { id: comment.from.id };
+
+    // If follow check is required and this isn't a backtrack request
+    if (!isBacktrack && automation.isFollowed) {
+      const isFollowing = await checkIfUserFollowsBusiness(
+        comment.from.id,
+        user.instagramAccessToken
+      );
+
+      if (!isFollowing) {
+        body = {
+          recipient,
+          message: {
+            attachment: {
+              type: "template",
+              payload: {
+                template_type: "button",
+                text: "Please follow our account to receive the information you requested. Once you've followed, click the button below.",
+                buttons: [
+                  {
+                    type: "postback",
+                    title: "I'm following now",
+                    payload: JSON.stringify({
+                      action: "followConfirmed",
+                      automationId,
+                      commentId: comment.id,
+                      userId: comment.from.id,
+                      username: comment.from.username,
+                      mediaId: comment.media.id,
+                      originalMessage: originalMessage,
+                    }),
+                  },
+                ],
+              },
             },
           },
-        },
-      };
-    } else if (
-      automation.messageType === "buttonImage" &&
-      automation.buttons &&
-      automation.buttons.length > 0
-    ) {
-      body = {
-        recipient: {
-          id: comment.from.id,
-        },
-        message: {
-          attachment: {
-            type: "template",
-            payload: {
-              template_type: "button",
-              text: messageWithBranding,
-              buttons: automation.buttons.map((button) => ({
-                type: "web_url",
-                url:
-                  `${
-                    process.env.NEXT_PUBLIC_APP_URL ||
-                    "https://www.groimon.vercel.app"
-                  }/redirect?url=${encodeURIComponent(button.url)}` ||
-                  button.url,
-                title: button.buttonText,
-              })),
+        };
+      }
+    }
+
+    // If no follow check needed or user is following
+    if (!body) {
+      if (
+        automation.messageType === "buttonImage" &&
+        automation.buttons &&
+        automation.buttons.length > 0
+      ) {
+        body = {
+          recipient,
+          message: {
+            attachment: {
+              type: "template",
+              payload: {
+                template_type: "button",
+                text: messageWithBranding,
+                buttons: automation.buttons.map((button) => ({
+                  type: "web_url",
+                  url:
+                    `${
+                      process.env.NEXT_PUBLIC_APP_URL ||
+                      "https://www.groimon.vercel.app"
+                    }/redirect?url=${encodeURIComponent(button.url)}` ||
+                    button.url,
+                  title: button.buttonText,
+                })),
+              },
             },
           },
-        },
-      };
-    } else {
-      body = {
-        recipient: {
-          id: comment.from.id,
-        },
-        message: {
-          text: messageWithBranding,
-        },
-      };
+        };
+      } else {
+        body = {
+          recipient,
+          message: {
+            text: messageWithBranding,
+          },
+        };
+      }
     }
 
     console.log(
@@ -400,7 +469,7 @@ async function sendDM(
 }
 
 // Updated function to check if user follows the business using the proper Instagram API endpoint
-async function checkIfUserFollowsBusiness(
+export async function checkIfUserFollowsBusiness(
   instagramScopedId: string,
   accessToken: string
 ): Promise<boolean> {

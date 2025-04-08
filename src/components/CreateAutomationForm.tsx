@@ -46,6 +46,7 @@ const formSchema = z.object({
   buttons: z.array(buttonSchema).optional(),
   enableCommentAutomation: z.boolean(),
   commentMessage: z.string().min(1, "Comment message is required"),
+  enableBacktrack: z.boolean().default(false),
   isFollowed: z.boolean().default(false),
   removeBranding: z.boolean().default(false),
 });
@@ -107,6 +108,7 @@ export function CreateAutomationForm() {
       message: "",
       enableCommentAutomation: false,
       commentMessage: "",
+      enableBacktrack: false,
       isFollowed: false,
     },
   });
@@ -176,6 +178,7 @@ export function CreateAutomationForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
+      setIsLoading(true);
       const postIds =
         values.applyOption === "all"
           ? media.map((post) => post.id)
@@ -187,13 +190,12 @@ export function CreateAutomationForm() {
       }
 
       const userId = user._id;
-
       if (!userId) {
-        console.error("User ID not found");
+        toast.error("User not found");
         return;
       }
 
-      await axios.post("/api/automations", {
+      const response = await axios.post("/api/automations", {
         ...values,
         postIds,
         keywords: values.keywords.split(",").map((k) => k.trim()),
@@ -202,6 +204,34 @@ export function CreateAutomationForm() {
       });
 
       toast.success("Automation created successfully!");
+
+      // Process backtrack if enabled
+      if (values.enableBacktrack && values.enableCommentAutomation) {
+        toast.info("Processing existing comments...");
+        try {
+          const backtrackResponse = await axios.post("/api/process-backtrack", {
+            mediaIds: postIds,
+            accessToken: user.instagramAccessToken,
+            automationId: response.data.id,
+            automationName: values.name,
+            keywords: values.keywords.split(",").map((k) => k.trim()),
+            commentMessage: values.commentMessage,
+            message: values.message,
+            isFollowed: values.isFollowed,
+            removeBranding: values.removeBranding,
+          });
+
+          if (backtrackResponse.data.success) {
+            toast.success("Successfully processed existing comments");
+          } else {
+            toast.error("Failed to process some existing comments");
+          }
+        } catch (error) {
+          console.error("Error processing backtrack:", error);
+          toast.error("Failed to process existing comments");
+        }
+      }
+
       router.push("/dashboard/automation");
     } catch (error) {
       console.error("Error creating automation:", error);
@@ -212,6 +242,8 @@ export function CreateAutomationForm() {
       } else {
         toast.error("Failed to create automation");
       }
+    } finally {
+      setIsLoading(false);
     }
   }
   useEffect(() => {
@@ -652,7 +684,7 @@ export function CreateAutomationForm() {
             />
 
             {commentAutomationOpen && form.watch("enableCommentAutomation") && (
-              <div className="mt-4">
+              <div className="mt-4 space-y-4">
                 <FormField
                   control={form.control}
                   name="commentMessage"
@@ -671,6 +703,33 @@ export function CreateAutomationForm() {
                 />
               </div>
             )}
+          </div>
+
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium">Backtrack</h2>
+            </div>
+
+            <FormField
+              control={form.control}
+              name="enableBacktrack"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Enable Backtrack</Label>
+                    <FormDescription>
+                      Apply automation to previous comments on selected posts
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
           </div>
 
           {/* Remove Branding section */}

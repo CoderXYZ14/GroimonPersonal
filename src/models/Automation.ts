@@ -16,6 +16,7 @@ export interface IAutomation extends Document {
   buttons?: Button[];
   enableCommentAutomation: boolean;
   commentMessage?: string;
+  enableBacktrack: boolean;
   isFollowed: boolean;
   removeBranding: boolean;
   user: mongoose.Types.ObjectId | IUser;
@@ -35,11 +36,17 @@ const AutomationSchema: Schema<IAutomation> = new Schema(
     name: { type: String, required: true },
     postIds: { type: [String] },
     keywords: { type: [String], required: true },
-    messageType: { type: String, enum: ["message", "buttonImage"], default: "message", required: true },
+    messageType: {
+      type: String,
+      enum: ["message", "buttonImage"],
+      default: "message",
+      required: true,
+    },
     message: { type: String, required: true },
     buttons: { type: [ButtonSchema], default: [] },
     enableCommentAutomation: { type: Boolean, default: false },
     commentMessage: { type: String, default: "" },
+    enableBacktrack: { type: Boolean, default: false },
     isFollowed: { type: Boolean, default: false },
     removeBranding: { type: Boolean, default: false },
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
