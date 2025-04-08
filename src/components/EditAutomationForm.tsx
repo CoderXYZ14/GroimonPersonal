@@ -1,0 +1,701 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useAppSelector } from "@/redux/hooks";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Switch } from "@/components/ui/switch";
+import { IAutomation } from "@/models/Automation";
+import { toast } from "sonner";
+import axios from "axios";
+import Image from "next/image";
+import Link from "next/link";
+
+interface InstagramMediaItem {
+  id: string;
+  media_type: string;
+  media_url: string;
+  thumbnail_url?: string;
+  caption?: string;
+  timestamp: string;
+}
+
+interface InstagramMediaResponse {
+  data: InstagramMediaItem[];
+}
+
+interface MediaItem {
+  id: string;
+  title: string;
+  mediaUrl: string;
+  mediaType: string;
+  thumbnailUrl?: string;
+  timestamp: string;
+}
+
+const buttonSchema = z.object({
+  title: z.string().min(1, "Button title is required"),
+  url: z.string().url("Must be a valid URL"),
+  buttonText: z.string().min(1, "Button text is required"),
+});
+
+const formSchema = z.object({
+  name: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .max(50, "Name must be less than 50 characters"),
+  keywords: z.string().min(1, "At least one keyword is required"),
+  messageType: z.enum(["message", "buttonImage"]).default("message"),
+  message: z.string().min(1, "Message template is required"),
+  buttons: z.array(buttonSchema).optional(),
+  enableCommentAutomation: z.boolean(),
+  commentMessage: z.string().min(1, "Comment message is required"),
+  enableBacktrack: z.boolean().default(false),
+  isFollowed: z.boolean().default(false),
+  removeBranding: z.boolean().default(false),
+});
+
+interface EditAutomationFormProps {
+  automation: IAutomation;
+}
+
+export function EditAutomationForm({ automation }: EditAutomationFormProps) {
+  const router = useRouter();
+  const user = useAppSelector((state) => state.user);
+  const [dmTypeOpen, setDmTypeOpen] = useState(true);
+  const [commentAutomationOpen, setCommentAutomationOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [media, setMedia] = useState<MediaItem[]>([]);
+  const [buttons, setButtons] = useState<
+    Array<{ title: string; url: string; buttonText: string }>
+  >(automation.buttons || []);
+
+  useEffect(() => {
+    const fetchMedia = async () => {
+      setIsLoading(true);
+      const instagramId = user.instagramId;
+      const instagramAccessToken = user.instagramAccessToken;
+
+      if (!instagramId || !instagramAccessToken) {
+        console.error("Instagram user ID or access token not found");
+        toast.error("Instagram user ID or access token not found");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `https://graph.instagram.com/v22.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&access_token=${instagramAccessToken}`
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch media: ${response.statusText}`);
+        }
+
+        const data: InstagramMediaResponse = await response.json();
+        const allMedia = data.data.map((item: InstagramMediaItem) => ({
+          id: item.id,
+          title: item.caption || `Post ${item.id}`,
+          mediaUrl: item.media_url,
+          mediaType: item.media_type,
+          thumbnailUrl: item.thumbnail_url,
+          timestamp: item.timestamp,
+        }));
+
+        // Filter to show only posts that are part of this automation
+        const automationPosts = allMedia.filter((post) =>
+          automation.postIds.includes(post.id)
+        );
+        setMedia(automationPosts);
+      } catch (error) {
+        console.error("Error fetching Instagram media:", error);
+        toast.error("Failed to fetch Instagram media");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMedia();
+  }, [user.instagramId, user.instagramAccessToken, automation.postIds]);
+
+  const toggleDmType = () => {
+    setDmTypeOpen(!dmTypeOpen);
+  };
+
+  const toggleCommentAutomation = () => {
+    setCommentAutomationOpen(!commentAutomationOpen);
+  };
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: automation.name,
+      keywords: automation.keywords.join(", "),
+      messageType: automation.messageType,
+      message: automation.message,
+      buttons: automation.buttons,
+      enableCommentAutomation: automation.enableCommentAutomation,
+      commentMessage: automation.commentMessage || "",
+      enableBacktrack: automation.enableBacktrack,
+      isFollowed: automation.isFollowed,
+      removeBranding: automation.removeBranding,
+    },
+  });
+
+  const messageType = form.watch("messageType");
+
+  useEffect(() => {
+    if (messageType === "buttonImage" && buttons.length === 0) {
+      setButtons([{ title: "", url: "", buttonText: "" }]);
+    } else if (messageType === "message") {
+      setButtons([]);
+    }
+  }, [messageType, buttons.length]);
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      setIsLoading(true);
+      const formData = {
+        ...values,
+        keywords: values.keywords.split(",").map((k) => k.trim()),
+        postIds: automation.postIds, // Keep the original post IDs
+        buttons: messageType === "buttonImage" ? buttons : undefined,
+      };
+
+      await axios.put(`/api/automations?id=${automation._id}`, formData);
+
+      toast.success("Automation updated successfully");
+      router.push("/dashboard/automation");
+      router.refresh();
+    } catch (error) {
+      console.error("Error updating automation:", error);
+      toast.error("Failed to update automation");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const keywordsCount = form.watch("keywords")
+    ? form
+        .watch("keywords")
+        .split(",")
+        .filter((k) => k.trim()).length
+    : 0;
+
+  return (
+    <div className="w-full">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input
+                      placeholder="Untitled"
+                      className="text-xl font-medium border-none focus-visible:ring-0 px-2 bg-transparent max-w-[200px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="flex gap-2">
+              <Link href="/dashboard/automation">
+                <Button
+                  variant="outline"
+                  className="border-gray-200 dark:border-gray-700"
+                >
+                  Back
+                </Button>
+              </Link>
+              <Button
+                type="submit"
+                className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Update"
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Post selection section */}
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium">Selected Posts</h2>
+            </div>
+
+            {isLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+              </div>
+            ) : media.length === 1 ? (
+              <div className="flex justify-center">
+                <Card className="overflow-hidden max-w-md w-full">
+                  <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative">
+                    {media[0].mediaType === "IMAGE" && (
+                      <Image
+                        src={media[0].mediaUrl}
+                        alt={media[0].title}
+                        fill
+                        className="w-20 h-20"
+                      />
+                    )}
+                    {media[0].mediaType === "VIDEO" && (
+                      <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                        <span className="text-gray-500 dark:text-gray-400">
+                          Video Preview
+                        </span>
+                      </div>
+                    )}
+                    {media[0].mediaType === "CAROUSEL_ALBUM" && (
+                      <Image
+                        src={media[0].thumbnailUrl || media[0].mediaUrl}
+                        alt={media[0].title}
+                        fill
+                        className="object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-medium mb-1 truncate">
+                      {media[0].title}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {new Date(media[0].timestamp).toLocaleDateString()}
+                    </p>
+                  </div>
+                </Card>
+              </div>
+            ) : media.length > 1 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {media.map((item) => (
+                  <Card key={item.id} className="overflow-hidden">
+                    <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative">
+                      {item.mediaType === "IMAGE" && (
+                        <Image
+                          src={item.mediaUrl}
+                          alt={item.title}
+                          fill
+                          className="object-cover"
+                        />
+                      )}
+                      {item.mediaType === "VIDEO" && (
+                        <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                          <span className="text-gray-500 dark:text-gray-400">
+                            Video Preview
+                          </span>
+                        </div>
+                      )}
+                      {item.mediaType === "CAROUSEL_ALBUM" && (
+                        <Image
+                          src={item.thumbnailUrl || item.mediaUrl}
+                          alt={item.title}
+                          fill
+                          className="object-cover"
+                        />
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <p className="text-sm font-medium truncate">
+                        {item.title}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(item.timestamp).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                No posts found for this automation
+              </div>
+            )}
+          </div>
+
+          {/* Trigger/Keywords section */}
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium">Trigger</h2>
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-green-500 flex items-center"
+              >
+                {keywordsCount} keyword{keywordsCount !== 1 ? "s" : ""}
+                <ChevronDown className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+
+            <FormField
+              control={form.control}
+              name="keywords"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input
+                      placeholder="send, dm me, hello"
+                      className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-md"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                    Separate keywords with commas
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* DM Type section */}
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium">DM Message</h2>
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-green-500 flex items-center"
+                onClick={toggleDmType}
+              >
+                Message Template
+                {dmTypeOpen ? (
+                  <ChevronUp className="w-4 h-4 ml-1" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 ml-1" />
+                )}
+              </Button>
+            </div>
+
+            {dmTypeOpen && (
+              <div className="mt-4 space-y-4">
+                <FormField
+                  control={form.control}
+                  name="messageType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <div className="flex flex-col space-y-4">
+                          <Label
+                            className={`p-4 border rounded-lg cursor-pointer ${
+                              field.value === "message"
+                                ? "border-purple-500"
+                                : "border-gray-200 dark:border-gray-700"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              value="message"
+                              className="hidden"
+                              checked={field.value === "message"}
+                              onChange={(e) => field.onChange(e.target.value)}
+                            />
+                            <div className="flex items-center justify-between">
+                              <span>Text Message</span>
+                              {field.value === "message" && (
+                                <div className="w-4 h-4 rounded-full bg-purple-500" />
+                              )}
+                            </div>
+                          </Label>
+                          <Label
+                            className={`p-4 border rounded-lg cursor-pointer ${
+                              field.value === "buttonImage"
+                                ? "border-purple-500"
+                                : "border-gray-200 dark:border-gray-700"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              value="buttonImage"
+                              className="hidden"
+                              checked={field.value === "buttonImage"}
+                              onChange={(e) => field.onChange(e.target.value)}
+                            />
+                            <div className="flex items-center justify-between">
+                              <span>Button Template</span>
+                              {field.value === "buttonImage" && (
+                                <div className="w-4 h-4 rounded-full bg-purple-500" />
+                              )}
+                            </div>
+                          </Label>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="message"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Enter your message template"
+                          className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[120px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {messageType === "buttonImage" && (
+                  <div className="space-y-4">
+                    {buttons.map((button, index) => (
+                      <Card key={index} className="p-4">
+                        <div className="space-y-4">
+                          <div>
+                            <Label>Button Title</Label>
+                            <Input
+                              value={button.title}
+                              onChange={(e) => {
+                                const newButtons = [...buttons];
+                                newButtons[index].title = e.target.value;
+                                setButtons(newButtons);
+                              }}
+                              placeholder="Enter Title"
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label>URL</Label>
+                            <Input
+                              value={button.url}
+                              onChange={(e) => {
+                                const newButtons = [...buttons];
+                                newButtons[index].url = e.target.value;
+                                setButtons(newButtons);
+                              }}
+                              placeholder="Enter URL"
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label>Button Text</Label>
+                            <Input
+                              value={button.buttonText}
+                              onChange={(e) => {
+                                const newButtons = [...buttons];
+                                newButtons[index].buttonText = e.target.value;
+                                setButtons(newButtons);
+                              }}
+                              placeholder="Click here"
+                              className="mt-1"
+                            />
+                          </div>
+                          {buttons.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              onClick={() => {
+                                const newButtons = buttons.filter(
+                                  (_, i) => i !== index
+                                );
+                                setButtons(newButtons);
+                              }}
+                            >
+                              Remove Button
+                            </Button>
+                          )}
+                        </div>
+                      </Card>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setButtons([
+                          ...buttons,
+                          { title: "", url: "", buttonText: "" },
+                        ]);
+                      }}
+                      className="w-full mt-4"
+                    >
+                      Add Button
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Is Followed Check section */}
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium">Follow Check</h2>
+            </div>
+
+            <FormField
+              control={form.control}
+              name="isFollowed"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Add to Follow</Label>
+                    <FormDescription>
+                      Automatically follow users who trigger this automation
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Comment Automation section */}
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium">Auto Reply</h2>
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-green-500 flex items-center"
+                onClick={toggleCommentAutomation}
+              >
+                Comment Template
+                {commentAutomationOpen ? (
+                  <ChevronUp className="w-4 h-4 ml-1" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 ml-1" />
+                )}
+              </Button>
+            </div>
+
+            <FormField
+              control={form.control}
+              name="enableCommentAutomation"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Enable Auto Reply</Label>
+                    <FormDescription>
+                      Automatically respond to comments on your posts
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {commentAutomationOpen && form.watch("enableCommentAutomation") && (
+              <div className="mt-4 space-y-4">
+                <FormField
+                  control={form.control}
+                  name="commentMessage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Enter the message to reply to comments"
+                          className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[120px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium">Backtrack</h2>
+            </div>
+
+            <FormField
+              control={form.control}
+              name="enableBacktrack"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Enable Backtrack</Label>
+                    <FormDescription>
+                      Apply automation to previous comments on selected posts
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Remove Branding section */}
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium">Branding</h2>
+            </div>
+
+            <FormField
+              control={form.control}
+              name="removeBranding"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Remove Branding</Label>
+                    <FormDescription>
+                      Remove &ldquo;This automation is sent by Groimon&rdquo;
+                      from messages
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+        </form>
+      </Form>
+    </div>
+  );
+}

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAppSelector } from "@/redux/hooks";
 import { usePostAutomation } from "@/hooks/usePostAutomation";
@@ -41,6 +42,8 @@ export function AutomationTable() {
   const handlePostAutomation = usePostAutomation();
 
   const user = useAppSelector((state) => state.user);
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const fetchAutomations = async () => {
@@ -192,6 +195,16 @@ export function AutomationTable() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-[120px]">
                   {/* <DropdownMenuItem className="text-xs">Edit</DropdownMenuItem> */}
+                  <DropdownMenuItem
+                    className="text-xs"
+                    onClick={() =>
+                      router.push(
+                        `/dashboard/automations/${automation._id}/edit`
+                      )
+                    }
+                  >
+                    Edit
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     className="text-xs text-red-600"
                     onClick={() => handleDelete(automation._id)}
@@ -355,9 +368,16 @@ export function AutomationTable() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-[120px]">
-                        {/* <DropdownMenuItem className="text-xs">
+                        <DropdownMenuItem
+                          className="text-xs"
+                          onClick={() =>
+                            router.push(
+                              `/dashboard/automations/${automation._id}/edit`
+                            )
+                          }
+                        >
                           Edit
-                        </DropdownMenuItem> */}
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-xs text-red-600"
                           onClick={() => handleDelete(automation._id)}
