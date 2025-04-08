@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAppSelector } from "@/redux/hooks";
 import { usePostAutomation } from "@/hooks/usePostAutomation";
@@ -43,7 +43,6 @@ export function AutomationTable() {
 
   const user = useAppSelector((state) => state.user);
   const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
     const fetchAutomations = async () => {

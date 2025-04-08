@@ -30,7 +30,7 @@ async function fetchAllComments(
     }
 
     // For each comment, get detailed info
-    const commentPromises = response.data.data.map(async (comment: any) => {
+    const commentPromises = response.data.data.map(async (comment) => {
       try {
         // Get detailed comment info including user data
         const commentUrl = `https://graph.instagram.com/v22.0/${comment.id}?fields=id,text,username,timestamp,from&access_token=${accessToken}`;
@@ -50,13 +50,18 @@ async function fetchAllComments(
           },
         };
       } catch (error) {
-        console.error(`Error fetching details for comment ${comment.id}:`, error);
+        console.error(
+          `Error fetching details for comment ${comment.id}:`,
+          error
+        );
         return null;
       }
     });
 
     const comments = await Promise.all(commentPromises);
-    return comments.filter((comment): comment is InstagramComment => comment !== null);
+    return comments.filter(
+      (comment): comment is InstagramComment => comment !== null
+    );
   } catch (error) {
     console.error(`Error fetching comments for media ${mediaId}:`, error);
     return [];

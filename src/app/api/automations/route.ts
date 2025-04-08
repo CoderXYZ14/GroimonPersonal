@@ -83,15 +83,8 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const userId = url.searchParams.get("userId");
     const id = url.searchParams.get("id");
-    const cookieStore = await cookies();
-    const userDetails = cookieStore.get("user_details");
 
     if (id) {
-      // if (!userDetails?.value) {
-      //   return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-      // }
-
-      const user = JSON.parse(userDetails.value);
       const automation = await AutomationModel.findById(id);
 
       if (!automation) {
