@@ -19,6 +19,7 @@ export interface IAutomation extends Document {
   enableBacktrack: boolean;
   isFollowed: boolean;
   removeBranding: boolean;
+  hitCount: number;
   user: mongoose.Types.ObjectId | IUser;
 }
 
@@ -49,6 +50,7 @@ const AutomationSchema: Schema<IAutomation> = new Schema(
     enableBacktrack: { type: Boolean, default: false },
     isFollowed: { type: Boolean, default: false },
     removeBranding: { type: Boolean, default: false },
+    hitCount: { type: Number, default: 0 },
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }

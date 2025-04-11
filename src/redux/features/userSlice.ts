@@ -7,6 +7,7 @@ interface UserState {
   instagramUsername?: string;
   instagramAccessToken?: string;
   isAuthenticated: boolean;
+  automations?: any[];
 }
 
 const initialState: UserState = {

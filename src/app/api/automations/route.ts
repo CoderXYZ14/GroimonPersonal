@@ -83,6 +83,22 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const userId = url.searchParams.get("userId");
     const id = url.searchParams.get("id");
+    const getTotalHits = url.searchParams.get("getTotalHits");
+
+    // Handle total hits request
+    if (getTotalHits === 'true' && userId) {
+      const totalHits = await AutomationModel.aggregate([
+        { $match: { user: new mongoose.Types.ObjectId(userId) } },
+        { $group: { _id: null, total: { $sum: "$hitCount" } } }
+      ]);
+      
+      return NextResponse.json({
+        totalHits: totalHits.length > 0 ? totalHits[0].total : 0
+      }, { status: 200 });
+    }
+
+    // Regular GET logic continues here
+
 
     if (id) {
       const automation = await AutomationModel.findById(id);

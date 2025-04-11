@@ -119,7 +119,8 @@ export default function SignIn() {
               </Link>{" "}
               and{" "}
               <Link
-                href="/privacy-policy"
+              
+  href="/privacy-policy"
                 className="text-purple-500 hover:text-purple-600 dark:text-purple-400 dark:hover:text-purple-300 transition-colors"
               >
                 Privacy Policy

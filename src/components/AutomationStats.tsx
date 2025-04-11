@@ -1,11 +1,35 @@
 "use client";
 
-import { User2 } from "lucide-react";
+import { User2, MessageCircle, Zap } from "lucide-react";
 import { useAppSelector } from "@/redux/hooks";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
 export function AutomationStats() {
   const user = useAppSelector((state) => state.user);
   const hasInstagramAuth = user.instagramUsername && user.instagramId;
+  const [totalHits, setTotalHits] = useState<number>(0);
+  const [automationsCount, setAutomationsCount] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (user._id) {
+        try {
+          const [hitsResponse, automationsResponse] = await Promise.all([
+            axios.get(`/api/automations?userId=${user._id}&getTotalHits=true`),
+            axios.get(`/api/automations?userId=${user._id}`),
+          ]);
+
+          setTotalHits(hitsResponse.data.totalHits);
+          setAutomationsCount(automationsResponse.data.length);
+        } catch (error) {
+          console.error("Error fetching stats:", error);
+        }
+      }
+    };
+
+    fetchStats();
+  }, [user._id]);
 
   if (!hasInstagramAuth) {
     return (
@@ -26,7 +50,7 @@ export function AutomationStats() {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl p-4">
         <div className="flex items-center space-x-3">
           <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-800 shrink-0">
@@ -39,6 +63,40 @@ export function AutomationStats() {
             </p>
             <p className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
               @{user.instagramUsername}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-4">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-800 shrink-0">
+            <MessageCircle className="w-5 h-5 text-blue-600 dark:text-blue-300" />
+          </div>
+
+          <div className="min-w-0">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Total Automations
+            </p>
+            <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+              {automationsCount}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-900/20 dark:to-teal-900/20 rounded-2xl p-4">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 rounded-full bg-green-100 dark:bg-green-800 shrink-0">
+            <Zap className="w-5 h-5 text-green-600 dark:text-green-300" />
+          </div>
+
+          <div className="min-w-0">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Total DM Hits
+            </p>
+            <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+              {totalHits.toLocaleString()}
             </p>
           </div>
         </div>

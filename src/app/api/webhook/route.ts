@@ -442,6 +442,13 @@ export async function sendDM(
     try {
       const response = await axios.post(url, body, { headers });
       console.log(`DM sent successfully to ${comment.from.username}`);
+
+      // Increment hitCount for the automation
+      await AutomationModel.findByIdAndUpdate(automationId, {
+        $inc: { hitCount: 1 },
+      });
+      console.log(`Incremented hitCount for automation ${automationName}`);
+
       return response.data;
     } catch (error) {
       if (
