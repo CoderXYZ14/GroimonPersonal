@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
@@ -61,8 +62,11 @@ const formSchema = z.object({
     .min(2, "Name must be at least 2 characters")
     .max(50, "Name must be less than 50 characters"),
   keywords: z.string().min(1, "At least one keyword is required"),
-  messageType: z.enum(["message", "buttonImage"]).default("message"),
+  messageType: z
+    .enum(["message", "ButtonText", "ButtonImage"])
+    .default("message"),
   message: z.string().min(1, "Message template is required"),
+  imageUrl: z.string().url("Must be a valid image URL").optional(),
   buttons: z.array(buttonSchema).optional(),
   enableCommentAutomation: z.boolean(),
   commentMessage: z.string().min(1, "Comment message is required"),
@@ -142,13 +146,15 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
     setCommentAutomationOpen(!commentAutomationOpen);
   };
 
+  // Default values for the form with proper handling of all fields
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: automation.name,
       keywords: automation.keywords.join(", "),
-      messageType: automation.messageType,
+      messageType: automation.messageType || "message",
       message: automation.message,
+      imageUrl: automation.imageUrl || "",
       buttons: automation.buttons,
       enableCommentAutomation: automation.enableCommentAutomation,
       commentMessage: automation.commentMessage || "",
@@ -161,7 +167,10 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
   const messageType = form.watch("messageType");
 
   useEffect(() => {
-    if (messageType === "buttonImage" && buttons.length === 0) {
+    if (
+      (messageType === "ButtonText" || messageType === "ButtonImage") &&
+      buttons.length === 0
+    ) {
       setButtons([{ title: "", url: "", buttonText: "" }]);
     } else if (messageType === "message") {
       setButtons([]);
@@ -175,7 +184,13 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
         ...values,
         keywords: values.keywords.split(",").map((k) => k.trim()),
         postIds: automation.postIds, // Keep the original post IDs
-        buttons: messageType === "buttonImage" ? buttons : undefined,
+        imageUrl:
+          values.messageType === "ButtonImage" ? values.imageUrl : undefined,
+        buttons:
+          values.messageType === "ButtonText" ||
+          values.messageType === "ButtonImage"
+            ? buttons
+            : undefined,
       };
 
       await axios.put(`/api/automations?id=${automation._id}`, formData);
@@ -402,50 +417,30 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <div className="flex flex-col space-y-4">
-                          <Label
-                            className={`p-4 border rounded-lg cursor-pointer ${
-                              field.value === "message"
-                                ? "border-purple-500"
-                                : "border-gray-200 dark:border-gray-700"
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              value="message"
-                              className="hidden"
-                              checked={field.value === "message"}
-                              onChange={(e) => field.onChange(e.target.value)}
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="grid grid-cols-3 gap-4"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="message" id="message" />
+                            <Label htmlFor="message">Message</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem
+                              value="ButtonText"
+                              id="ButtonText"
                             />
-                            <div className="flex items-center justify-between">
-                              <span>Text Message</span>
-                              {field.value === "message" && (
-                                <div className="w-4 h-4 rounded-full bg-purple-500" />
-                              )}
-                            </div>
-                          </Label>
-                          <Label
-                            className={`p-4 border rounded-lg cursor-pointer ${
-                              field.value === "buttonImage"
-                                ? "border-purple-500"
-                                : "border-gray-200 dark:border-gray-700"
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              value="buttonImage"
-                              className="hidden"
-                              checked={field.value === "buttonImage"}
-                              onChange={(e) => field.onChange(e.target.value)}
+                            <Label htmlFor="ButtonText">Button Text</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem
+                              value="ButtonImage"
+                              id="ButtonImage"
                             />
-                            <div className="flex items-center justify-between">
-                              <span>Button Template</span>
-                              {field.value === "buttonImage" && (
-                                <div className="w-4 h-4 rounded-full bg-purple-500" />
-                              )}
-                            </div>
-                          </Label>
-                        </div>
+                            <Label htmlFor="ButtonImage">Button Image</Label>
+                          </div>
+                        </RadioGroup>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -469,7 +464,30 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                   )}
                 />
 
-                {messageType === "buttonImage" && (
+                {messageType === "ButtonImage" && (
+                  <FormField
+                    control={form.control}
+                    name="imageUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <div className="space-y-2">
+                            <Label>Main Image URL</Label>
+                            <Input
+                              placeholder="https://example.com/main-image.jpg"
+                              className="w-full"
+                              {...field}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {(messageType === "ButtonText" ||
+                  messageType === "ButtonImage") && (
                   <div className="space-y-4">
                     {buttons.map((button, index) => (
                       <Card key={index} className="p-4">
@@ -513,20 +531,19 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                               className="mt-1"
                             />
                           </div>
-                          {buttons.length > 1 && (
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              onClick={() => {
-                                const newButtons = buttons.filter(
-                                  (_, i) => i !== index
-                                );
-                                setButtons(newButtons);
-                              }}
-                            >
-                              Remove Button
-                            </Button>
-                          )}
+
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={() => {
+                              const newButtons = buttons.filter(
+                                (_, i) => i !== index
+                              );
+                              setButtons(newButtons);
+                            }}
+                          >
+                            Remove Button
+                          </Button>
                         </div>
                       </Card>
                     ))}

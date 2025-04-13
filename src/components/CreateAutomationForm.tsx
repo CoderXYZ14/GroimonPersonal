@@ -28,21 +28,21 @@ import { Switch } from "@/components/ui/switch";
 import axios from "axios";
 
 const buttonSchema = z.object({
-  title: z.string().min(1, "Button title is required"),
-  url: z.string().url("Must be a valid URL"),
+  title: z.string().min(1, "Title is required"),
+  url: z.string().min(1, "URL is required"),
   buttonText: z.string().min(1, "Button text is required"),
 });
 
 const formSchema = z.object({
-  name: z
-    .string()
-    .min(2, "Name must be at least 2 characters")
-    .max(50, "Name must be less than 50 characters"),
+  name: z.string().min(1, "Name is required"),
   applyOption: z.enum(["all", "selected"]),
   postId: z.string().optional(),
   keywords: z.string().min(1, "At least one keyword is required"),
-  messageType: z.enum(["message", "buttonImage"]).default("message"),
+  messageType: z
+    .enum(["message", "ButtonText", "ButtonImage"])
+    .default("message"),
   message: z.string().min(1, "Message template is required"),
+  imageUrl: z.string().url("Must be a valid image URL").optional(),
   buttons: z.array(buttonSchema).optional(),
   enableCommentAutomation: z.boolean(),
   commentMessage: z.string().min(1, "Comment message is required"),
@@ -106,6 +106,7 @@ export function CreateAutomationForm() {
       keywords: "",
       messageType: "message",
       message: "",
+      imageUrl: "",
       enableCommentAutomation: false,
       commentMessage: "",
       enableBacktrack: false,
@@ -115,15 +116,17 @@ export function CreateAutomationForm() {
 
   const applyOption = form.watch("applyOption");
 
-  const messageType = form.watch("messageType");
-
   useEffect(() => {
-    if (messageType === "buttonImage" && buttons.length === 0) {
+    const messageType = form.watch("messageType");
+    if (
+      (messageType === "ButtonText" || messageType === "ButtonImage") &&
+      buttons.length === 0
+    ) {
       setButtons([{ title: "", url: "", buttonText: "" }]);
     } else if (messageType === "message") {
       setButtons([]);
     }
-  }, [messageType, buttons.length, form]);
+  }, [form]);
 
   useEffect(() => {
     const fetchMedia = async () => {
@@ -200,7 +203,13 @@ export function CreateAutomationForm() {
         postIds,
         keywords: values.keywords.split(",").map((k) => k.trim()),
         user: userId,
-        buttons: values.messageType === "buttonImage" ? buttons : undefined,
+        imageUrl:
+          values.messageType === "ButtonImage" ? values.imageUrl : undefined,
+        buttons:
+          values.messageType === "ButtonText" ||
+          values.messageType === "ButtonImage"
+            ? buttons
+            : undefined,
       });
 
       toast.success("Automation created successfully!");
@@ -248,7 +257,10 @@ export function CreateAutomationForm() {
   }
   useEffect(() => {
     const messageType = form.watch("messageType");
-    if (messageType === "buttonImage" && buttons.length === 0) {
+    if (
+      (messageType === "ButtonText" || messageType === "ButtonImage") &&
+      buttons.length === 0
+    ) {
       setButtons([{ title: "", url: "", buttonText: "" }]);
     }
   }, [buttons.length, form]);
@@ -263,7 +275,7 @@ export function CreateAutomationForm() {
   return (
     <div className="w-full">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
             <FormField
               control={form.control}
@@ -324,12 +336,12 @@ export function CreateAutomationForm() {
               control={form.control}
               name="applyOption"
               render={({ field }) => (
-                <FormItem className="space-y-3">
+                <FormItem>
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      className="flex flex-col space-y-2"
+                      className="grid grid-cols-2 gap-4"
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="all" id="all" />
@@ -345,7 +357,7 @@ export function CreateAutomationForm() {
                       </div>
                     </RadioGroup>
                   </FormControl>
-                  <FormMessage />
+                  {/* This closing FormItem tag was missing */}
                 </FormItem>
               )}
             />
@@ -501,7 +513,7 @@ export function CreateAutomationForm() {
                         <RadioGroup
                           onValueChange={field.onChange}
                           defaultValue={field.value}
-                          className="flex space-x-4"
+                          className="grid grid-cols-3 gap-4"
                         >
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="message" id="message" />
@@ -509,10 +521,17 @@ export function CreateAutomationForm() {
                           </div>
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem
-                              value="buttonImage"
-                              id="buttonImage"
+                              value="ButtonText"
+                              id="ButtonText"
                             />
-                            <Label htmlFor="buttonImage">Button Image</Label>
+                            <Label htmlFor="ButtonText">Button Text</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem
+                              value="ButtonImage"
+                              id="ButtonImage"
+                            />
+                            <Label htmlFor="ButtonImage">Button Image</Label>
                           </div>
                         </RadioGroup>
                       </FormControl>
@@ -537,7 +556,30 @@ export function CreateAutomationForm() {
                   )}
                 />
 
-                {form.watch("messageType") === "buttonImage" && (
+                {form.watch("messageType") === "ButtonImage" && (
+                  <FormField
+                    control={form.control}
+                    name="imageUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <div className="space-y-2">
+                            <Label>Main Image URL</Label>
+                            <Input
+                              placeholder="https://example.com/main-image.jpg"
+                              className="w-full"
+                              {...field}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {(form.watch("messageType") === "ButtonText" ||
+                  form.watch("messageType") === "ButtonImage") && (
                   <div className="space-y-4">
                     {buttons.map((button, index) => (
                       <Card key={index} className="p-4">
@@ -581,6 +623,7 @@ export function CreateAutomationForm() {
                               className="mt-1"
                             />
                           </div>
+
                           <Button
                             type="button"
                             variant="destructive"

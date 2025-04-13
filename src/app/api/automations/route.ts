@@ -16,6 +16,7 @@ export async function POST(request: Request) {
       keywords,
       messageType,
       message,
+      imageUrl,
       buttons,
       user,
       enableCommentAutomation,
@@ -32,7 +33,8 @@ export async function POST(request: Request) {
       !user ||
       !enableCommentAutomation ||
       !commentMessage ||
-      (messageType === "buttonImage" && (!buttons || buttons.length === 0))
+      (messageType === "ButtonImage" && !imageUrl) ||
+      ((messageType === "ButtonText" || messageType === "ButtonImage") && (!buttons || buttons.length === 0))
     ) {
       return NextResponse.json(
         { message: "Missing required fields" },
@@ -86,19 +88,21 @@ export async function GET(request: Request) {
     const getTotalHits = url.searchParams.get("getTotalHits");
 
     // Handle total hits request
-    if (getTotalHits === 'true' && userId) {
+    if (getTotalHits === "true" && userId) {
       const totalHits = await AutomationModel.aggregate([
         { $match: { user: new mongoose.Types.ObjectId(userId) } },
-        { $group: { _id: null, total: { $sum: "$hitCount" } } }
+        { $group: { _id: null, total: { $sum: "$hitCount" } } },
       ]);
-      
-      return NextResponse.json({
-        totalHits: totalHits.length > 0 ? totalHits[0].total : 0
-      }, { status: 200 });
+
+      return NextResponse.json(
+        {
+          totalHits: totalHits.length > 0 ? totalHits[0].total : 0,
+        },
+        { status: 200 }
+      );
     }
 
     // Regular GET logic continues here
-
 
     if (id) {
       const automation = await AutomationModel.findById(id);
@@ -175,16 +179,16 @@ export async function PUT(request: Request) {
     }
 
     // Validate messageType
-    if (!["message", "buttonImage"].includes(body.messageType)) {
+    if (!["message", "ButtonText"].includes(body.messageType)) {
       return NextResponse.json(
         { message: "Invalid message type" },
         { status: 400 }
       );
     }
 
-    // If messageType is buttonImage, validate buttons
+    // If messageType is ButtonText, validate buttons
     if (
-      body.messageType === "buttonImage" &&
+      body.messageType === "ButtonText" &&
       (!body.buttons || !Array.isArray(body.buttons))
     ) {
       return NextResponse.json(

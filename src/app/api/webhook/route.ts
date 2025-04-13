@@ -399,7 +399,7 @@ export async function sendDM(
     // If no follow check needed or user is following
     if (!body) {
       if (
-        automation.messageType === "buttonImage" &&
+        automation.messageType === "ButtonText" &&
         automation.buttons &&
         automation.buttons.length > 0
       ) {
@@ -561,7 +561,7 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                     let messageBody;
 
                     if (
-                      automation.messageType === "buttonImage" &&
+                      automation.messageType === "ButtonText" &&
                       automation.buttons &&
                       automation.buttons.length > 0
                     ) {

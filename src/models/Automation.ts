@@ -11,8 +11,9 @@ export interface IAutomation extends Document {
   name: string;
   postIds: string[];
   keywords: string[];
-  messageType: "message" | "buttonImage";
+  messageType: "message" | "ButtonText" | "ButtonImage";
   message: string;
+  imageUrl?: string;
   buttons?: Button[];
   enableCommentAutomation: boolean;
   commentMessage?: string;
@@ -39,11 +40,12 @@ const AutomationSchema: Schema<IAutomation> = new Schema(
     keywords: { type: [String], required: true },
     messageType: {
       type: String,
-      enum: ["message", "buttonImage"],
+      enum: ["message", "ButtonText", "ButtonImage"],
       default: "message",
       required: true,
     },
     message: { type: String, required: true },
+    imageUrl: { type: String },
     buttons: { type: [ButtonSchema], default: [] },
     enableCommentAutomation: { type: Boolean, default: false },
     commentMessage: { type: String, default: "" },
