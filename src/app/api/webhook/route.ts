@@ -399,32 +399,65 @@ export async function sendDM(
     // If no follow check needed or user is following
     if (!body) {
       if (
-        automation.messageType === "ButtonText" &&
+        (automation.messageType === "ButtonText" ||
+          automation.messageType === "ButtonImage") &&
         automation.buttons &&
         automation.buttons.length > 0
       ) {
-        body = {
-          recipient,
-          message: {
-            attachment: {
-              type: "template",
-              payload: {
-                template_type: "button",
-                text: messageWithBranding,
-                buttons: automation.buttons.map((button) => ({
-                  type: "web_url",
-                  url:
-                    `${
-                      process.env.NEXT_PUBLIC_APP_URL ||
-                      "https://www.groimon.vercel.app"
-                    }/redirect?url=${encodeURIComponent(button.url)}` ||
-                    button.url,
-                  title: button.buttonText,
-                })),
+        if (automation.messageType === "ButtonImage" && automation.imageUrl) {
+          // Use generic template for ButtonImage type
+          body = {
+            recipient,
+            message: {
+              attachment: {
+                type: "template",
+                payload: {
+                  template_type: "generic",
+                  elements: [
+                    {
+                      title: messageWithBranding,
+                      image_url: automation.imageUrl,
+                      buttons: automation.buttons.map((button) => ({
+                        type: "web_url",
+                        url:
+                          `${
+                            process.env.NEXT_PUBLIC_APP_URL ||
+                            "https://www.groimon.vercel.app"
+                          }/redirect?url=${encodeURIComponent(button.url)}` ||
+                          button.url,
+                        title: button.buttonText,
+                      })),
+                    },
+                  ],
+                },
               },
             },
-          },
-        };
+          };
+        } else {
+          // Use button template for ButtonText type
+          body = {
+            recipient,
+            message: {
+              attachment: {
+                type: "template",
+                payload: {
+                  template_type: "button",
+                  text: messageWithBranding,
+                  buttons: automation.buttons.map((button) => ({
+                    type: "web_url",
+                    url:
+                      `${
+                        process.env.NEXT_PUBLIC_APP_URL ||
+                        "https://www.groimon.vercel.app"
+                      }/redirect?url=${encodeURIComponent(button.url)}` ||
+                      button.url,
+                    title: button.buttonText,
+                  })),
+                },
+              },
+            },
+          };
+        }
       } else {
         body = {
           recipient,

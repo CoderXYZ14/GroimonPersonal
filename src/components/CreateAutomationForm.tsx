@@ -42,7 +42,11 @@ const formSchema = z.object({
     .enum(["message", "ButtonText", "ButtonImage"])
     .default("message"),
   message: z.string().min(1, "Message template is required"),
-  imageUrl: z.string().url("Must be a valid image URL").optional(),
+  imageUrl: z.union([
+    z.string().url("Must be a valid image URL").optional(),
+    z.literal("").optional(),
+    z.undefined(),
+  ]),
   buttons: z.array(buttonSchema).optional(),
   enableCommentAutomation: z.boolean(),
   commentMessage: z.string().min(1, "Comment message is required"),
@@ -106,11 +110,12 @@ export function CreateAutomationForm() {
       keywords: "",
       messageType: "message",
       message: "",
-      imageUrl: "",
+      imageUrl: "", // Explicitly initialize with empty string
       enableCommentAutomation: false,
       commentMessage: "",
       enableBacktrack: false,
       isFollowed: false,
+      removeBranding: false,
     },
   });
 
@@ -118,15 +123,18 @@ export function CreateAutomationForm() {
 
   useEffect(() => {
     const messageType = form.watch("messageType");
-    if (
-      (messageType === "ButtonText" || messageType === "ButtonImage") &&
-      buttons.length === 0
-    ) {
-      setButtons([{ title: "", url: "", buttonText: "" }]);
-    } else if (messageType === "message") {
-      setButtons([]);
+    const imageUrl = form.watch("imageUrl");
+
+    console.log("Message Type Changed:", messageType);
+    console.log("Current imageUrl value:", imageUrl);
+
+    if (messageType === "ButtonImage") {
+      // Make sure the imageUrl field is registered properly
+      if (!form.getValues("imageUrl")) {
+        form.setValue("imageUrl", "");
+      }
     }
-  }, [form]);
+  }, [form, form.watch("messageType")]);
 
   useEffect(() => {
     const fetchMedia = async () => {
@@ -182,6 +190,10 @@ export function CreateAutomationForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setIsLoading(true);
+
+      console.log("Form values at submission:", values);
+      console.log("Image URL at submission:", values.imageUrl);
+
       const postIds =
         values.applyOption === "all"
           ? media.map((post) => post.id)
@@ -198,13 +210,20 @@ export function CreateAutomationForm() {
         return;
       }
 
+      // Ensure imageUrl is properly handled
+      const finalImageUrl =
+        values.messageType === "ButtonImage" && values.imageUrl
+          ? values.imageUrl
+          : undefined;
+
+      console.log("Final imageUrl being sent:", finalImageUrl);
+
       const response = await axios.post("/api/automations", {
         ...values,
         postIds,
         keywords: values.keywords.split(",").map((k) => k.trim()),
         user: userId,
-        imageUrl:
-          values.messageType === "ButtonImage" ? values.imageUrl : undefined,
+        imageUrl: finalImageUrl,
         buttons:
           values.messageType === "ButtonText" ||
           values.messageType === "ButtonImage"
@@ -562,16 +581,27 @@ export function CreateAutomationForm() {
                     name="imageUrl"
                     render={({ field }) => (
                       <FormItem>
+                        <Label className="block text-sm font-medium mb-1">
+                          Main Image URL
+                        </Label>
                         <FormControl>
-                          <div className="space-y-2">
-                            <Label>Main Image URL</Label>
-                            <Input
-                              placeholder="https://example.com/main-image.jpg"
-                              className="w-full"
-                              {...field}
-                            />
-                          </div>
+                          <Input
+                            placeholder="https://example.com/main-image.jpg"
+                            className="w-full"
+                            {...field}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              console.log(
+                                "imageUrl changed to:",
+                                e.target.value
+                              );
+                            }}
+                          />
                         </FormControl>
+                        <FormDescription className="text-xs text-gray-500 mt-1">
+                          Enter a valid image URL (must start with http:// or
+                          https://)
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}

@@ -10,6 +10,8 @@ export async function POST(request: Request) {
     await dbConnect();
     const body = await request.json();
 
+    console.log("Received body:", body);
+
     const {
       name,
       postIds,
@@ -25,6 +27,10 @@ export async function POST(request: Request) {
       removeBranding,
     } = body;
 
+    console.log("Message Type:", messageType);
+    console.log("Image URL received:", imageUrl);
+
+    // Validation checks
     if (
       !name ||
       !keywords ||
@@ -34,29 +40,45 @@ export async function POST(request: Request) {
       !enableCommentAutomation ||
       !commentMessage ||
       (messageType === "ButtonImage" && !imageUrl) ||
-      ((messageType === "ButtonText" || messageType === "ButtonImage") && (!buttons || buttons.length === 0))
+      ((messageType === "ButtonText" || messageType === "ButtonImage") &&
+        (!buttons || buttons.length === 0))
     ) {
+      console.log("Validation failed. Missing required fields.");
       return NextResponse.json(
         { message: "Missing required fields" },
         { status: 400 }
       );
     }
 
+    // Create automation object explicitly setting all fields
     const automation = new AutomationModel({
       name,
-      postIds,
+      postIds: postIds || [],
       keywords,
       messageType,
       message,
-      buttons,
+      imageUrl: messageType === "ButtonImage" ? imageUrl : undefined,
+      buttons:
+        messageType === "ButtonText" || messageType === "ButtonImage"
+          ? buttons
+          : undefined,
       user,
       enableCommentAutomation,
       commentMessage,
-      isFollowed,
-      removeBranding,
+      isFollowed: isFollowed || false,
+      removeBranding: removeBranding || false,
     });
 
+    console.log(
+      "Automation to save:",
+      JSON.stringify(automation.toObject(), null, 2)
+    );
+
     await automation.save();
+
+    // Verify saved data
+    const savedAutomation = await AutomationModel.findById(automation._id);
+    console.log("Saved automation:", JSON.stringify(savedAutomation, null, 2));
 
     const updatedUser = await UserModel.findByIdAndUpdate(
       user,
@@ -65,6 +87,7 @@ export async function POST(request: Request) {
     );
 
     if (!updatedUser) {
+      console.log("User not found:", user);
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
