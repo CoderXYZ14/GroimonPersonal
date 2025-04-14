@@ -121,10 +121,10 @@ export function CreateAutomationForm() {
 
   const applyOption = form.watch("applyOption");
 
-  useEffect(() => {
-    const messageType = form.watch("messageType");
-    const imageUrl = form.watch("imageUrl");
+  const messageType = form.watch("messageType");
 
+  useEffect(() => {
+    const imageUrl = form.watch("imageUrl");
     console.log("Message Type Changed:", messageType);
     console.log("Current imageUrl value:", imageUrl);
 
@@ -134,7 +134,7 @@ export function CreateAutomationForm() {
         form.setValue("imageUrl", "");
       }
     }
-  }, [form, form.watch("messageType")]);
+  }, [form, messageType]);
 
   useEffect(() => {
     const fetchMedia = async () => {

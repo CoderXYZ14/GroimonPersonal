@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import StoryModel from "@/models/Story";
 import UserModel from "@/models/User";
 import dbConnect from "@/lib/dbConnect";

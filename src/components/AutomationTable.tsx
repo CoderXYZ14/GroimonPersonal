@@ -81,7 +81,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
     };
 
     fetchAutomations();
-  }, [user.instagramId, user.instagramUsername, user._id]);
+  }, [user.instagramId, user.instagramUsername, user._id, type]);
 
   const filteredAutomations = automations.filter(
     (automation) =>
@@ -112,7 +112,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
   const handleEdit = (id: string) => {
     if (type === "post") router.push(`/dashboard/automations/${id}/edit`);
     else if (type === "story")
-      router.push(`/dashboard/automations/stories/${id}/edit`);
+      router.push(`/dashboard/automations/story/${id}/edit`);
   };
   if (!user.isAuthenticated) {
     return (
@@ -393,11 +393,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
                         <DropdownMenuContent align="end" className="w-[120px]">
                           <DropdownMenuItem
                             className="text-xs"
-                            onClick={() =>
-                              router.push(
-                                `/dashboard/automations/${automation._id}/edit`
-                              )
-                            }
+                            onClick={() => handleEdit(automation._id)}
                           >
                             Edit
                           </DropdownMenuItem>

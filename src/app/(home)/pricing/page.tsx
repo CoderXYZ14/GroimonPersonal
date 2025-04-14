@@ -242,8 +242,8 @@ export default function Pricing() {
                 Do I need to enter my credit card details?
               </h3>
               <p className="text-muted-foreground">
-                No, you don't need to provide any payment information to use our
-                free plan. Just sign up and start automating.
+                No, you don&apos;t need to provide any payment information to
+                use our free plan. Just sign up and start automating.
               </p>
             </div>
 
@@ -263,8 +263,8 @@ export default function Pricing() {
               </h3>
               <p className="text-muted-foreground">
                 Absolutely. We use secure authentication methods and never store
-                your Instagram password. All actions follow Instagram's terms of
-                service.
+                your Instagram password. All actions follow Instagram&apos;s
+                terms of service.
               </p>
             </div>
           </div>

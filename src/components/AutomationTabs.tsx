@@ -1,10 +1,7 @@
 import { MessageCircle, Image as ImageIcon, Play } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  AutomationTable,
-  type AutomationTableProps,
-} from "@/components/AutomationTable";
-import React, { useState } from "react";
+import { AutomationTable } from "@/components/AutomationTable";
+import React from "react";
 
 const AUTOMATION_TABS = [
   {
@@ -33,9 +30,8 @@ const AUTOMATION_TABS = [
 ];
 
 export function AutomationTabs() {
-  const [selectedTab, setSelectedTab] = useState("post");
   return (
-    <Tabs defaultValue="post" className="w-full" onValueChange={setSelectedTab}>
+    <Tabs defaultValue="post" className="w-full">
       <div className="sticky top-0 z-10 px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
         <TabsList className="inline-flex p-1 rounded-lg bg-gray-100/50 dark:bg-gray-800/50">
           {AUTOMATION_TABS.map((tab) => (

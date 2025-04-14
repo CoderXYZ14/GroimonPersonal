@@ -190,8 +190,7 @@ async function processStory(messaging: StoryMessage) {
           comment,
           story.message,
           story.name,
-          story._id.toString(),
-          false
+          story._id.toString()
         );
 
         console.log(
@@ -407,8 +406,7 @@ export async function sendStoryDM(
   comment: InstagramComment,
   message: string,
   storyName: string,
-  storyId: string,
-  isBacktrack: boolean = false
+  storyId: string
 ) {
   try {
     console.log(
@@ -503,7 +501,7 @@ export async function sendStoryDM(
       "Content-Type": "application/json",
     };
 
-    let messageBody: any;
+    let messageBody;
 
     // Check if the story has buttons
     if (story.buttons && story.buttons.length > 0) {

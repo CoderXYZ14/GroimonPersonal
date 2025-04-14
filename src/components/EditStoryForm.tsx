@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAppSelector } from "@/redux/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -19,13 +19,34 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import Link from "next/link";
-import Image from "next/image";
-import { toast } from "sonner";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 import axios from "axios";
+import Image from "next/image";
+import Link from "next/link";
+
+interface InstagramStoryItem {
+  id: string;
+  media_type: string;
+  media_url: string;
+  thumbnail_url?: string;
+  timestamp: string;
+}
+
+interface StoryItem {
+  id: string;
+  mediaUrl: string;
+  mediaType: string;
+  thumbnailUrl?: string;
+  timestamp: string;
+  title?: string;
+}
+
+interface InstagramStoriesResponse {
+  data: InstagramStoryItem[];
+}
 
 const buttonSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -52,40 +73,31 @@ const formSchema = z.object({
   removeBranding: z.boolean().default(false),
 });
 
-interface InstagramStoryItem {
-  id: string;
-  media_type: string;
-  media_url: string;
-  thumbnail_url?: string;
-  timestamp: string;
+interface EditStoryFormProps {
+  story: {
+    id: string;
+    name: string;
+    applyOption: "all" | "selected";
+    storyId?: string;
+    keywords: string;
+    messageType: "message" | "ButtonText" | "ButtonImage";
+    message: string;
+    imageUrl?: string;
+    buttons?: Array<{ title: string; url: string; buttonText: string }>;
+    isFollowed: boolean;
+    removeBranding: boolean;
+  };
 }
 
-interface StoryItem {
-  id: string;
-  mediaUrl: string;
-  mediaType: string;
-  thumbnailUrl?: string;
-  timestamp: string;
-}
-
-interface InstagramStoriesResponse {
-  data: InstagramStoryItem[];
-}
-
-export function CreateStoryAutomationForm() {
+export function EditStoryForm({ story }: EditStoryFormProps) {
   const router = useRouter();
   const user = useAppSelector((state) => state.user);
-  const [selectStoryOpen, setSelectStoryOpen] = useState(true);
   const [dmTypeOpen, setDmTypeOpen] = useState(true);
   const [stories, setStories] = useState<StoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [buttons, setButtons] = useState<
     Array<{ title: string; url: string; buttonText: string }>
-  >([]);
-
-  const toggleSelectStory = () => {
-    setSelectStoryOpen(!selectStoryOpen);
-  };
+  >(story.buttons || []);
 
   const toggleDmType = () => {
     setDmTypeOpen(!dmTypeOpen);
@@ -94,160 +106,102 @@ export function CreateStoryAutomationForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
-      applyOption: "selected",
-      storyId: "",
-      keywords: "",
-      messageType: "message",
-      message: "",
-      imageUrl: "",
-      isFollowed: false,
-      removeBranding: false,
+      name: story.name,
+      applyOption: story.applyOption,
+      storyId: story.storyId,
+      keywords: story.keywords,
+      messageType: story.messageType,
+      message: story.message,
+      imageUrl: story.imageUrl,
+      isFollowed: story.isFollowed,
+      removeBranding: story.removeBranding,
     },
   });
-
-  const applyOption = form.watch("applyOption");
 
   const messageType = form.watch("messageType");
 
   useEffect(() => {
-    const imageUrl = form.watch("imageUrl");
-    console.log("Message Type Changed:", messageType);
-    console.log("Current imageUrl value:", imageUrl);
-
-    if (messageType === "ButtonImage") {
-      // Make sure the imageUrl field is registered properly
-      if (!form.getValues("imageUrl")) {
-        form.setValue("imageUrl", "");
-      }
-    }
-  }, [form, messageType]);
-
-  useEffect(() => {
-    const fetchStories = async () => {
-      setIsLoading(true);
-      const instagramId = user.instagramId;
-      const instagramAccessToken = user.instagramAccessToken;
-
-      if (!instagramId || !instagramAccessToken) {
-        console.error(
-          "Instagram user ID or access token not found in localStorage"
-        );
-        toast.error("Instagram user ID or access token not found");
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        // The Instagram Graph API endpoint for stories
-        const response = await fetch(
-          `https://graph.instagram.com/v22.0/${instagramId}/stories?fields=id,media_type,media_url,thumbnail_url,timestamp&access_token=${instagramAccessToken}`
-        );
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch stories: ${response.statusText}`);
-        }
-
-        const data: InstagramStoriesResponse = await response.json();
-        setStories(
-          data.data.map((item: InstagramStoryItem) => ({
-            id: item.id,
-            mediaUrl: item.media_url,
-            mediaType: item.media_type,
-            thumbnailUrl: item.thumbnail_url,
-            timestamp: item.timestamp,
-          }))
-        );
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          console.error("Error fetching stories:", error.message);
-          toast.error(`Failed to fetch stories: ${error.message}`);
-        } else {
-          console.error("Unknown error fetching stories:", error);
-          toast.error("Failed to fetch stories");
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchStories();
-  }, [user.instagramId, user.instagramAccessToken]);
-
-  useEffect(() => {
-    const messageType = form.watch("messageType");
     if (
       (messageType === "ButtonText" || messageType === "ButtonImage") &&
       buttons.length === 0
     ) {
       setButtons([{ title: "", url: "", buttonText: "" }]);
+    } else if (messageType === "message") {
+      setButtons([]);
     }
-  }, [buttons.length, form]);
+  }, [messageType, buttons.length]);
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  const fetchStories = useCallback(async () => {
+    setIsLoading(true);
+    const instagramId = user.instagramId;
+    const instagramAccessToken = user.instagramAccessToken;
+
+    if (!instagramId || !instagramAccessToken) {
+      console.error("Instagram user ID or access token not found");
+      toast.error("Instagram user ID or access token not found");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://graph.instagram.com/v22.0/${instagramId}/stories?fields=id,media_type,media_url,thumbnail_url,timestamp&access_token=${instagramAccessToken}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch stories: ${response.statusText}`);
+      }
+
+      const data: InstagramStoriesResponse = await response.json();
+      const allStories = data.data.map((item: InstagramStoryItem) => ({
+        id: item.id,
+        title: `Story ${item.id}`,
+        mediaUrl: item.media_url,
+        mediaType: item.media_type,
+        thumbnailUrl: item.thumbnail_url,
+        timestamp: item.timestamp,
+      }));
+
+      setStories(allStories);
+    } catch (error) {
+      console.error("Error fetching stories:", error);
+      toast.error("Failed to fetch stories");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user.instagramId, user.instagramAccessToken]);
+
+  useEffect(() => {
+    fetchStories();
+  }, [fetchStories]);
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsLoading(true);
-
-      console.log("Form values at submission:", values);
-      console.log("Image URL at submission:", values.imageUrl);
-
-      const storyIds =
-        values.applyOption === "all"
-          ? stories.map((story) => story.id)
-          : values.storyId
-          ? [values.storyId]
-          : [];
-
-      if (values.applyOption === "selected" && !values.storyId) {
-        throw new Error("Please select a story");
-      }
-
-      const userId = user._id;
-      if (!userId) {
-        toast.error("User not found");
-        return;
-      }
-
-      // Ensure imageUrl is properly handled
-      const finalImageUrl =
-        values.messageType === "ButtonImage" && values.imageUrl
-          ? values.imageUrl
-          : undefined;
-
-      console.log("Final imageUrl being sent:", finalImageUrl);
-
-      await axios.post("/api/automations/stories", {
+      const formData = {
         ...values,
-        postIds: storyIds,
-        keywords: values.keywords.split(",").map((k) => k.trim()),
-        user: userId,
-        imageUrl: finalImageUrl,
         buttons:
           values.messageType === "ButtonText" ||
           values.messageType === "ButtonImage"
             ? buttons
             : undefined,
-      });
+      };
 
-      toast.success("Story automation created successfully!");
+      await axios.put(`/api/automations/stories/${story.id}`, formData);
+
+      toast.success("Story automation updated successfully");
       router.push("/dashboard/automation");
+      router.refresh();
     } catch (error) {
-      console.error("Error creating story automation:", error);
-      if (axios.isAxiosError(error)) {
-        toast.error(
-          error.response?.data?.message || "Failed to create story automation"
-        );
-      } else {
-        toast.error("Failed to create story automation");
-      }
+      console.error("Error updating story automation:", error);
+      toast.error("Failed to update story automation");
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   const keywordsCount = form.watch("keywords")
-    ? form
-        .watch("keywords")
+    ? String(form.watch("keywords"))
         .split(",")
         .filter((k) => k.trim()).length
     : 0;
@@ -255,7 +209,7 @@ export function CreateStoryAutomationForm() {
   return (
     <div className="w-full">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)}>
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
             <FormField
               control={form.control}
@@ -274,7 +228,7 @@ export function CreateStoryAutomationForm() {
               )}
             />
             <div className="flex gap-2">
-              <Link href="/dashboard/story-automation">
+              <Link href="/dashboard/automation">
                 <Button
                   variant="outline"
                   className="border-gray-200 dark:border-gray-700"
@@ -285,8 +239,16 @@ export function CreateStoryAutomationForm() {
               <Button
                 type="submit"
                 className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white"
+                disabled={isLoading}
               >
-                Publish
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Update"
+                )}
               </Button>
             </div>
           </div>
@@ -294,124 +256,94 @@ export function CreateStoryAutomationForm() {
           {/* Story selection section */}
           <div className="p-6 border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">Stories</h2>
-              {applyOption === "selected" && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="text-gray-600 dark:text-gray-300 flex items-center"
-                  onClick={toggleSelectStory}
-                >
-                  Select story
-                  {selectStoryOpen ? (
-                    <ChevronUp className="w-4 h-4 ml-1" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 ml-1" />
-                  )}
-                </Button>
-              )}
+              <h2 className="text-lg font-medium">Selected Posts</h2>
             </div>
 
-            <FormField
-              control={form.control}
-              name="applyOption"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="grid grid-cols-2 gap-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="all" id="all" />
-                        <Label htmlFor="all" className="text-sm">
-                          Apply on all stories
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="selected" id="selected" />
-                        <Label htmlFor="selected" className="text-sm">
-                          Apply on selected story
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            {applyOption === "selected" && selectStoryOpen && (
-              <div className="mt-4">
-                {isLoading ? (
-                  <div className="flex justify-center py-6">
-                    <div className="w-8 h-8 border-4 border-t-purple-500 border-b-purple-300 border-l-purple-300 border-r-purple-300 rounded-full animate-spin"></div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {stories.length > 0 ? (
-                      stories.map((item) => (
-                        <Card
-                          key={item.id}
-                          className="overflow-hidden w-full border border-gray-200 dark:border-gray-700 transition-transform hover:scale-[1.02]"
-                        >
-                          <div className="aspect-square bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                            {item.mediaType === "IMAGE" && (
-                              <Image
-                                src={item.mediaUrl}
-                                alt="Story"
-                                width={150}
-                                height={150}
-                                className="w-full h-full object-cover"
-                              />
-                            )}
-                            {item.mediaType === "VIDEO" && (
-                              <div className="relative w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                                <span className="absolute text-gray-500 dark:text-gray-400 text-xs">
-                                  Video Preview
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="p-2 flex items-center justify-between">
-                            <FormField
-                              control={form.control}
-                              name="storyId"
-                              render={({ field }) => (
-                                <FormItem className="flex items-center space-x-2 m-0">
-                                  <FormControl>
-                                    <RadioGroup
-                                      onValueChange={field.onChange}
-                                      defaultValue={field.value}
-                                    >
-                                      <div className="flex items-center space-x-2">
-                                        <RadioGroupItem
-                                          value={item.id}
-                                          id={item.id}
-                                        />
-                                        <Label
-                                          htmlFor={item.id}
-                                          className="text-xs"
-                                        >
-                                          Select
-                                        </Label>
-                                      </div>
-                                    </RadioGroup>
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                        </Card>
-                      ))
-                    ) : (
-                      <div className="text-center w-full py-4 text-muted-foreground col-span-4">
-                        No active stories found. Please create a story on
-                        Instagram first.
+            {isLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+              </div>
+            ) : stories.length === 1 ? (
+              <div className="flex justify-center">
+                <Card className="overflow-hidden max-w-md w-full">
+                  <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative">
+                    {stories[0].mediaType === "IMAGE" && (
+                      <Image
+                        src={stories[0].mediaUrl}
+                        alt={stories[0].title}
+                        fill
+                        className="w-20 h-20"
+                      />
+                    )}
+                    {stories[0].mediaType === "VIDEO" && (
+                      <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                        <span className="text-gray-500 dark:text-gray-400">
+                          Video Preview
+                        </span>
                       </div>
                     )}
+                    {stories[0].mediaType === "CAROUSEL_ALBUM" && (
+                      <Image
+                        src={stories[0].thumbnailUrl || stories[0].mediaUrl}
+                        alt={stories[0].title}
+                        fill
+                        className="object-cover"
+                      />
+                    )}
                   </div>
-                )}
+                  <div className="p-4">
+                    <h3 className="font-medium mb-1 truncate">
+                      {stories[0].title}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {new Date(stories[0].timestamp).toLocaleDateString()}
+                    </p>
+                  </div>
+                </Card>
+              </div>
+            ) : stories.length > 1 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {stories.map((item) => (
+                  <Card key={item.id} className="overflow-hidden">
+                    <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative">
+                      {item.mediaType === "IMAGE" && (
+                        <Image
+                          src={item.mediaUrl}
+                          alt={item.title}
+                          fill
+                          className="object-cover"
+                        />
+                      )}
+                      {item.mediaType === "VIDEO" && (
+                        <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                          <span className="text-gray-500 dark:text-gray-400">
+                            Video Preview
+                          </span>
+                        </div>
+                      )}
+                      {item.mediaType === "CAROUSEL_ALBUM" && (
+                        <Image
+                          src={item.thumbnailUrl || item.mediaUrl}
+                          alt={item.title}
+                          fill
+                          className="object-cover"
+                        />
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <p className="text-sm font-medium truncate">
+                        {item.title}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(item.timestamp).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                No posts found for this automation
               </div>
             )}
           </div>
@@ -503,6 +435,7 @@ export function CreateStoryAutomationForm() {
                           </div>
                         </RadioGroup>
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -514,7 +447,7 @@ export function CreateStoryAutomationForm() {
                     <FormItem>
                       <FormControl>
                         <Textarea
-                          placeholder="Enter the message to send as an auto-reply"
+                          placeholder="Enter your message template"
                           className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[120px]"
                           {...field}
                         />
@@ -524,41 +457,31 @@ export function CreateStoryAutomationForm() {
                   )}
                 />
 
-                {form.watch("messageType") === "ButtonImage" && (
+                {messageType === "ButtonImage" && (
                   <FormField
                     control={form.control}
                     name="imageUrl"
                     render={({ field }) => (
                       <FormItem>
-                        <Label className="block text-sm font-medium mb-1">
-                          Main Image URL
-                        </Label>
                         <FormControl>
-                          <Input
-                            placeholder="https://example.com/main-image.jpg"
-                            className="w-full"
-                            {...field}
-                            onChange={(e) => {
-                              field.onChange(e);
-                              console.log(
-                                "imageUrl changed to:",
-                                e.target.value
-                              );
-                            }}
-                          />
+                          <div className="space-y-2">
+                            <Label>Main Image URL</Label>
+                            <Input
+                              placeholder="https://example.com/main-image.jpg"
+                              className="w-full"
+                              {...field}
+                              value={field.value || ""}
+                            />
+                          </div>
                         </FormControl>
-                        <FormDescription className="text-xs text-gray-500 mt-1">
-                          Enter a valid image URL (must start with http:// or
-                          https://)
-                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 )}
 
-                {(form.watch("messageType") === "ButtonText" ||
-                  form.watch("messageType") === "ButtonImage") && (
+                {(messageType === "ButtonText" ||
+                  messageType === "ButtonImage") && (
                   <div className="space-y-4">
                     {buttons.map((button, index) => (
                       <Card key={index} className="p-4">
