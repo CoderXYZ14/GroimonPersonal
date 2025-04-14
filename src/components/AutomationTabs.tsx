@@ -1,7 +1,10 @@
 import { MessageCircle, Image as ImageIcon, Play } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { AutomationTable } from "@/components/AutomationTable";
-import React from "react";
+import {
+  AutomationTable,
+  type AutomationTableProps,
+} from "@/components/AutomationTable";
+import React, { useState } from "react";
 
 const AUTOMATION_TABS = [
   {
@@ -16,9 +19,7 @@ const AUTOMATION_TABS = [
     label: "Story",
     description: "Automate responses to Instagram stories",
     icon: <Play className="h-3.5 w-3.5" />,
-    comingSoon: true,
-    gradient: "from-purple-600/20 to-pink-600/20",
-    iconColor: "text-purple-600 dark:text-purple-400",
+    isActive: true,
   },
   {
     id: "dm",
@@ -32,8 +33,9 @@ const AUTOMATION_TABS = [
 ];
 
 export function AutomationTabs() {
+  const [selectedTab, setSelectedTab] = useState("post");
   return (
-    <Tabs defaultValue="post" className="w-full">
+    <Tabs defaultValue="post" className="w-full" onValueChange={setSelectedTab}>
       <div className="sticky top-0 z-10 px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
         <TabsList className="inline-flex p-1 rounded-lg bg-gray-100/50 dark:bg-gray-800/50">
           {AUTOMATION_TABS.map((tab) => (
@@ -59,47 +61,42 @@ export function AutomationTabs() {
           ))}
         </TabsList>
       </div>
-
-      <TabsContent value="post" className="mt-0">
-        <div className="p-4">
-          <AutomationTable />
-        </div>
-      </TabsContent>
-
-      {AUTOMATION_TABS.filter((tab) => tab.comingSoon).map((tab) => (
-        <TabsContent key={tab.id} value={tab.id} className="mt-0">
-          <div className="flex items-center justify-center p-4">
-            <div className="text-center max-w-sm">
-              <div className="relative inline-block">
-                <div
-                  className={`absolute -inset-1 rounded-full bg-gradient-to-r ${tab.gradient} blur opacity-75`}
-                />
-                <div className="relative bg-white dark:bg-gray-800 rounded-full p-3 backdrop-blur-xl">
-                  {React.cloneElement(tab.icon, {
-                    className: `h-8 w-8 ${tab.iconColor}`,
-                  })}
-                </div>
-              </div>
-              <div className="mt-4 space-y-1.5">
-                <h3 className="text-base font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  {tab.label} Automation
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {tab.description}
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Coming soon! We&apos;re working on this feature.
-                </p>
-                <div className="inline-flex items-center gap-1.5 text-xs text-purple-600 dark:text-purple-400">
-                  <span>✨</span>
-                  <span>In Development</span>
-                  <span>✨</span>
-                </div>
-              </div>
-            </div>
+      {["post", "story"].map((tabId) => (
+        <TabsContent key={tabId} value={tabId} className="mt-0">
+          <div className="p-4">
+            <AutomationTable type={tabId} />
           </div>
         </TabsContent>
       ))}
+
+      <TabsContent value="dm" className="mt-0">
+        <div className="flex items-center justify-center p-4">
+          <div className="text-center max-w-sm">
+            <div className="relative inline-block">
+              <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-600/20 to-purple-600/20 blur opacity-75" />
+              <div className="relative bg-white dark:bg-gray-800 rounded-full p-3 backdrop-blur-xl">
+                <MessageCircle className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+            <div className="mt-4 space-y-1.5">
+              <h3 className="text-base font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                DM Automation
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Automate Instagram direct message responses
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Coming soon! We&apos;re working on this feature.
+              </p>
+              <div className="inline-flex items-center gap-1.5 text-xs text-purple-600 dark:text-purple-400">
+                <span>✨</span>
+                <span>In Development</span>
+                <span>✨</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </TabsContent>
     </Tabs>
   );
 }
