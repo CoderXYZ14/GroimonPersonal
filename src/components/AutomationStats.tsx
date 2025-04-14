@@ -15,13 +15,20 @@ export function AutomationStats() {
     const fetchStats = async () => {
       if (user._id) {
         try {
-          const [hitsResponse, automationsResponse] = await Promise.all([
+          const [hitsResponse, automationsResponsePost] = await Promise.all([
             axios.get(`/api/automations?userId=${user._id}&getTotalHits=true`),
             axios.get(`/api/automations?userId=${user._id}`),
           ]);
 
+          const automationsResponseStory = await axios.get(
+            `/api/automations/stories?userId=${user._id}`
+          );
+
           setTotalHits(hitsResponse.data.totalHits);
-          setAutomationsCount(automationsResponse.data.length);
+          setAutomationsCount(
+            automationsResponsePost.data.length +
+              automationsResponseStory.data.length
+          );
         } catch (error) {
           console.error("Error fetching stats:", error);
         }

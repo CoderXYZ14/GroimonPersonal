@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAppSelector } from "@/redux/hooks";
-import { usePostAutomation } from "@/hooks/usePostAutomation";
+
 import axios from "axios";
 
 interface Automation {
@@ -43,11 +43,10 @@ export function AutomationTable({ type }: AutomationTableProps) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const handlePostAutomation = usePostAutomation();
-
   const handleNewAutomation = () => {
     if (type === "post") router.push(`/dashboard/automation/create`);
-    if (type === "story") router.push(`/dashboard/automation/story/create`);
+    else if (type === "story")
+      router.push(`/dashboard/automation/story/create`);
   };
 
   const user = useAppSelector((state) => state.user);
@@ -98,16 +97,23 @@ export function AutomationTable({ type }: AutomationTableProps) {
     }
 
     try {
-      await axios.delete(`/api/automations`, {
+      console.log(type);
+      const endpoint =
+        type === "post" ? "/api/automations" : "/api/automations/stories";
+      await axios.delete(endpoint, {
         params: { id },
       });
-
       setAutomations((prev) => prev.filter((auto) => auto._id !== id));
     } catch (error) {
       console.error("Error deleting automation:", error);
     }
   };
 
+  const handleEdit = (id: string) => {
+    if (type === "post") router.push(`/dashboard/automations/${id}/edit`);
+    else if (type === "story")
+      router.push(`/dashboard/automations/stories/${id}/edit`);
+  };
   if (!user.isAuthenticated) {
     return (
       <div className="flex flex-col items-center justify-center h-40 space-y-4">
@@ -157,7 +163,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
 
         <Button
           size="sm"
-          onClick={handlePostAutomation}
+          onClick={handleNewAutomation}
           className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white"
         >
           <Plus className="h-3.5 w-3.5 mr-1.5" /> Create Automation
@@ -181,7 +187,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
 
         <Button
           size="sm"
-          onClick={handlePostAutomation}
+          onClick={handleNewAutomation}
           className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white h-8"
         >
           <Plus className="h-3.5 w-3.5 mr-1.5" /> New
@@ -214,11 +220,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
                   <DropdownMenuContent align="end" className="w-[120px]">
                     <DropdownMenuItem
                       className="text-xs"
-                      onClick={() =>
-                        router.push(
-                          `/dashboard/automations/${automation._id}/edit`
-                        )
-                      }
+                      onClick={() => handleEdit(automation._id)}
                     >
                       Edit
                     </DropdownMenuItem>

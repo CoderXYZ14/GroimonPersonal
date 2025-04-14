@@ -4,6 +4,7 @@ import AutomationModel from "@/models/Automation";
 import UserModel from "@/models/User";
 import dbConnect from "@/lib/dbConnect";
 import mongoose from "mongoose";
+import StoryModel from "@/models/Story";
 
 export async function POST(request: Request) {
   try {
@@ -112,14 +113,25 @@ export async function GET(request: Request) {
 
     // Handle total hits request
     if (getTotalHits === "true" && userId) {
-      const totalHits = await AutomationModel.aggregate([
+      const totalHitsPost = await AutomationModel.aggregate([
         { $match: { user: new mongoose.Types.ObjectId(userId) } },
         { $group: { _id: null, total: { $sum: "$hitCount" } } },
       ]);
 
+      const totalHitsStory = await StoryModel.aggregate([
+        { $match: { user: new mongoose.Types.ObjectId(userId) } },
+        { $group: { _id: null, total: { $sum: "$hitCount" } } },
+      ]);
+
+      console.log("Total hits post:", totalHitsPost);
+      console.log("Total hits story:", totalHitsStory);
+
+      const totalHits =
+        (totalHitsPost.length > 0 ? totalHitsPost[0].total : 0) +
+        (totalHitsStory.length > 0 ? totalHitsStory[0].total : 0);
       return NextResponse.json(
         {
-          totalHits: totalHits.length > 0 ? totalHits[0].total : 0,
+          totalHits,
         },
         { status: 200 }
       );

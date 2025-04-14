@@ -269,7 +269,6 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ message: "Story not found" }, { status: 404 });
     }
 
-    // Remove story reference from user
     await UserModel.findByIdAndUpdate(story.user, {
       $pull: { stories: id },
     });
