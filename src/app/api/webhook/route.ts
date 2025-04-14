@@ -3,6 +3,7 @@ import dbConnect from "@/lib/dbConnect";
 import AutomationModel, {
   IAutomation as AutomationType,
 } from "@/models/Automation";
+import StoryModel from "@/models/Story";
 
 import axios from "axios";
 import { IUser } from "@/models/User";
@@ -63,7 +64,6 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
-    // Check if this is a postback request
     if (
       payload.object === "instagram" &&
       payload.entry?.[0]?.messaging?.[0]?.postback
@@ -71,16 +71,23 @@ export async function POST(request: NextRequest) {
       return handlePostback(payload);
     }
 
+    // Handle story replies
     if (
       payload.object === "instagram" &&
       payload.entry &&
       payload.entry.length > 0
     ) {
       for (const entry of payload.entry) {
-        if (entry.changes && entry.changes.length > 0) {
-          for (const change of entry.changes) {
-            if (change.field === "comments" && change.value) {
-              await processComment(change.value);
+        for (const messaging of entry.messaging || []) {
+          // Check if this is a story reply
+          if (messaging.message?.reply_to?.story) {
+            await processStory(messaging);
+          }
+          if (entry.changes && entry.changes.length > 0) {
+            for (const change of entry.changes) {
+              if (change.field === "comments" && change.value) {
+                await processComment(change.value);
+              }
             }
           }
         }
@@ -94,6 +101,112 @@ export async function POST(request: NextRequest) {
       { message: "Failed to process webhook", error: String(error) },
       { status: 500 }
     );
+  }
+}
+
+interface StoryMessage {
+  sender: {
+    id: string;
+  };
+  message: {
+    text: string;
+    reply_to: {
+      story: {
+        id: string;
+        url?: string;
+      };
+    };
+  };
+}
+
+async function processStory(messaging: StoryMessage) {
+  try {
+    const {
+      sender: { id: senderId },
+      message: {
+        text: commentText,
+        reply_to: {
+          story: { id: storyId },
+        },
+      },
+    } = messaging;
+
+    console.log(`Processing story reply from user ID: ${senderId}`);
+    console.log(`Story ID: ${storyId}`);
+    console.log(`Comment text: "${commentText}"`);
+
+    // Find matching story automation
+    const stories = await StoryModel.find({
+      postIds: storyId,
+    }).populate<{ user: IUser }>("user");
+
+    if (!stories || stories.length === 0) {
+      console.log(
+        `No matching story automation found for story ID: ${storyId}`
+      );
+      return;
+    }
+
+    console.log(`Found ${stories.length} matching story automations`);
+
+    // Check if the comment matches any keywords and process each matching story
+    for (const story of stories) {
+      const keywords = story.keywords.map((k) => k.toLowerCase());
+      const commentLower = commentText.toLowerCase();
+
+      if (!keywords.some((keyword) => commentLower.includes(keyword))) {
+        console.log(
+          `Comment doesn't match keywords for story automation: ${story.name}`
+        );
+        continue; // Skip this story but check others
+      }
+
+      console.log(`Matched keywords for story automation: ${story.name}`);
+
+      // Send DM response
+      if (!story.user.instagramAccessToken) {
+        console.error(
+          `Instagram access token not found for user ${
+            story.user.instagramUsername ?? "unknown"
+          }`
+        );
+        continue; // Skip this story but check others
+      }
+
+      try {
+        // Increment hit count
+        await StoryModel.findByIdAndUpdate(story._id, {
+          $inc: { hitCount: 1 },
+        });
+
+        const comment: InstagramComment = {
+          id: `${storyId}_${senderId}`,
+          from: { id: senderId, username: "unknown" },
+          media: { id: storyId },
+          text: commentText,
+        };
+
+        await sendStoryDM(
+          comment,
+          story.message,
+          story.name,
+          story._id.toString(),
+          false
+        );
+
+        console.log(
+          `Successfully sent DM to user ${senderId} for story automation: ${story.name}`
+        );
+      } catch (error) {
+        console.error(
+          `Error processing story automation ${story.name}:`,
+          error
+        );
+        // Continue with other stories even if one fails
+      }
+    }
+  } catch (error) {
+    console.error("Error processing story:", error);
   }
 }
 
@@ -290,7 +403,156 @@ export async function replyToComment(
   }
 }
 
-export async function sendDM(
+export async function sendStoryDM(
+  comment: InstagramComment,
+  message: string,
+  storyName: string,
+  storyId: string,
+  isBacktrack: boolean = false
+) {
+  try {
+    console.log(
+      `Sending Story DM to user ${comment.from.id} for story ${storyName}`
+    );
+
+    await dbConnect();
+
+    // Get the story to check user's access token and branding settings
+    const story = await StoryModel.findById(storyId).populate<{
+      user: IUser;
+    }>("user");
+
+    if (!story) {
+      console.error(`Story ${storyId} not found`);
+      return;
+    }
+
+    const accessToken = story.user.instagramAccessToken;
+    if (!accessToken) {
+      console.error(
+        `No Instagram access token found for user ${story.user._id}`
+      );
+      return;
+    }
+
+    // Check if user follows the business account
+    const isFollowing = await checkIfUserFollowsBusiness(
+      comment.from.id,
+      accessToken
+    );
+
+    if (!isFollowing && story.isFollowed) {
+      console.log(
+        `User ${comment.from.id} is not following but follow is required. Sending follow request.`
+      );
+
+      const url = `https://graph.instagram.com/v22.0/${story.user.instagramId}/messages`;
+      const headers = {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      };
+
+      // Send follow request message with button
+      const followRequestBody = {
+        recipient: {
+          id: comment.from.id,
+        },
+        message: {
+          attachment: {
+            type: "template",
+            payload: {
+              template_type: "button",
+              text: "Please follow our account to receive our message. Click the button below once you're following.",
+              buttons: [
+                {
+                  type: "postback",
+                  title: "I'm following now",
+                  payload: JSON.stringify({
+                    action: "followConfirmed",
+                    storyId: storyId,
+                    commentId: comment.id,
+                    userId: comment.from.id,
+                    username: comment.from.username,
+                    mediaId: comment.media.id,
+                    originalMessage: message,
+                  }),
+                },
+              ],
+            },
+          },
+        },
+      };
+
+      await axios.post(url, followRequestBody, { headers });
+      console.log(`Follow request sent to user ${comment.from.id}`);
+      return;
+    }
+
+    // User is following or follow not required, send the message
+    // Prepare the message with branding if needed
+    let messageWithBranding = message;
+    if (!story.removeBranding) {
+      messageWithBranding += "\n\nPowered by Groimon";
+    }
+
+    // Prepare the message body based on message type and buttons
+    const url = `https://graph.instagram.com/v22.0/${story.user.instagramId}/messages`;
+
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    };
+
+    let messageBody: any;
+
+    // Check if the story has buttons
+    if (story.buttons && story.buttons.length > 0) {
+      messageBody = {
+        recipient: {
+          id: comment.from.id,
+        },
+        message: {
+          attachment: {
+            type: "template",
+            payload: {
+              template_type: "button",
+              text: messageWithBranding,
+              buttons: story.buttons.map((button) => ({
+                type: "web_url",
+                url: `${
+                  process.env.NEXT_PUBLIC_APP_URL ||
+                  "https://www.groimon.vercel.app"
+                }/redirect?url=${encodeURIComponent(button.url)}`,
+                title: button.buttonText,
+              })),
+            },
+          },
+        },
+      };
+    } else {
+      // Simple text message
+      messageBody = {
+        recipient: {
+          id: comment.from.id,
+        },
+        message: {
+          text: messageWithBranding,
+        },
+      };
+    }
+
+    // Send the message
+    const response = await axios.post(url, messageBody, { headers });
+    console.log(`Message sent successfully to user ${comment.from.id}`);
+
+    return response.data;
+  } catch (error) {
+    console.error("Error sending Story DM:", error);
+    throw error;
+  }
+}
+
+async function sendDM(
   comment: InstagramComment,
   message: string,
   automationName: string,

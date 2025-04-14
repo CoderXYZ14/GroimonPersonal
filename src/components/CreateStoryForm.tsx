@@ -216,9 +216,9 @@ export function CreateStoryAutomationForm() {
 
       console.log("Final imageUrl being sent:", finalImageUrl);
 
-      const response = await axios.post("/api/story-automations", {
+      await axios.post("/api/automations/stories", {
         ...values,
-        storyIds,
+        postIds: storyIds,
         keywords: values.keywords.split(",").map((k) => k.trim()),
         user: userId,
         imageUrl: finalImageUrl,
@@ -230,7 +230,7 @@ export function CreateStoryAutomationForm() {
       });
 
       toast.success("Story automation created successfully!");
-      router.push("/dashboard/story-automation");
+      router.push("/dashboard/automation");
     } catch (error) {
       console.error("Error creating story automation:", error);
       if (axios.isAxiosError(error)) {
