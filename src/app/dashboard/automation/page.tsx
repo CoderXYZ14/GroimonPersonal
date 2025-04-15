@@ -6,7 +6,6 @@ import { AutomationTabs, AutomationType } from "@/components/AutomationTabs";
 import Link from "next/link";
 import { Suspense } from "react";
 
-// Create a client component that uses useSearchParams
 import { useSearchParams } from "next/navigation";
 
 function AutomationContent() {
@@ -74,7 +73,6 @@ export default function AutomationPage() {
         </div>
       </div>
 
-      {/* Decorative Elements */}
       <div className="fixed -bottom-48 -right-48 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="fixed -top-48 -left-48 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
     </div>
