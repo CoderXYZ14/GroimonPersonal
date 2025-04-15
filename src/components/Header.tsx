@@ -39,7 +39,7 @@ const Header = () => {
             <span className="absolute inset-x-0 -bottom-0.5 h-0.5 bg-gradient-to-r from-purple-600 to-pink-500 scale-x-0 group-hover:scale-x-100 transition-transform" />
           </Link>
           <Link
-            href="/dashboard/automation"
+            href="/dashboard/automation?type=post"
             className="text-sm font-medium px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-500 text-white hover:opacity-90 transition-opacity"
           >
             Dashboard

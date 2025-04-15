@@ -91,7 +91,7 @@ export default function YourInstaToken() {
           "[Instagram Token Page] Authentication successful, redirecting to dashboard"
         );
         toast.success("Successfully connected to Instagram");
-        router.replace("/dashboard/automation");
+        router.replace("/dashboard/automation?type=post");
       } catch (error) {
         console.error("[Instagram Token Page] Authentication error:", {
           message: error.response?.data?.error || error.message,
@@ -102,7 +102,7 @@ export default function YourInstaToken() {
           error.response?.data?.error || "Failed to connect to Instagram"
         );
         console.error("Instagram authentication error:", error);
-        router.push("/dashboard/automation");
+        router.push("/dashboard/automation?type=post");
       } finally {
         window.isProcessingAuth = false;
       }

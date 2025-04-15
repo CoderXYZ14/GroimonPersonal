@@ -260,7 +260,7 @@ export function CreateAutomationForm() {
         }
       }
 
-      router.push("/dashboard/automation");
+      router.push("/dashboard/automation?type=post");
     } catch (error) {
       console.error("Error creating automation:", error);
       if (axios.isAxiosError(error)) {
@@ -313,7 +313,7 @@ export function CreateAutomationForm() {
               )}
             />
             <div className="flex gap-2">
-              <Link href="/dashboard/automation">
+              <Link href="/dashboard/automation?type=post">
                 <Button
                   variant="outline"
                   className="border-gray-200 dark:border-gray-700"

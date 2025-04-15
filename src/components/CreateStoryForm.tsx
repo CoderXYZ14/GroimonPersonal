@@ -230,7 +230,7 @@ export function CreateStoryAutomationForm() {
       });
 
       toast.success("Story automation created successfully!");
-      router.push("/dashboard/automation");
+      router.push("/dashboard/automation?type=story");
     } catch (error) {
       console.error("Error creating story automation:", error);
       if (axios.isAxiosError(error)) {

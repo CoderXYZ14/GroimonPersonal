@@ -45,7 +45,7 @@ export function AppSidebar() {
     {
       title: "Automation",
       icon: Bot,
-      href: "/dashboard/automation",
+      href: "/dashboard/automation?type=post",
     },
 
     {

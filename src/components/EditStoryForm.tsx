@@ -190,7 +190,7 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
       await axios.put(`/api/automations/stories/${story.id}`, formData);
 
       toast.success("Story automation updated successfully");
-      router.push("/dashboard/automation");
+      router.push("/dashboard/automation?type=story");
       router.refresh();
     } catch (error) {
       console.error("Error updating story automation:", error);
@@ -228,7 +228,7 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
               )}
             />
             <div className="flex gap-2">
-              <Link href="/dashboard/automation">
+              <Link href="/dashboard/automation?type=story">
                 <Button
                   variant="outline"
                   className="border-gray-200 dark:border-gray-700"

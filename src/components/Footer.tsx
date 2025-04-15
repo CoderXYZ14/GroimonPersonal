@@ -37,7 +37,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  href="/dashboard/automation"
+                  href="/dashboard/automation?type=post"
                   className="text-muted-foreground hover:text-purple-500 transition-colors"
                 >
                   Dashboard

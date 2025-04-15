@@ -49,7 +49,7 @@ export default function Pricing() {
                 </div>
 
                 <div className="mb-8">
-                  <Link href="/dashboard/automation">
+                  <Link href="/dashboard/automation?type=post">
                     <Button className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 text-white text-lg py-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300">
                       Get Started Now
                     </Button>
@@ -282,7 +282,7 @@ export default function Pricing() {
             Get started today for free and see how our automation tools can
             transform your Instagram presence.
           </p>
-          <Link href="/dashboard/automation">
+          <Link href="/dashboard/automation?type=post">
             <Button className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white text-lg py-6 px-8 rounded-lg">
               Start For Free
             </Button>

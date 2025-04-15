@@ -2,6 +2,9 @@ import { MessageCircle, Image as ImageIcon, Play } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AutomationTable } from "@/components/AutomationTable";
 import React from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+
+export type AutomationType = "post" | "story" | "dm";
 
 const AUTOMATION_TABS = [
   {
@@ -29,9 +32,27 @@ const AUTOMATION_TABS = [
   },
 ];
 
-export function AutomationTabs() {
+interface AutomationTabsProps {
+  defaultType?: AutomationType;
+}
+
+export function AutomationTabs({ defaultType = "post" }: AutomationTabsProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentType =
+    (searchParams.get("type") as AutomationType) || defaultType;
+
+  const handleTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("type", value);
+    router.push(`?${params.toString()}`);
+  };
   return (
-    <Tabs defaultValue="post" className="w-full">
+    <Tabs
+      value={currentType}
+      onValueChange={handleTabChange}
+      className="w-full"
+    >
       <div className="sticky top-0 z-10 px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
         <TabsList className="inline-flex p-1 rounded-lg bg-gray-100/50 dark:bg-gray-800/50">
           {AUTOMATION_TABS.map((tab) => (

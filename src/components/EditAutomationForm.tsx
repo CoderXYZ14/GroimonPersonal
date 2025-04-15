@@ -196,7 +196,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
       await axios.put(`/api/automations?id=${automation._id}`, formData);
 
       toast.success("Automation updated successfully");
-      router.push("/dashboard/automation");
+      router.push("/dashboard/automation?type=post");
       router.refresh();
     } catch (error) {
       console.error("Error updating automation:", error);
@@ -235,7 +235,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
               )}
             />
             <div className="flex gap-2">
-              <Link href="/dashboard/automation">
+              <Link href="/dashboard/automation?type=post">
                 <Button
                   variant="outline"
                   className="border-gray-200 dark:border-gray-700"

@@ -24,12 +24,12 @@ export default function Home() {
               boost your Instagram presence and save hours of manual work.
             </p>
             <div className="flex flex-col sm:flex-row gap-6 justify-center mb-20">
-              <Link href="/dashboard/automation">
+              <Link href="/dashboard/automation?type=post">
                 <Button className="bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 text-white text-lg py-7 px-10 rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
                   Start Free Trial
                 </Button>
               </Link>
-              <Link href="/dashboard/automation">
+              <Link href="/dashboard/automation?type=post">
                 <Button
                   variant="outline"
                   className="text-lg py-7 px-10 rounded-full bg-white/80 dark:bg-black/50 backdrop-blur-sm border-2 hover:bg-white/90 dark:hover:bg-black/60 transition-all duration-300"
