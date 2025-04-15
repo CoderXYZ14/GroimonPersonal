@@ -107,8 +107,8 @@ export function AppSidebar() {
                 src="/logo.svg"
                 alt="logo"
                 width={80}
-                height={25}
-                className="dark:invert"
+                height={80}
+                className="dark:invert h-[25px] w-auto"
               />
             </Link>
           ) : (

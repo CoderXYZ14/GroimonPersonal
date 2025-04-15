@@ -14,8 +14,8 @@ const Header = () => {
               src="/logo.svg"
               alt="logo"
               width={80}
-              height={25}
-              className="dark:invert"
+              height={80}
+              className="dark:invert h-[25px] w-auto"
             />
             <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-500 dark:from-purple-400 dark:to-pink-400">
               Groimon

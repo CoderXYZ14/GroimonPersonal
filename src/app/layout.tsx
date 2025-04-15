@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import AuthProvider from "@/context/AuthProvider";
 import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { ThemeProvider } from "next-themes";
+import AuthProvider from "@/context/AuthProvider";
 import { Providers } from "@/redux/provider";
+import ClientLayout from "@/components/ClientLayout";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,24 +35,32 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      {/* <head>
+    <html lang="en" suppressHydrationWarning>
+      <head>
         <link rel="icon" href="/logo.svg" />
-      </head> */}
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning
       >
         <Providers>
           <AuthProvider>
-            {children}
-            <Toaster
-              theme="light"
-              duration={2000}
-              position="bottom-right"
-              richColors
-            />
-            <SpeedInsights />
-            <Analytics />
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <ClientLayout>{children}</ClientLayout>
+              <Toaster
+                theme="light"
+                duration={2000}
+                position="bottom-right"
+                richColors
+              />
+              <SpeedInsights />
+              <Analytics />
+            </ThemeProvider>
           </AuthProvider>
         </Providers>
       </body>

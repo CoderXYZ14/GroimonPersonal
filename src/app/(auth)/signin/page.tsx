@@ -58,8 +58,8 @@ export default function SignIn() {
                     src="/logo.svg"
                     alt="logo"
                     width={80}
-                    height={25}
-                    className="dark:invert transition-transform hover:scale-105"
+                    height={80}
+                    className="dark:invert transition-transform hover:scale-105 h-[25px] w-auto"
                   />
                   <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-500 dark:from-purple-400 dark:to-pink-400">
                     Groimon
@@ -119,8 +119,7 @@ export default function SignIn() {
               </Link>{" "}
               and{" "}
               <Link
-              
-  href="/privacy-policy"
+                href="/privacy-policy"
                 className="text-purple-500 hover:text-purple-600 dark:text-purple-400 dark:hover:text-purple-300 transition-colors"
               >
                 Privacy Policy

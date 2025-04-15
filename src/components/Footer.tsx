@@ -9,7 +9,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 font-bold text-xl mb-4">
-              <Image src="/logo.svg" alt="logo" width={80} height={25} />
+              <Image src="/logo.svg" alt="logo" width={80} height={80} className="h-[25px] w-auto" />
               <span>Groimon</span>
             </div>
             <p className="text-muted-foreground">
