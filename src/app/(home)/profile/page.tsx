@@ -3,25 +3,17 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Instagram, AlertCircle, User, Mail, Hash } from "lucide-react";
+import { Instagram, AlertCircle, Hash } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 import axios from "axios";
 
 const ProfilePage = () => {
   const [userData, setUserData] = useState({
-    name: "",
-    email: "",
     instaId: "",
     automationsCreated: 0,
     profileImage: "",
     provider: "",
-  });
-
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedData, setEditedData] = useState({
-    name: "",
-    email: "",
   });
 
   useEffect(() => {
@@ -35,18 +27,13 @@ const ProfilePage = () => {
           });
 
           const userData = {
-            name: parsedUser.name || "",
-            email: parsedUser.email || "",
             instaId: parsedUser.instagramUsername,
             automationsCreated: response.data.numberOfAutomations,
-            profileImage: response.data.image,
+            profileImage: response.data.profileImage,
             provider: parsedUser.provider,
           };
           setUserData(userData);
-          setEditedData({
-            name: userData.name,
-            email: userData.email,
-          });
+          // No more editing functionality needed
         } catch (error) {
           console.error("Error parsing user data:", error);
         }
@@ -82,7 +69,7 @@ const ProfilePage = () => {
                 {userData.profileImage ? (
                   <Image
                     src={userData.profileImage}
-                    alt={userData.name}
+                    alt={"Profile pic"}
                     width={128}
                     height={128}
                     className="object-cover"
@@ -103,64 +90,6 @@ const ProfilePage = () => {
                   </h1>
                 </div>
                 <div className="mt-4 md:mt-0 flex gap-4">
-                  {isEditing && (
-                    <>
-                      <Button
-                        onClick={async () => {
-                          try {
-                            const userDetails =
-                              localStorage.getItem("user_details");
-                            if (!userDetails) return;
-
-                            const parsedUser = JSON.parse(userDetails);
-                            await axios.post(`/api/update-profile`, {
-                              userId: parsedUser._id,
-                              ...editedData,
-                            });
-
-                            // Update userData state
-                            setUserData((prev) => ({
-                              ...prev,
-                              name: editedData.name,
-                              email: editedData.email,
-                            }));
-
-                            // Update localStorage
-                            const updatedUserDetails = {
-                              ...parsedUser,
-                              name: editedData.name,
-                              email: editedData.email,
-                            };
-                            localStorage.setItem(
-                              "user_details",
-                              JSON.stringify(updatedUserDetails)
-                            );
-
-                            setIsEditing(false);
-                            toast.success("Profile updated successfully!");
-                          } catch (error) {
-                            console.error("Error updating profile:", error);
-                            toast.error("Failed to update profile");
-                          }
-                        }}
-                        className="bg-purple-500 text-white hover:bg-purple-600"
-                      >
-                        Save Changes
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setIsEditing(false);
-                          setEditedData({
-                            name: userData.name,
-                            email: userData.email,
-                          });
-                        }}
-                        variant="outline"
-                      >
-                        Cancel
-                      </Button>
-                    </>
-                  )}
                   <Button
                     onClick={handleDelinkAccount}
                     variant="outline"
@@ -173,112 +102,6 @@ const ProfilePage = () => {
               </div>
 
               <div className="grid md:grid-cols-2 gap-8">
-                <div className="space-y-6">
-                  <div className="space-y-1">
-                    <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-1">
-                      <User className="h-4 w-4 mr-2" />
-                      <span>Name</span>
-                    </div>
-                    {userData.provider === "instagram" ? (
-                      <div className="relative">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={editedData.name}
-                            onChange={(e) =>
-                              setEditedData((prev) => ({
-                                ...prev,
-                                name: e.target.value,
-                              }))
-                            }
-                            className="w-full bg-white dark:bg-gray-900 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          />
-                        ) : (
-                          <div className="bg-white dark:bg-gray-900 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-800 h-8">
-                            {userData.name ? userData.name : "Set your name"}
-                          </div>
-                        )}
-                        {!isEditing && (
-                          <button
-                            onClick={() => setIsEditing(true)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-purple-500"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="bg-white dark:bg-gray-900 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-800 h-8">
-                        {userData.name}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-1">
-                      <Mail className="h-4 w-4 mr-2" />
-                      <span>Email</span>
-                    </div>
-                    {userData.provider === "instagram" ? (
-                      <div className="relative">
-                        {isEditing ? (
-                          <input
-                            type="email"
-                            value={editedData.email}
-                            onChange={(e) =>
-                              setEditedData((prev) => ({
-                                ...prev,
-                                email: e.target.value,
-                              }))
-                            }
-                            className="w-full bg-white dark:bg-gray-900 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          />
-                        ) : (
-                          <div className="bg-white dark:bg-gray-900 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-800 h-8">
-                            {userData.email ? userData.email : "Add your email"}
-                          </div>
-                        )}
-                        {!isEditing && (
-                          <button
-                            onClick={() => setIsEditing(true)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-purple-500"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="bg-white dark:bg-gray-900 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-800 h-8">
-                        {userData.email}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
                 <div className="space-y-6">
                   <div className="space-y-1">
                     <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-1">

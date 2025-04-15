@@ -1,15 +1,17 @@
 "use client";
 
-import { User2, MessageCircle, Zap } from "lucide-react";
+import { MessageCircle, Zap } from "lucide-react";
 import { useAppSelector } from "@/redux/hooks";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import Image from "next/image";
 
 export function AutomationStats() {
   const user = useAppSelector((state) => state.user);
   const hasInstagramAuth = user.instagramUsername && user.instagramId;
   const [totalHits, setTotalHits] = useState<number>(0);
   const [automationsCount, setAutomationsCount] = useState<number>(0);
+  const [profilePic, setProfilePic] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -35,14 +37,38 @@ export function AutomationStats() {
       }
     };
 
+    const fetchProfilePic = async () => {
+      if (hasInstagramAuth) {
+        try {
+          const response = await axios.get(
+            `/api/insta_details?userId=${user.instagramId}&accessToken=${user.instagramAccessToken}`
+          );
+          console.log("Profile response:", response.data);
+          if (response.data && response.data.profilePic) {
+            setProfilePic(response.data.profilePic);
+          }
+        } catch (error) {
+          console.error("Error fetching Instagram profile picture:", {
+            error,
+            message: error.response?.data || error.message,
+            userId: user.instagramId,
+            hasToken: !!user.instagramAccessToken,
+          });
+        }
+      }
+    };
+
     fetchStats();
-  }, [user._id]);
+    fetchProfilePic();
+  }, [user._id, user.instagramId, user.instagramAccessToken, hasInstagramAuth]);
 
   if (!hasInstagramAuth) {
     return (
       <div className="flex flex-col items-center justify-center h-40 space-y-4">
         <div className="p-4 rounded-full bg-purple-100 dark:bg-purple-900/30">
-          <User2 className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+          <div className="w-8 h-8 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+            @
+          </div>
         </div>
         <div className="text-center">
           <h3 className="text-lg font-medium text-purple-700 dark:text-purple-300">
@@ -60,8 +86,20 @@ export function AutomationStats() {
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl p-4">
         <div className="flex items-center space-x-3">
-          <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-800 shrink-0">
-            <User2 className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+          <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-800 shrink-0 flex items-center justify-center overflow-hidden">
+            {profilePic ? (
+              <Image
+                src={profilePic}
+                alt={`${user.instagramUsername}'s profile`}
+                width={20}
+                height={20}
+                className="rounded-full w-5 h-5 object-cover"
+              />
+            ) : (
+              <div className="w-5 h-5 text-purple-600 dark:text-purple-300 flex items-center justify-center">
+                @
+              </div>
+            )}
           </div>
 
           <div className="min-w-0">
