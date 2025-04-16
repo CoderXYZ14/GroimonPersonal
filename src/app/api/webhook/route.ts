@@ -346,14 +346,37 @@ async function handleAutomationResponse(
       return;
     }
 
+    // Handle comment automation with reply limit
     if (automation.enableCommentAutomation && automation.commentMessage) {
-      await replyToComment(
-        comment,
-        automation.commentMessage,
-        user.instagramAccessToken
-      );
+      const autoReplyLimitLeft = automation.autoReplyLimitLeft ?? -1;
+
+      // Send comment if: unlimited (-1) OR has replies left (> 0)
+      if (autoReplyLimitLeft === -1 || autoReplyLimitLeft > 0) {
+        await replyToComment(
+          comment,
+          automation.commentMessage,
+          user.instagramAccessToken
+        );
+
+        // Decrement reply limit if not unlimited
+        if (autoReplyLimitLeft !== -1) {
+          await AutomationModel.findByIdAndUpdate(automationId, {
+            $inc: { autoReplyLimitLeft: -1 },
+          });
+          console.log(
+            `Decremented autoReplyLimitLeft for automation ${automationId}. Remaining: ${
+              autoReplyLimitLeft - 1
+            }`
+          );
+        }
+      } else {
+        console.log(
+          `Skipping comment reply for automation ${automationId} - no replies left`
+        );
+      }
     }
 
+    // Always send DM regardless of reply limit
     await sendDM(comment, automation.message, automationName, automationId);
   } catch (error) {
     console.error("Error handling automation response:", error);
