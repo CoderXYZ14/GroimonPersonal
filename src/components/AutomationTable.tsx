@@ -196,7 +196,6 @@ export function AutomationTable({ type }: AutomationTableProps) {
       </div>
 
       <div className="px-3">
-        {/* Mobile Card View */}
         <div className="md:hidden space-y-3">
           {filteredAutomations.map((automation) => (
             <div
@@ -322,6 +321,9 @@ export function AutomationTable({ type }: AutomationTableProps) {
                     Post IDs
                   </TableHead>
                   <TableHead className="font-medium text-xs py-3">
+                    Hits
+                  </TableHead>
+                  <TableHead className="font-medium text-xs py-3">
                     Keywords
                   </TableHead>
                   <TableHead className="font-medium text-xs py-3">
@@ -355,6 +357,11 @@ export function AutomationTable({ type }: AutomationTableProps) {
                             {id}
                           </span>
                         ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-2">
+                      <div className="flex flex-wrap gap-1">
+                        {automation.totalHits}
                       </div>
                     </TableCell>
                     <TableCell className="py-2">
