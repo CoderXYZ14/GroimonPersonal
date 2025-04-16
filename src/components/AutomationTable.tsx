@@ -32,6 +32,7 @@ interface Automation {
   commentMessage: string;
   isFollowed: boolean;
   createdAt: string;
+  totalHits: number;
 }
 
 export interface AutomationTableProps {
@@ -248,6 +249,15 @@ export function AutomationTable({ type }: AutomationTableProps) {
                         {id}
                       </span>
                     ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    Hits
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {automation.totalHits}
                   </div>
                 </div>
 
