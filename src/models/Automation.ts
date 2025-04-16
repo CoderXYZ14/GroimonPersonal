@@ -21,6 +21,8 @@ export interface IAutomation extends Document {
   isFollowed: boolean;
   removeBranding: boolean;
   hitCount: number;
+  autoReplyLimit: number;
+  autoReplyLimitLeft: number;
   user: mongoose.Types.ObjectId | IUser;
 }
 
@@ -53,6 +55,8 @@ const AutomationSchema: Schema<IAutomation> = new Schema(
     isFollowed: { type: Boolean, default: false },
     removeBranding: { type: Boolean, default: false },
     hitCount: { type: Number, default: 0 },
+    autoReplyLimit: { type: Number, default: 100 },
+    autoReplyLimitLeft: { type: Number, default: 100 },
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }

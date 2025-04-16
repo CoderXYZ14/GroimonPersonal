@@ -50,6 +50,7 @@ const formSchema = z.object({
   buttons: z.array(buttonSchema).optional(),
   enableCommentAutomation: z.boolean(),
   commentMessage: z.string().min(1, "Comment message is required"),
+  autoReplyLimit: z.number().min(100).default(100),
   enableBacktrack: z.boolean().default(false),
   isFollowed: z.boolean().default(false),
   removeBranding: z.boolean().default(false),
@@ -97,10 +98,6 @@ export function CreateAutomationForm() {
     setDmTypeOpen(!dmTypeOpen);
   };
 
-  const toggleCommentAutomation = () => {
-    setCommentAutomationOpen(!commentAutomationOpen);
-  };
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -110,15 +107,19 @@ export function CreateAutomationForm() {
       keywords: "",
       messageType: "message",
       message: "",
-      imageUrl: "", // Explicitly initialize with empty string
+      imageUrl: "",
       enableCommentAutomation: false,
       commentMessage: "",
+      autoReplyLimit: 100,
       enableBacktrack: false,
       isFollowed: false,
       removeBranding: false,
     },
   });
 
+  const toggleCommentAutomation = () => {
+    setCommentAutomationOpen(!commentAutomationOpen);
+  };
   const applyOption = form.watch("applyOption");
 
   const messageType = form.watch("messageType");
@@ -221,6 +222,7 @@ export function CreateAutomationForm() {
       const response = await axios.post("/api/automations", {
         ...values,
         postIds,
+        autoReplyLimitLeft: values.autoReplyLimit,
         keywords: values.keywords.split(",").map((k) => k.trim()),
         user: userId,
         imageUrl: finalImageUrl,
@@ -234,7 +236,7 @@ export function CreateAutomationForm() {
       toast.success("Automation created successfully!");
 
       // Process backtrack if enabled
-      if (values.enableBacktrack && values.enableCommentAutomation) {
+      if (values.enableBacktrack) {
         toast.info("Processing existing comments...");
         try {
           const backtrackResponse = await axios.post("/api/process-backtrack", {
@@ -376,7 +378,6 @@ export function CreateAutomationForm() {
                       </div>
                     </RadioGroup>
                   </FormControl>
-                  {/* This closing FormItem tag was missing */}
                 </FormItem>
               )}
             />
@@ -770,6 +771,51 @@ export function CreateAutomationForm() {
                           {...field}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="autoReplyLimit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label>Auto Reply Limit</Label>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={(value) =>
+                            field.onChange(
+                              value === "unlimited" ? -1 : parseInt(value)
+                            )
+                          }
+                          defaultValue={
+                            field.value === -1
+                              ? "unlimited"
+                              : field.value.toString()
+                          }
+                          className="flex flex-row space-x-4"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="100" id="limit-100" />
+                            <Label htmlFor="limit-100">100</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="200" id="limit-200" />
+                            <Label htmlFor="limit-200">200</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem
+                              value="unlimited"
+                              id="limit-unlimited"
+                            />
+                            <Label htmlFor="limit-unlimited">Unlimited</Label>
+                          </div>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormDescription>
+                        Set the maximum number of auto-replies for this
+                        automation
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

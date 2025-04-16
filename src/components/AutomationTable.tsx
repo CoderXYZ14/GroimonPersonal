@@ -32,7 +32,7 @@ interface Automation {
   commentMessage: string;
   isFollowed: boolean;
   createdAt: string;
-  totalHits: number;
+  hitCount: number;
 }
 
 export interface AutomationTableProps {
@@ -256,7 +256,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
                     Hits
                   </p>
                   <div className="flex flex-wrap gap-1">
-                    {automation.totalHits}
+                    {automation.hitCount}
                   </div>
                 </div>
 
@@ -361,7 +361,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
                     </TableCell>
                     <TableCell className="py-2">
                       <div className="flex flex-wrap gap-1">
-                        {automation.totalHits}
+                        {automation.hitCount}
                       </div>
                     </TableCell>
                     <TableCell className="py-2">

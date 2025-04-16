@@ -24,12 +24,16 @@ export async function POST(request: Request) {
       user,
       enableCommentAutomation,
       commentMessage,
+      autoReplyLimit,
       isFollowed,
       removeBranding,
+      autoReplyLimitLeft,
     } = body;
 
     console.log("Message Type:", messageType);
     console.log("Image URL received:", imageUrl);
+    console.log("Auto Reply Limit:", autoReplyLimit);
+    console.log("Auto Reply Limit Left:", autoReplyLimitLeft);
 
     // Validation checks
     if (
@@ -38,8 +42,9 @@ export async function POST(request: Request) {
       !messageType ||
       !message ||
       !user ||
-      !enableCommentAutomation ||
-      !commentMessage ||
+      (enableCommentAutomation && !commentMessage) ||
+      (enableCommentAutomation && autoReplyLimit === undefined) ||
+      (enableCommentAutomation && autoReplyLimitLeft === undefined) ||
       (messageType === "ButtonImage" && !imageUrl) ||
       ((messageType === "ButtonText" || messageType === "ButtonImage") &&
         (!buttons || buttons.length === 0))
@@ -66,8 +71,11 @@ export async function POST(request: Request) {
       user,
       enableCommentAutomation,
       commentMessage,
+      autoReplyLimit: autoReplyLimit || 100,
+      autoReplyLimitLeft: autoReplyLimit || 100,
       isFollowed: isFollowed || false,
       removeBranding: removeBranding || false,
+      hitCount: 0,
     });
 
     console.log(
@@ -123,9 +131,6 @@ export async function GET(request: Request) {
         { $group: { _id: null, total: { $sum: "$hitCount" } } },
       ]);
 
-      console.log("Total hits post:", totalHitsPost);
-      console.log("Total hits story:", totalHitsStory);
-
       const totalHits =
         (totalHitsPost.length > 0 ? totalHitsPost[0].total : 0) +
         (totalHitsStory.length > 0 ? totalHitsStory[0].total : 0);
@@ -137,8 +142,6 @@ export async function GET(request: Request) {
       );
     }
 
-    // Regular GET logic continues here
-
     if (id) {
       const automation = await AutomationModel.findById(id);
 
@@ -149,14 +152,9 @@ export async function GET(request: Request) {
         );
       }
 
-      // if (automation.user.toString() !== user.id) {
-      //   return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-      // }
-
       return NextResponse.json(automation, { status: 200 });
     }
 
-    // Otherwise, fetch all automations for user
     if (!userId) {
       return NextResponse.json(
         { message: "User ID is required" },
@@ -205,7 +203,6 @@ export async function PUT(request: Request) {
     const user = JSON.parse(userDetails.value);
     const body = await request.json();
 
-    // Validate required fields
     if (!body.name || !body.keywords || !body.messageType || !body.message) {
       return NextResponse.json(
         { message: "Missing required fields" },
@@ -213,7 +210,6 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Validate messageType
     if (!["message", "ButtonText"].includes(body.messageType)) {
       return NextResponse.json(
         { message: "Invalid message type" },
@@ -221,7 +217,6 @@ export async function PUT(request: Request) {
       );
     }
 
-    // If messageType is ButtonText, validate buttons
     if (
       body.messageType === "ButtonText" &&
       (!body.buttons || !Array.isArray(body.buttons))
@@ -241,19 +236,17 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Ensure keywords is an array
     const keywords = Array.isArray(body.keywords)
       ? body.keywords
       : body.keywords.split(",").map((k: string) => k.trim());
 
-    // Update the automation
     const updatedAutomation = await AutomationModel.findByIdAndUpdate(
       id,
       {
         ...body,
         keywords,
         user: user.id,
-        // Keep the original postIds
+
         postIds: automation.postIds,
       },
       { new: true, runValidators: true }

@@ -45,7 +45,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create story object explicitly setting all fields
     const story = new StoryModel({
       name,
       postIds: postIds || [],
