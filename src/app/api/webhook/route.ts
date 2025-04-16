@@ -71,23 +71,28 @@ export async function POST(request: NextRequest) {
       return handlePostback(payload);
     }
 
-    // Handle story replies
+    // Handle story replies and comments
     if (
       payload.object === "instagram" &&
       payload.entry &&
       payload.entry.length > 0
     ) {
       for (const entry of payload.entry) {
-        for (const messaging of entry.messaging || []) {
-          // Check if this is a story reply
-          if (messaging.message?.reply_to?.story) {
-            await processStory(messaging);
+        // Handle story replies
+        if (entry.messaging) {
+          for (const messaging of entry.messaging) {
+            if (messaging.message?.reply_to?.story) {
+              await processStory(messaging);
+            }
           }
-          if (entry.changes && entry.changes.length > 0) {
-            for (const change of entry.changes) {
-              if (change.field === "comments" && change.value) {
-                await processComment(change.value);
-              }
+        }
+
+        // Handle comments
+        if (entry.changes) {
+          for (const change of entry.changes) {
+            if (change.field === "comments" && change.value) {
+              console.log("Processing comment:", change.value);
+              await processComment(change.value);
             }
           }
         }
@@ -639,7 +644,7 @@ async function sendDM(
     // For backtrack, always use comment_id
     const recipient = isBacktrack
       ? { comment_id: comment.id }
-      : { id: comment.from.id };
+      : { comment_id: comment.id };
 
     // If follow check is required and this isn't a backtrack request
     if (!isBacktrack && automation.isFollowed) {
