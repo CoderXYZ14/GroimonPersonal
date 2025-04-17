@@ -546,7 +546,7 @@ export async function sendStoryDM(
               buttons: story.buttons.map((button) => ({
                 type: "web_url",
                 url: `${
-                  process.env.NEXT_PUBLIC_APP_URL ||
+                  process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
                   "https://www.groimon.vercel.app"
                 }/redirect?url=${encodeURIComponent(button.url)}`,
                 title: button.buttonText,
