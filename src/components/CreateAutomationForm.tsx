@@ -53,6 +53,9 @@ const formSchema = z.object({
   autoReplyLimit: z.number().min(100).default(100),
   enableBacktrack: z.boolean().default(false),
   isFollowed: z.boolean().default(false),
+  notFollowerMessage: z.string().optional(),
+  followButtonTitle: z.string().optional(),
+  followUpMessage: z.string().optional(),
   removeBranding: z.boolean().default(false),
 });
 
@@ -86,6 +89,7 @@ export function CreateAutomationForm() {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [commentAutomationOpen, setCommentAutomationOpen] = useState(false);
+  const [isFollowedOpen, setIsFollowedOpen] = useState(false);
   const [buttons, setButtons] = useState<
     Array<{ title: string; url: string; buttonText: string }>
   >([]);
@@ -113,12 +117,21 @@ export function CreateAutomationForm() {
       autoReplyLimit: 100,
       enableBacktrack: false,
       isFollowed: false,
+      notFollowerMessage:
+        "Please follow our account to receive the information you requested. Once you've followed, click the button below.",
+      followButtonTitle: "I'm following now!",
+      followUpMessage:
+        "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
       removeBranding: false,
     },
   });
 
   const toggleCommentAutomation = () => {
     setCommentAutomationOpen(!commentAutomationOpen);
+  };
+
+  const toggleIsFollowed = () => {
+    setIsFollowedOpen(!isFollowedOpen);
   };
   const applyOption = form.watch("applyOption");
 
@@ -226,6 +239,13 @@ export function CreateAutomationForm() {
         keywords: values.keywords.split(",").map((k) => k.trim()),
         user: userId,
         imageUrl: finalImageUrl,
+        notFollowerMessage: values.isFollowed
+          ? values.notFollowerMessage
+          : undefined,
+        followButtonTitle: values.isFollowed
+          ? values.followButtonTitle
+          : undefined,
+        followUpMessage: values.isFollowed ? values.followUpMessage : undefined,
         buttons:
           values.messageType === "ButtonText" ||
           values.messageType === "ButtonImage"
@@ -689,34 +709,6 @@ export function CreateAutomationForm() {
             )}
           </div>
 
-          {/* Is Followed Check section */}
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">Follow Check</h2>
-            </div>
-
-            <FormField
-              control={form.control}
-              name="isFollowed"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">Add to Follow</Label>
-                    <FormDescription>
-                      Automatically follow users who trigger this automation
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </div>
-
           {/* Comment Automation section */}
           <div className="p-6 border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
@@ -849,6 +841,110 @@ export function CreateAutomationForm() {
                 </FormItem>
               )}
             />
+          </div>
+
+          {/* Follow Request section */}
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium">Follow Request</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2"
+                onClick={toggleIsFollowed}
+              >
+                {isFollowedOpen ? (
+                  <ChevronUp className="w-4 h-4 ml-1" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 ml-1" />
+                )}
+              </Button>
+            </div>
+
+            <FormField
+              control={form.control}
+              name="isFollowed"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Ask to Follow</Label>
+                    <FormDescription>
+                      Request users to follow your account before receiving the
+                      message
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {isFollowedOpen && form.watch("isFollowed") && (
+              <div className="mt-4 space-y-4">
+                <FormField
+                  control={form.control}
+                  name="notFollowerMessage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label>Message for Non-Followers</Label>
+                      <FormDescription>
+                        This message will be shown to users who don't follow you
+                      </FormDescription>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Please follow my account to receive the message"
+                          className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[100px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="followButtonTitle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label>Follow Button Text</Label>
+                      <FormDescription>
+                        Text to display on the follow button
+                      </FormDescription>
+                      <FormControl>
+                        <Input placeholder="Follow Now" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="followUpMessage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label>Follow-up Message</Label>
+                      <FormDescription>
+                        Message to send after user follows your account
+                      </FormDescription>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Thanks for following! Here's your message..."
+                          className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[100px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
           </div>
 
           {/* Remove Branding section */}

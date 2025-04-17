@@ -26,6 +26,9 @@ export async function POST(request: Request) {
       commentMessage,
       autoReplyLimit,
       isFollowed,
+      notFollowerMessage,
+      followButtonTitle,
+      followUpMessage,
       removeBranding,
       autoReplyLimitLeft,
     } = body;
@@ -55,6 +58,18 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+    // Additional check for isFollowed
+    if (isFollowed) {
+      if (!notFollowerMessage || !followButtonTitle || !followUpMessage) {
+        return NextResponse.json(
+          {
+            message:
+              "When isFollowed is true, notFollowerMessage, followButtonTitle, and followUpMessage are required.",
+          },
+          { status: 400 }
+        );
+      }
+    }
 
     // Create automation object explicitly setting all fields
     const automation = new AutomationModel({
@@ -74,6 +89,9 @@ export async function POST(request: Request) {
       autoReplyLimit: autoReplyLimit || 100,
       autoReplyLimitLeft: autoReplyLimit || 100,
       isFollowed: isFollowed || false,
+      notFollowerMessage: isFollowed ? notFollowerMessage : undefined,
+      followButtonTitle: isFollowed ? followButtonTitle : undefined,
+      followUpMessage: isFollowed ? followUpMessage : undefined,
       removeBranding: removeBranding || false,
       hitCount: 0,
     });

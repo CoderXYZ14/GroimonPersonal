@@ -488,11 +488,13 @@ export async function sendStoryDM(
             type: "template",
             payload: {
               template_type: "button",
-              text: "Please follow our account to receive our message. Click the button below once you're following.",
+              text:
+                story.notFollowerMessage ||
+                "Please follow our account to receive our message. Click the button below once you're following.",
               buttons: [
                 {
                   type: "postback",
-                  title: "I'm following now",
+                  title: story.followButtonTitle || "I'm following now",
                   payload: JSON.stringify({
                     action: "followConfirmed",
                     storyId: storyId,
@@ -501,6 +503,9 @@ export async function sendStoryDM(
                     username: comment.from.username,
                     mediaId: comment.media.id,
                     originalMessage: message,
+                    notFollowerMessage: story.notFollowerMessage,
+                    followButtonTitle: story.followButtonTitle,
+                    followUpMessage: story.followUpMessage,
                   }),
                 },
               ],
@@ -661,11 +666,13 @@ async function sendDM(
               type: "template",
               payload: {
                 template_type: "button",
-                text: "Please follow our account to receive the information you requested. Once you've followed, click the button below.",
+                text:
+                  automation.notFollowerMessage ||
+                  "Please follow our account to receive the information you requested. Once you've followed, click the button below.",
                 buttons: [
                   {
                     type: "postback",
-                    title: "I'm following now",
+                    title: automation.followButtonTitle || "I'm following now",
                     payload: JSON.stringify({
                       action: "followConfirmed",
                       automationId,
@@ -674,6 +681,9 @@ async function sendDM(
                       username: comment.from.username,
                       mediaId: comment.media.id,
                       originalMessage: originalMessage,
+                      notFollowerMessage: automation.notFollowerMessage,
+                      followButtonTitle: automation.followButtonTitle,
+                      followUpMessage: automation.followUpMessage,
                     }),
                   },
                 ],
@@ -842,16 +852,46 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                 const senderId = messaging.sender?.id;
 
                 if (postbackData.action === "followConfirmed") {
-                  const automation = await AutomationModel.findById(
-                    postbackData.automationId
-                  ).populate("user");
+                  // Check if this is a story or automation follow request
+                  let user: IUser | null = null;
+                  let messageContent = postbackData.originalMessage;
+                  let isStory = false;
 
-                  if (!automation || !automation.user) {
-                    console.log("Automation or user not found for postback");
+                  if (postbackData.automationId) {
+                    // Handle automation follow request
+                    const automation = await AutomationModel.findById(
+                      postbackData.automationId
+                    ).populate("user");
+
+                    if (!automation || !automation.user) {
+                      console.log("Automation or user not found for postback");
+                      continue;
+                    }
+
+                    user = automation.user as IUser;
+                    messageContent =
+                      automation.message || postbackData.originalMessage;
+                  } else if (postbackData.storyId) {
+                    // Handle story follow request
+                    isStory = true;
+                    const story = await StoryModel.findById(
+                      postbackData.storyId
+                    ).populate("user");
+
+                    if (!story || !story.user) {
+                      console.log("Story or user not found for postback");
+                      continue;
+                    }
+
+                    user = story.user as IUser;
+                    messageContent =
+                      story.message || postbackData.originalMessage;
+                  } else {
+                    console.log(
+                      "Neither automationId nor storyId found in postback data"
+                    );
                     continue;
                   }
-
-                  const user = automation.user as IUser;
 
                   if (!user.instagramAccessToken) {
                     console.log("Instagram access token not found for user");
@@ -875,17 +915,58 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                       `User ${senderId} (${postbackData.username}) is now following, sending automated message`
                     );
 
-                    const messageWithBranding = automation.removeBranding
-                      ? postbackData.originalMessage
-                      : `${postbackData.originalMessage}\n\nThis automation is sent by Groimon.`;
+                    // When user is following, send the actual message
+                    const actualMessage = messageContent;
+
+                    // Add branding based on the type (story or automation)
+                    const messageWithBranding = isStory
+                      ? (await StoryModel.findById(postbackData.storyId))
+                          ?.removeBranding
+                        ? actualMessage
+                        : `${actualMessage}\n\nPowered by Groimon`
+                      : (
+                          await AutomationModel.findById(
+                            postbackData.automationId
+                          )
+                        )?.removeBranding
+                      ? actualMessage
+                      : `${actualMessage}\n\nThis automation is sent by Groimon`;
 
                     let messageBody;
 
-                    if (
-                      automation.messageType === "ButtonText" &&
-                      automation.buttons &&
-                      automation.buttons.length > 0
+                    // Handle different message types based on whether it's a story or automation
+                    if (isStory) {
+                      // For story, we just send a simple text message
+                      messageBody = {
+                        recipient: {
+                          id: senderId,
+                        },
+                        message: {
+                          text: messageWithBranding,
+                        },
+                      };
+                    } else if (
+                      // For automation, check if it has buttons
+                      postbackData.automationId &&
+                      (
+                        await AutomationModel.findById(
+                          postbackData.automationId
+                        )
+                      )?.messageType === "ButtonText" &&
+                      (
+                        await AutomationModel.findById(
+                          postbackData.automationId
+                        )
+                      )?.buttons &&
+                      (
+                        await AutomationModel.findById(
+                          postbackData.automationId
+                        )
+                      )?.buttons.length > 0
                     ) {
+                      const automation = await AutomationModel.findById(
+                        postbackData.automationId
+                      );
                       messageBody = {
                         recipient: {
                           id: senderId,
@@ -926,7 +1007,7 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                     console.log(`Automation message sent to user ${senderId}`);
                   } else {
                     console.log(
-                      `User ${senderId} (${postbackData.username}) is not following yet, sending follow button again`
+                      `User ${senderId} (${postbackData.username}) is not following yet, sending follow button again with followUpMessage`
                     );
 
                     const followRequestBody = {
@@ -938,11 +1019,15 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                           type: "template",
                           payload: {
                             template_type: "button",
-                            text: "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
+                            text:
+                              postbackData.followUpMessage ||
+                              "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
                             buttons: [
                               {
                                 type: "postback",
-                                title: "I'm following now",
+                                title:
+                                  postbackData.followButtonTitle ||
+                                  "I'm following now",
                                 payload: JSON.stringify({
                                   action: "followConfirmed",
                                   automationId: postbackData.automationId,
@@ -951,6 +1036,11 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                                   username: postbackData.username,
                                   mediaId: postbackData.mediaId,
                                   originalMessage: postbackData.originalMessage,
+                                  notFollowerMessage:
+                                    postbackData.notFollowerMessage,
+                                  followButtonTitle:
+                                    postbackData.followButtonTitle,
+                                  followUpMessage: postbackData.followUpMessage,
                                 }),
                               },
                             ],

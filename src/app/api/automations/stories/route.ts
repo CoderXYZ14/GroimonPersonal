@@ -21,6 +21,9 @@ export async function POST(request: Request) {
       buttons,
       user,
       isFollowed,
+      notFollowerMessage,
+      followButtonTitle,
+      followUpMessage,
       removeBranding,
     } = body;
 
@@ -44,6 +47,18 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+    // Additional check for isFollowed
+    if (isFollowed) {
+      if (!notFollowerMessage || !followButtonTitle || !followUpMessage) {
+        return NextResponse.json(
+          {
+            message:
+              "When isFollowed is true, notFollowerMessage, followButtonTitle, and followUpMessage are required.",
+          },
+          { status: 400 }
+        );
+      }
+    }
 
     const story = new StoryModel({
       name,
@@ -58,6 +73,9 @@ export async function POST(request: Request) {
           : undefined,
       user,
       isFollowed: isFollowed || false,
+      notFollowerMessage: isFollowed ? notFollowerMessage : undefined,
+      followButtonTitle: isFollowed ? followButtonTitle : undefined,
+      followUpMessage: isFollowed ? followUpMessage : undefined,
       removeBranding: removeBranding || false,
       hitCount: 0,
     });

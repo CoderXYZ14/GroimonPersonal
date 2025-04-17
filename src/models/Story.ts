@@ -16,6 +16,9 @@ export interface IStory extends Document {
   imageUrl?: string;
   buttons?: Button[];
   isFollowed: boolean;
+  notFollowerMessage?: string;
+  followButtonTitle?: string;
+  followUpMessage?: string;
   removeBranding: boolean;
   hitCount: number;
   user: mongoose.Types.ObjectId | IUser;
@@ -45,6 +48,9 @@ const StorySchema: Schema<IStory> = new Schema(
     imageUrl: { type: String },
     buttons: { type: [ButtonSchema], default: [] },
     isFollowed: { type: Boolean, default: false },
+    notFollowerMessage: { type: String },
+    followButtonTitle: { type: String },
+    followUpMessage: { type: String },
     removeBranding: { type: Boolean, default: false },
     hitCount: { type: Number, default: 0 },
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },

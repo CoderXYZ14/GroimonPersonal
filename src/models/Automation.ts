@@ -23,6 +23,9 @@ export interface IAutomation extends Document {
   hitCount: number;
   autoReplyLimit: number;
   autoReplyLimitLeft: number;
+  notFollowerMessage?: string;
+  followButtonTitle?: string;
+  followUpMessage?: string;
   user: mongoose.Types.ObjectId | IUser;
 }
 
@@ -57,6 +60,9 @@ const AutomationSchema: Schema<IAutomation> = new Schema(
     hitCount: { type: Number, default: 0 },
     autoReplyLimit: { type: Number, default: 100 },
     autoReplyLimitLeft: { type: Number, default: 100 },
+    notFollowerMessage: { type: String },
+    followButtonTitle: { type: String },
+    followUpMessage: { type: String },
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }
