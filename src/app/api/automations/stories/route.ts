@@ -221,6 +221,19 @@ export async function PUT(request: Request) {
         { status: 400 }
       );
     }
+    
+    // Additional check for isFollowed
+    if (body.isFollowed) {
+      if (!body.notFollowerMessage || !body.followButtonTitle || !body.followUpMessage) {
+        return NextResponse.json(
+          {
+            message:
+              "When isFollowed is true, notFollowerMessage, followButtonTitle, and followUpMessage are required.",
+          },
+          { status: 400 }
+        );
+      }
+    }
 
     const story = await StoryModel.findById(id);
 

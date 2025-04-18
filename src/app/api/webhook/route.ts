@@ -548,7 +548,7 @@ export async function sendStoryDM(
                 type: "web_url",
                 url: `${
                   process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
-                  "https://www.groimon.vercel.app"
+                  "https://www.groimon.com"
                 }/redirect?url=${encodeURIComponent(button.url)}`,
                 title: button.buttonText,
               })),

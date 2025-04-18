@@ -66,7 +66,11 @@ const formSchema = z.object({
     .enum(["message", "ButtonText", "ButtonImage"])
     .default("message"),
   message: z.string().min(1, "Message template is required"),
-  imageUrl: z.string().url("Must be a valid image URL").optional(),
+  imageUrl: z.union([
+    z.string().url("Must be a valid image URL").optional(),
+    z.literal("").optional(),
+    z.undefined(),
+  ]),
   buttons: z.array(buttonSchema).optional(),
   enableCommentAutomation: z.boolean(),
   commentMessage: z.string().min(1, "Comment message is required"),
@@ -173,6 +177,13 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
       commentMessage: automation.commentMessage || "",
       enableBacktrack: automation.enableBacktrack,
       isFollowed: automation.isFollowed,
+      notFollowerMessage:
+        automation.notFollowerMessage ||
+        "Please follow our account to receive the information you requested. Once you've followed, click the button below.",
+      followButtonTitle: automation.followButtonTitle || "I'm following now!",
+      followUpMessage:
+        automation.followUpMessage ||
+        "Thanks for following! Here's your message...",
       removeBranding: automation.removeBranding,
     },
   });
@@ -216,7 +227,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
       const formData = {
         ...values,
         keywords: values.keywords.split(",").map((k) => k.trim()),
-        postIds: automation.postIds, // Keep the original post IDs
+        postIds: automation.postIds,
         imageUrl:
           values.messageType === "ButtonImage" ? values.imageUrl : undefined,
         notFollowerMessage: values.isFollowed

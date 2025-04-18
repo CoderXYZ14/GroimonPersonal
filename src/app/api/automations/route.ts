@@ -212,7 +212,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    if (!["message", "ButtonText"].includes(body.messageType)) {
+    if (!["message", "ButtonText", "ButtonImage"].includes(body.messageType)) {
       return NextResponse.json(
         { message: "Invalid message type" },
         { status: 400 }
@@ -220,13 +220,26 @@ export async function PUT(request: Request) {
     }
 
     if (
-      body.messageType === "ButtonText" &&
+      (body.messageType === "ButtonText" || body.messageType === "ButtonImage") &&
       (!body.buttons || !Array.isArray(body.buttons))
     ) {
       return NextResponse.json(
         { message: "Buttons are required for button template" },
         { status: 400 }
       );
+    }
+    
+    // Additional check for isFollowed
+    if (body.isFollowed) {
+      if (!body.notFollowerMessage || !body.followButtonTitle || !body.followUpMessage) {
+        return NextResponse.json(
+          {
+            message:
+              "When isFollowed is true, notFollowerMessage, followButtonTitle, and followUpMessage are required.",
+          },
+          { status: 400 }
+        );
+      }
     }
 
     const automation = await AutomationModel.findById(id);
