@@ -52,7 +52,6 @@ const ProfilePage = () => {
         instaId: "",
         automationsCreated: 0,
       }));
-      console.log("Account delinked");
     }
   };
 

@@ -25,7 +25,6 @@ async function fetchAllComments(
     const response = await axios.get(url);
 
     if (!response.data.data) {
-      console.log("No comments found or invalid response:", response.data);
       return [];
     }
 
@@ -70,7 +69,6 @@ async function fetchAllComments(
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("Process Backtrack route is running");
     const payload = await request.json();
     console.log("Received payload:", payload);
     const { mediaId, mediaIds, accessToken } = payload;
@@ -87,12 +85,10 @@ export async function POST(request: NextRequest) {
 
     // Support both single mediaId and array of mediaIds
     const mediaIdsToProcess = mediaIds || (mediaId ? [mediaId] : []);
-    console.log("Processing media IDs:", mediaIdsToProcess);
 
     let processedCount = 0;
 
     for (const mediaId of mediaIdsToProcess) {
-      console.log(`Fetching comments for media ${mediaId}`);
       const comments = await fetchAllComments(mediaId, accessToken);
       console.log(`Found ${comments.length} comments for media ${mediaId}`);
 

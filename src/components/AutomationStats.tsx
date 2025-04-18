@@ -43,7 +43,7 @@ export function AutomationStats() {
           const response = await axios.get(
             `/api/insta_details?userId=${user.instagramId}&accessToken=${user.instagramAccessToken}`
           );
-          console.log("Profile response:", response.data);
+
           if (response.data && response.data.profilePic) {
             setProfilePic(response.data.profilePic);
           }

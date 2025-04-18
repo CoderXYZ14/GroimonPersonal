@@ -96,11 +96,14 @@ export function CreateStoryAutomationForm() {
   };
 
   const toggleIsFollowed = () => {
-    setIsFollowedOpen(!isFollowedOpen);
+    if (form.watch("isFollowed")) {
+      setIsFollowedOpen(!isFollowedOpen);
+    }
   };
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    mode: "onSubmit",
     defaultValues: {
       name: "",
       applyOption: "selected",
@@ -120,14 +123,19 @@ export function CreateStoryAutomationForm() {
   });
 
   const applyOption = form.watch("applyOption");
-
   const messageType = form.watch("messageType");
+  const isFollowed = form.watch("isFollowed");
+
+  // Watch for changes to isFollowed and update isFollowedOpen
+  useEffect(() => {
+    if (isFollowed) {
+      setIsFollowedOpen(true);
+    } else {
+      setIsFollowedOpen(false);
+    }
+  }, [isFollowed]);
 
   useEffect(() => {
-    const imageUrl = form.watch("imageUrl");
-    console.log("Message Type Changed:", messageType);
-    console.log("Current imageUrl value:", imageUrl);
-
     if (messageType === "ButtonImage") {
       // Make sure the imageUrl field is registered properly
       if (!form.getValues("imageUrl")) {
@@ -201,9 +209,6 @@ export function CreateStoryAutomationForm() {
     try {
       setIsLoading(true);
 
-      console.log("Form values at submission:", values);
-      console.log("Image URL at submission:", values.imageUrl);
-
       const storyIds =
         values.applyOption === "all"
           ? stories.map((story) => story.id)
@@ -226,8 +231,6 @@ export function CreateStoryAutomationForm() {
         values.messageType === "ButtonImage" && values.imageUrl
           ? values.imageUrl
           : undefined;
-
-      console.log("Final imageUrl being sent:", finalImageUrl);
 
       await axios.post("/api/automations/stories", {
         ...values,
@@ -560,10 +563,6 @@ export function CreateStoryAutomationForm() {
                             {...field}
                             onChange={(e) => {
                               field.onChange(e);
-                              console.log(
-                                "imageUrl changed to:",
-                                e.target.value
-                              );
                             }}
                           />
                         </FormControl>
@@ -706,7 +705,8 @@ export function CreateStoryAutomationForm() {
                     <FormItem>
                       <Label>Message for Non-Followers</Label>
                       <FormDescription>
-                        This message will be shown to users who don't follow you
+                        This message will be shown to users who don&apos;t
+                        follow you
                       </FormDescription>
                       <FormControl>
                         <Textarea

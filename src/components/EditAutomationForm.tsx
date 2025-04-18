@@ -147,16 +147,21 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
   };
 
   const toggleCommentAutomation = () => {
-    setCommentAutomationOpen(!commentAutomationOpen);
+    if (form.watch("enableCommentAutomation")) {
+      setCommentAutomationOpen(!commentAutomationOpen);
+    }
   };
 
   const toggleIsFollowed = () => {
-    setIsFollowedOpen(!isFollowedOpen);
+    if (form.watch("isFollowed")) {
+      setIsFollowedOpen(!isFollowedOpen);
+    }
   };
 
   // Default values for the form with proper handling of all fields
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    mode: "onSubmit",
     defaultValues: {
       name: automation.name,
       keywords: automation.keywords.join(", "),
@@ -173,6 +178,26 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
   });
 
   const messageType = form.watch("messageType");
+  const enableCommentAutomation = form.watch("enableCommentAutomation");
+  const isFollowed = form.watch("isFollowed");
+
+  // Watch for changes to enableCommentAutomation and update commentAutomationOpen
+  useEffect(() => {
+    if (enableCommentAutomation) {
+      setCommentAutomationOpen(true);
+    } else {
+      setCommentAutomationOpen(false);
+    }
+  }, [enableCommentAutomation]);
+
+  // Watch for changes to isFollowed and update isFollowedOpen
+  useEffect(() => {
+    if (isFollowed) {
+      setIsFollowedOpen(true);
+    } else {
+      setIsFollowedOpen(false);
+    }
+  }, [isFollowed]);
 
   useEffect(() => {
     if (
@@ -692,7 +717,8 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                     <FormItem>
                       <Label>Message for Non-Followers</Label>
                       <FormDescription>
-                        This message will be shown to users who don't follow you
+                        This message will be shown to users who don&apos;t
+                        follow you
                       </FormDescription>
                       <FormControl>
                         <Textarea

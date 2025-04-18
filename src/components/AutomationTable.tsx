@@ -98,7 +98,6 @@ export function AutomationTable({ type }: AutomationTableProps) {
     }
 
     try {
-      console.log(type);
       const endpoint =
         type === "post" ? "/api/automations" : "/api/automations/stories";
       await axios.delete(endpoint, {

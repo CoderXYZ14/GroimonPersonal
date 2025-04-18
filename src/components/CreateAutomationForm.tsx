@@ -50,7 +50,12 @@ const formSchema = z.object({
   buttons: z.array(buttonSchema).optional(),
   enableCommentAutomation: z.boolean(),
   commentMessage: z.string().min(1, "Comment message is required"),
-  autoReplyLimit: z.number().min(100).default(100),
+  autoReplyLimit: z
+    .number()
+    .refine((val) => val === -1 || val >= 100, {
+      message: "Number must be greater than or equal to 100 or Unlimited.",
+    })
+    .default(100),
   enableBacktrack: z.boolean().default(false),
   isFollowed: z.boolean().default(false),
   notFollowerMessage: z.string().optional(),
@@ -104,6 +109,7 @@ export function CreateAutomationForm() {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    mode: "onSubmit",
     defaultValues: {
       name: "",
       applyOption: "selected",
@@ -127,23 +133,42 @@ export function CreateAutomationForm() {
   });
 
   const toggleCommentAutomation = () => {
-    setCommentAutomationOpen(!commentAutomationOpen);
+    if (form.watch("enableCommentAutomation")) {
+      setCommentAutomationOpen(!commentAutomationOpen);
+    }
   };
 
   const toggleIsFollowed = () => {
-    setIsFollowedOpen(!isFollowedOpen);
+    if (form.watch("isFollowed")) {
+      setIsFollowedOpen(!isFollowedOpen);
+    }
   };
-  const applyOption = form.watch("applyOption");
 
+  const applyOption = form.watch("applyOption");
   const messageType = form.watch("messageType");
+  const enableCommentAutomation = form.watch("enableCommentAutomation");
+  const isFollowed = form.watch("isFollowed");
+
+  // Watch for changes to enableCommentAutomation and update commentAutomationOpen
+  useEffect(() => {
+    if (enableCommentAutomation) {
+      setCommentAutomationOpen(true);
+    } else {
+      setCommentAutomationOpen(false);
+    }
+  }, [enableCommentAutomation]);
+
+  // Watch for changes to isFollowed and update isFollowedOpen
+  useEffect(() => {
+    if (isFollowed) {
+      setIsFollowedOpen(true);
+    } else {
+      setIsFollowedOpen(false);
+    }
+  }, [isFollowed]);
 
   useEffect(() => {
-    const imageUrl = form.watch("imageUrl");
-    console.log("Message Type Changed:", messageType);
-    console.log("Current imageUrl value:", imageUrl);
-
     if (messageType === "ButtonImage") {
-      // Make sure the imageUrl field is registered properly
       if (!form.getValues("imageUrl")) {
         form.setValue("imageUrl", "");
       }
@@ -205,9 +230,6 @@ export function CreateAutomationForm() {
     try {
       setIsLoading(true);
 
-      console.log("Form values at submission:", values);
-      console.log("Image URL at submission:", values.imageUrl);
-
       const postIds =
         values.applyOption === "all"
           ? media.map((post) => post.id)
@@ -229,8 +251,6 @@ export function CreateAutomationForm() {
         values.messageType === "ButtonImage" && values.imageUrl
           ? values.imageUrl
           : undefined;
-
-      console.log("Final imageUrl being sent:", finalImageUrl);
 
       const response = await axios.post("/api/automations", {
         ...values,
@@ -612,10 +632,6 @@ export function CreateAutomationForm() {
                             {...field}
                             onChange={(e) => {
                               field.onChange(e);
-                              console.log(
-                                "imageUrl changed to:",
-                                e.target.value
-                              );
                             }}
                           />
                         </FormControl>
@@ -716,8 +732,13 @@ export function CreateAutomationForm() {
               <Button
                 type="button"
                 variant="ghost"
-                className="text-green-500 flex items-center"
+                className={`text-green-500 flex items-center ${
+                  !enableCommentAutomation
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
                 onClick={toggleCommentAutomation}
+                disabled={!enableCommentAutomation}
               >
                 Comment Template
                 {commentAutomationOpen ? (
@@ -806,7 +827,8 @@ export function CreateAutomationForm() {
                       </FormControl>
                       <FormDescription>
                         Set the maximum number of auto-replies for this
-                        automation
+                        automation. Number must be greater than or equal to 100,
+                        or choose Unlimited.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -892,7 +914,8 @@ export function CreateAutomationForm() {
                     <FormItem>
                       <Label>Message for Non-Followers</Label>
                       <FormDescription>
-                        This message will be shown to users who don't follow you
+                        This message will be shown to users who don&apos;t
+                        follow you
                       </FormDescription>
                       <FormControl>
                         <Textarea

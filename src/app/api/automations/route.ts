@@ -11,8 +11,6 @@ export async function POST(request: Request) {
     await dbConnect();
     const body = await request.json();
 
-    console.log("Received body:", body);
-
     const {
       name,
       postIds,
@@ -32,11 +30,6 @@ export async function POST(request: Request) {
       removeBranding,
       autoReplyLimitLeft,
     } = body;
-
-    console.log("Message Type:", messageType);
-    console.log("Image URL received:", imageUrl);
-    console.log("Auto Reply Limit:", autoReplyLimit);
-    console.log("Auto Reply Limit Left:", autoReplyLimitLeft);
 
     // Validation checks
     if (
@@ -96,16 +89,7 @@ export async function POST(request: Request) {
       hitCount: 0,
     });
 
-    console.log(
-      "Automation to save:",
-      JSON.stringify(automation.toObject(), null, 2)
-    );
-
     await automation.save();
-
-    // Verify saved data
-    const savedAutomation = await AutomationModel.findById(automation._id);
-    console.log("Saved automation:", JSON.stringify(savedAutomation, null, 2));
 
     const updatedUser = await UserModel.findByIdAndUpdate(
       user,

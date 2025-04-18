@@ -8,10 +8,7 @@ export async function GET(request: Request) {
   const type = searchParams.get("type") || "post";
 
   try {
-    console.log("Received params:", { userId, accessToken, type });
-
     if (!accessToken || !userId) {
-      console.log("Missing required params");
       return NextResponse.json(
         { error: "userId and accessToken are required" },
         { status: 400 }

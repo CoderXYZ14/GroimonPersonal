@@ -136,10 +136,6 @@ async function processStory(messaging: StoryMessage) {
       },
     } = messaging;
 
-    console.log(`Processing story reply from user ID: ${senderId}`);
-    console.log(`Story ID: ${storyId}`);
-    console.log(`Comment text: "${commentText}"`);
-
     // Find matching story automation
     const stories = await StoryModel.find({
       postIds: storyId,
@@ -864,7 +860,6 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                     ).populate("user");
 
                     if (!automation || !automation.user) {
-                      console.log("Automation or user not found for postback");
                       continue;
                     }
 
@@ -879,7 +874,6 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                     ).populate("user");
 
                     if (!story || !story.user) {
-                      console.log("Story or user not found for postback");
                       continue;
                     }
 
@@ -887,14 +881,10 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                     messageContent =
                       story.message || postbackData.originalMessage;
                   } else {
-                    console.log(
-                      "Neither automationId nor storyId found in postback data"
-                    );
                     continue;
                   }
 
                   if (!user.instagramAccessToken) {
-                    console.log("Instagram access token not found for user");
                     continue;
                   }
 
@@ -911,10 +901,6 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                   };
 
                   if (isNowFollowing) {
-                    console.log(
-                      `User ${senderId} (${postbackData.username}) is now following, sending automated message`
-                    );
-
                     // When user is following, send the actual message
                     const actualMessage = messageContent;
 
@@ -1004,12 +990,7 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                     }
 
                     await axios.post(url, messageBody, { headers });
-                    console.log(`Automation message sent to user ${senderId}`);
                   } else {
-                    console.log(
-                      `User ${senderId} (${postbackData.username}) is not following yet, sending follow button again with followUpMessage`
-                    );
-
                     const followRequestBody = {
                       recipient: {
                         id: senderId,
@@ -1050,9 +1031,6 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                     };
 
                     await axios.post(url, followRequestBody, { headers });
-                    console.log(
-                      `Follow request button sent again to user ${senderId}`
-                    );
                   }
                 }
               } catch (error) {
