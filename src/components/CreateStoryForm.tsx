@@ -412,9 +412,19 @@ export function CreateStoryAutomationForm() {
                             )}
                             {item.mediaType === "VIDEO" && (
                               <div className="relative w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                                <span className="absolute text-gray-500 dark:text-gray-400 text-xs">
-                                  Video Preview
-                                </span>
+                                {item.thumbnailUrl ? (
+                                  <Image
+                                    src={item.thumbnailUrl}
+                                    alt="Video Thumbnail"
+                                    width={150}
+                                    height={150}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="absolute text-gray-500 dark:text-gray-400 text-xs">
+                                    Video Preview
+                                  </span>
+                                )}
                               </div>
                             )}
                           </div>

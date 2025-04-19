@@ -335,9 +335,19 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
                     )}
                     {stories[0].mediaType === "VIDEO" && (
                       <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                        <span className="text-gray-500 dark:text-gray-400">
-                          Video Preview
-                        </span>
+                        {stories[0].thumbnailUrl ? (
+                          <Image
+                            src={stories[0].thumbnailUrl}
+                            alt="Video Thumbnail"
+                            width={150}
+                            height={150}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-gray-500 dark:text-gray-400">
+                            Video Preview
+                          </span>
+                        )}
                       </div>
                     )}
                     {stories[0].mediaType === "CAROUSEL_ALBUM" && (
@@ -374,9 +384,19 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
                       )}
                       {item.mediaType === "VIDEO" && (
                         <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                          <span className="text-gray-500 dark:text-gray-400">
-                            Video Preview
-                          </span>
+                          {item.thumbnailUrl ? (
+                            <Image
+                              src={item.thumbnailUrl}
+                              alt="Video Thumbnail"
+                              width={150}
+                              height={150}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-gray-500 dark:text-gray-400">
+                              Video Preview
+                            </span>
+                          )}
                         </div>
                       )}
                       {item.mediaType === "CAROUSEL_ALBUM" && (
