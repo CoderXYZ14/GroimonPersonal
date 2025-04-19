@@ -620,7 +620,9 @@ export async function sendStoryDM(
                 url: `${
                   process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
                   "https://www.groimon.com"
-                }/redirect?url=${encodeURIComponent(button.url)}`,
+                }/redirect?url=${encodeURIComponent(
+                  button.url
+                )}&type=story&id=${storyId}`,
                 title: button.buttonText,
               })),
             },
@@ -795,8 +797,9 @@ async function sendDM(
                           `${
                             process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
                             "https://www.groimon.com"
-                          }/redirect?url=${encodeURIComponent(button.url)}` ||
-                          button.url,
+                          }/redirect?url=${encodeURIComponent(
+                            button.url
+                          )}&type=automation&id=${automationId}` || button.url,
                         title: button.buttonText,
                       })),
                     },

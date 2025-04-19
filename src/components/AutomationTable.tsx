@@ -34,6 +34,7 @@ interface Automation {
   commentMessage: string;
   isFollowed: boolean;
   createdAt: string;
+  redirectCount: number;
   hitCount: number;
   isActive: boolean;
 }
@@ -261,17 +262,24 @@ export function AutomationTable({ type }: AutomationTableProps) {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-
+              redirectCount
               <div className="space-y-2">
                 <div>
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                    Hits
+                    DM Counts
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {automation.hitCount}
                   </div>
                 </div>
-
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    Redirect Counts
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {automation.redirectCount}
+                  </div>
+                </div>
                 <div>
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                     Keywords
@@ -287,7 +295,6 @@ export function AutomationTable({ type }: AutomationTableProps) {
                     ))}
                   </div>
                 </div>
-
                 <div>
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                     Comment Automation
@@ -331,7 +338,10 @@ export function AutomationTable({ type }: AutomationTableProps) {
                   </TableHead>
 
                   <TableHead className="font-medium text-xs py-3">
-                    Hits
+                    DM Counts
+                  </TableHead>
+                  <TableHead className="font-medium text-xs py-3">
+                    Redirect Counts
                   </TableHead>
                   <TableHead className="font-medium text-xs py-3">
                     Keywords
@@ -364,6 +374,11 @@ export function AutomationTable({ type }: AutomationTableProps) {
                     <TableCell className="py-2">
                       <div className="flex flex-wrap gap-1">
                         {automation.hitCount}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-2">
+                      <div className="flex flex-wrap gap-1">
+                        {automation.redirectCount}
                       </div>
                     </TableCell>
                     <TableCell className="py-2">

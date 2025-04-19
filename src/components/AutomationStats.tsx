@@ -18,7 +18,7 @@ export function AutomationStats() {
       if (user._id) {
         try {
           const [hitsResponse, automationsResponsePost] = await Promise.all([
-            axios.get(`/api/automations?userId=${user._id}&getTotalHits=true`),
+            axios.get(`/api/automations?userId=${user._id}&redirectCount=true`),
             axios.get(`/api/automations?userId=${user._id}`),
           ]);
 
@@ -26,7 +26,7 @@ export function AutomationStats() {
             `/api/automations/stories?userId=${user._id}`
           );
 
-          setTotalHits(hitsResponse.data.totalHits);
+          setTotalHits(hitsResponse.data.totalRedirectHits);
           setAutomationsCount(
             automationsResponsePost.data.length +
               automationsResponseStory.data.length

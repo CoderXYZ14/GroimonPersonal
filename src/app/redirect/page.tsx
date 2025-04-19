@@ -2,16 +2,38 @@
 
 import React, { useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import axios from "axios";
 
 const RedirectContent = () => {
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("url");
+  const type = searchParams.get("type"); // automation or story
+  const id = searchParams.get("id"); // automation or story ID
 
   useEffect(() => {
-    if (redirectUrl) {
+    const handleRedirect = async () => {
+      if (!redirectUrl) return;
+      
+      // If we have a type and ID, increment the redirect count
+      if (type && id) {
+        try {
+          // Increment redirect count based on type
+          await axios.post('/api/increment-redirect', {
+            type,
+            id
+          });
+          console.log(`Incremented redirect count for ${type} ID: ${id}`);
+        } catch (error) {
+          console.error('Error incrementing redirect count:', error);
+        }
+      }
+      
+      // Redirect to the destination URL
       window.location.href = decodeURIComponent(redirectUrl);
-    }
-  }, [redirectUrl]);
+    };
+    
+    handleRedirect();
+  }, [redirectUrl, type, id]);
 
   if (!redirectUrl) {
     return (
