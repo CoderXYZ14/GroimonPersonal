@@ -21,6 +21,8 @@ export interface IStory extends Document {
   followUpMessage?: string;
   removeBranding: boolean;
   hitCount: number;
+  isActive?: boolean;
+  respondToAll?: boolean;
   user: mongoose.Types.ObjectId | IUser;
 }
 
@@ -53,6 +55,8 @@ const StorySchema: Schema<IStory> = new Schema(
     followUpMessage: { type: String },
     removeBranding: { type: Boolean, default: false },
     hitCount: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
+    respondToAll: { type: Boolean, default: false },
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }

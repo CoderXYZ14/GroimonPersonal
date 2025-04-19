@@ -90,10 +90,6 @@ export async function POST(req: Request) {
 
         const { id, username } = userDetailsResponse.data;
         const user_id = id; // Map id to user_id
-        console.log("[Instagram Token] User details received:", {
-          user_id,
-          username,
-        });
 
         let user = await UserModel.findOne({
           instagramId: user_id,

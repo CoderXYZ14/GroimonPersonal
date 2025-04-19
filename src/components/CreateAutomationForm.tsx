@@ -33,36 +33,55 @@ const buttonSchema = z.object({
   buttonText: z.string().min(1, "Button text is required"),
 });
 
-const formSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  applyOption: z.enum(["all", "selected"]),
-  postId: z.string().optional(),
-  keywords: z.string().min(1, "At least one keyword is required"),
-  messageType: z
-    .enum(["message", "ButtonText", "ButtonImage"])
-    .default("message"),
-  message: z.string().min(1, "Message template is required"),
-  imageUrl: z.union([
-    z.string().url("Must be a valid image URL").optional(),
-    z.literal("").optional(),
-    z.undefined(),
-  ]),
-  buttons: z.array(buttonSchema).optional(),
-  enableCommentAutomation: z.boolean(),
-  commentMessage: z.string().min(1, "Comment message is required"),
-  autoReplyLimit: z
-    .number()
-    .refine((val) => val === -1 || val >= 100, {
-      message: "Number must be greater than or equal to 100 or Unlimited.",
-    })
-    .default(100),
-  enableBacktrack: z.boolean().default(false),
-  isFollowed: z.boolean().default(false),
-  notFollowerMessage: z.string().optional(),
-  followButtonTitle: z.string().optional(),
-  followUpMessage: z.string().optional(),
-  removeBranding: z.boolean().default(false),
-});
+const formSchema = z
+  .object({
+    name: z.string().min(1, "Name is required"),
+    applyOption: z.enum(["all", "selected"]),
+    postId: z.string().optional(),
+    keywords: z.string().optional(),
+    messageType: z
+      .enum(["message", "ButtonText", "ButtonImage"])
+      .default("message"),
+    message: z.string().min(1, "Message template is required"),
+    imageUrl: z.union([
+      z.string().url("Must be a valid image URL").optional(),
+      z.literal("").optional(),
+      z.undefined(),
+    ]),
+    buttons: z.array(buttonSchema).optional(),
+    enableCommentAutomation: z.boolean(),
+    commentMessage: z.string().optional(),
+    autoReplyLimit: z
+      .number()
+      .refine((val) => val === -1 || val >= 100, {
+        message: "Number must be greater than or equal to 100 or Unlimited.",
+      })
+      .default(100),
+    enableBacktrack: z.boolean().default(false),
+    isFollowed: z.boolean().default(false),
+    notFollowerMessage: z.string().optional(),
+    followButtonTitle: z.string().optional(),
+    followUpMessage: z.string().optional(),
+    respondToAll: z.boolean().default(false).optional(),
+    removeBranding: z.boolean().default(false),
+  })
+  .refine(
+    (data) => {
+      // If respondToAll is false, keywords are required
+      if (
+        !data.respondToAll &&
+        (!data.keywords || data.keywords.trim() === "")
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message:
+        "At least one keyword is required when not responding to all messages",
+      path: ["keywords"],
+    }
+  );
 
 interface InstagramMediaItem {
   id: string;
@@ -126,8 +145,10 @@ export function CreateAutomationForm() {
       notFollowerMessage:
         "Please follow our account to receive the information you requested. Once you've followed, click the button below.",
       followButtonTitle: "I'm following now!",
+
       followUpMessage:
         "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
+      respondToAll: false,
       removeBranding: false,
     },
   });
@@ -252,11 +273,14 @@ export function CreateAutomationForm() {
           ? values.imageUrl
           : undefined;
 
+      // In the onSubmit function, modify the axios POST request:
       const response = await axios.post("/api/automations", {
         ...values,
         postIds,
         autoReplyLimitLeft: values.autoReplyLimit,
-        keywords: values.keywords.split(",").map((k) => k.trim()),
+        keywords: values.keywords
+          ? values.keywords.split(",").map((k) => k.trim())
+          : [],
         user: userId,
         imageUrl: finalImageUrl,
         notFollowerMessage: values.isFollowed
@@ -271,6 +295,7 @@ export function CreateAutomationForm() {
           values.messageType === "ButtonImage"
             ? buttons
             : undefined,
+        respondToAll: Boolean(values.respondToAll),
       });
 
       toast.success("Automation created successfully!");
@@ -289,6 +314,7 @@ export function CreateAutomationForm() {
             message: values.message,
             isFollowed: values.isFollowed,
             removeBranding: values.removeBranding,
+            respondToAll: Boolean(values.respondToAll),
           });
 
           if (backtrackResponse.data.success) {
@@ -512,35 +538,67 @@ export function CreateAutomationForm() {
           <div className="p-6 border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium">Trigger</h2>
-              <Button
-                type="button"
-                variant="ghost"
-                className="text-green-500 flex items-center"
-              >
-                {keywordsCount} keyword{keywordsCount !== 1 ? "s" : ""}
-                <ChevronDown className="w-4 h-4 ml-1" />
-              </Button>
+              {!form.watch("respondToAll") && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-green-500 flex items-center"
+                >
+                  {keywordsCount} keyword{keywordsCount !== 1 ? "s" : ""}
+                  <ChevronDown className="w-4 h-4 ml-1" />
+                </Button>
+              )}
             </div>
 
-            <FormField
-              control={form.control}
-              name="keywords"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Input
-                      placeholder="send, dm me, hello"
-                      className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-md"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                    Separate keywords with commas
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="flex items-center space-x-2 mb-4">
+              <FormField
+                control={form.control}
+                name="respondToAll"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <Label>Respond to all messages</Label>
+                      <FormDescription>
+                        When enabled, keywords are not required
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {!form.watch("respondToAll") && (
+              <FormField
+                control={form.control}
+                name="keywords"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input
+                        placeholder="send, dm me, hello"
+                        className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-md"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                      Separate keywords with commas
+                    </FormDescription>
+                    {form.formState.isSubmitted && !field.value && (
+                      <p className="text-sm font-medium text-destructive mt-2">
+                        At least one keyword is required when not responding to
+                        all messages
+                      </p>
+                    )}
+                  </FormItem>
+                )}
+              />
+            )}
           </div>
 
           {/* DM Type section */}

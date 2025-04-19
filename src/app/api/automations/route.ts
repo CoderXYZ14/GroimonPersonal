@@ -29,12 +29,13 @@ export async function POST(request: Request) {
       followUpMessage,
       removeBranding,
       autoReplyLimitLeft,
+      respondToAll,
     } = body;
 
     // Validation checks
     if (
       !name ||
-      !keywords ||
+      (!respondToAll && (!keywords || keywords.length === 0)) ||
       !messageType ||
       !message ||
       !user ||
@@ -64,6 +65,9 @@ export async function POST(request: Request) {
       }
     }
 
+    // Log the respondToAll value from the request
+    console.log("Request respondToAll value:", respondToAll);
+
     // Create automation object explicitly setting all fields
     const automation = new AutomationModel({
       name,
@@ -86,10 +90,26 @@ export async function POST(request: Request) {
       followButtonTitle: isFollowed ? followButtonTitle : undefined,
       followUpMessage: isFollowed ? followUpMessage : undefined,
       removeBranding: removeBranding || false,
+      respondToAll: respondToAll === true, // Explicitly convert to boolean
+      isActive: true,
       hitCount: 0,
     });
 
+    // Log before saving to see if all fields are present
+    console.log("Before saving, automation object:", {
+      ...automation.toObject(),
+      isActive: automation.isActive,
+      respondToAll: automation.respondToAll, // Explicitly log respondToAll
+    });
+
     await automation.save();
+
+    // Retrieve the saved automation to verify all fields were saved
+    const savedAutomation = await AutomationModel.findById(automation._id);
+    console.log(
+      "After saving, retrieved automation:",
+      JSON.stringify(savedAutomation?.toObject(), null, 2)
+    );
 
     const updatedUser = await UserModel.findByIdAndUpdate(
       user,
@@ -205,6 +225,27 @@ export async function PUT(request: Request) {
     const user = JSON.parse(userDetails.value);
     const body = await request.json();
 
+    // Special case for toggling isActive status only
+    if (body.isActive !== undefined && Object.keys(body).length === 1) {
+      const automation = await AutomationModel.findById(id);
+
+      if (!automation) {
+        return NextResponse.json(
+          { message: "Automation not found" },
+          { status: 404 }
+        );
+      }
+
+      const updatedAutomation = await AutomationModel.findByIdAndUpdate(
+        id,
+        { isActive: body.isActive },
+        { new: true }
+      );
+
+      return NextResponse.json(updatedAutomation, { status: 200 });
+    }
+
+    // Regular update with validation
     if (!body.name || !body.keywords || !body.messageType || !body.message) {
       return NextResponse.json(
         { message: "Missing required fields" },
@@ -220,7 +261,8 @@ export async function PUT(request: Request) {
     }
 
     if (
-      (body.messageType === "ButtonText" || body.messageType === "ButtonImage") &&
+      (body.messageType === "ButtonText" ||
+        body.messageType === "ButtonImage") &&
       (!body.buttons || !Array.isArray(body.buttons))
     ) {
       return NextResponse.json(
@@ -228,10 +270,14 @@ export async function PUT(request: Request) {
         { status: 400 }
       );
     }
-    
+
     // Additional check for isFollowed
     if (body.isFollowed) {
-      if (!body.notFollowerMessage || !body.followButtonTitle || !body.followUpMessage) {
+      if (
+        !body.notFollowerMessage ||
+        !body.followButtonTitle ||
+        !body.followUpMessage
+      ) {
         return NextResponse.json(
           {
             message:
@@ -255,17 +301,30 @@ export async function PUT(request: Request) {
       ? body.keywords
       : body.keywords.split(",").map((k: string) => k.trim());
 
+    // Log the body to see what's being sent in the update
+    console.log("Update request body:", body);
+    console.log("respondToAll value in update:", body.respondToAll);
+
+    // Create update object with explicit handling of respondToAll
+    const updateData = {
+      ...body,
+      keywords,
+      user: user.id,
+      postIds: automation.postIds,
+      // Explicitly set respondToAll as a boolean
+      respondToAll: body.respondToAll === true,
+    };
+
+    console.log("Update data being sent to MongoDB:", updateData);
+
     const updatedAutomation = await AutomationModel.findByIdAndUpdate(
       id,
-      {
-        ...body,
-        keywords,
-        user: user.id,
-
-        postIds: automation.postIds,
-      },
+      updateData,
       { new: true, runValidators: true }
     );
+
+    // Log the updated automation to verify respondToAll was saved
+    console.log("Updated automation:", updatedAutomation);
 
     if (!updatedAutomation) {
       return NextResponse.json(

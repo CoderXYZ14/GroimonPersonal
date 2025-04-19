@@ -1,5 +1,6 @@
 "use client";
 import { MoreHorizontal, Plus, Loader2, Search, User2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
@@ -33,6 +35,7 @@ interface Automation {
   isFollowed: boolean;
   createdAt: string;
   hitCount: number;
+  isActive: boolean;
 }
 
 export interface AutomationTableProps {
@@ -66,13 +69,15 @@ export function AutomationTable({ type }: AutomationTableProps) {
           const { data } = await axios.get(`/api/automations`, {
             params: { userId: user._id },
           });
-          setAutomations(data);
+          // Reverse the order to show newest automations first
+          setAutomations(data.reverse());
         }
         if (type === "story") {
           const { data } = await axios.get(`/api/automations/stories`, {
             params: { userId: user._id },
           });
-          setAutomations(data);
+          // Reverse the order to show newest automations first
+          setAutomations(data.reverse());
         }
       } catch (error) {
         console.error("Error:", error);
@@ -113,6 +118,30 @@ export function AutomationTable({ type }: AutomationTableProps) {
     if (type === "post") router.push(`/dashboard/automations/${id}/edit`);
     else if (type === "story")
       router.push(`/dashboard/automations/story/${id}/edit`);
+  };
+
+  const toggleActive = async (id: string, currentStatus: boolean) => {
+    try {
+      const endpoint =
+        type === "post" ? "/api/automations" : "/api/automations/stories";
+      await axios.put(`${endpoint}?id=${id}`, { isActive: !currentStatus });
+
+      // Update local state
+      setAutomations((prevAutomations) =>
+        prevAutomations.map((automation) =>
+          automation._id === id
+            ? { ...automation, isActive: !currentStatus }
+            : automation
+        )
+      );
+
+      toast.success(
+        `Automation ${!currentStatus ? "enabled" : "disabled"} successfully`
+      );
+    } catch (error) {
+      console.error("Error toggling automation status:", error);
+      toast.error("Failed to update automation status");
+    }
   };
   if (!user.isAuthenticated) {
     return (
@@ -236,22 +265,6 @@ export function AutomationTable({ type }: AutomationTableProps) {
               <div className="space-y-2">
                 <div>
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                    Post IDs
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {automation.postIds.map((id) => (
-                      <span
-                        key={id}
-                        className="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
-                      >
-                        {id}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                     Hits
                   </p>
                   <div className="flex flex-wrap gap-1">
@@ -316,9 +329,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
                   <TableHead className="font-medium text-xs py-3">
                     Created
                   </TableHead>
-                  <TableHead className="font-medium text-xs py-3">
-                    Post IDs
-                  </TableHead>
+
                   <TableHead className="font-medium text-xs py-3">
                     Hits
                   </TableHead>
@@ -329,7 +340,10 @@ export function AutomationTable({ type }: AutomationTableProps) {
                     Message
                   </TableHead>
                   <TableHead className="font-medium text-xs py-3">
-                    Comment Status
+                    Comment
+                  </TableHead>
+                  <TableHead className="font-medium text-xs py-3">
+                    Status
                   </TableHead>
                   <TableHead className="w-[40px]"></TableHead>
                 </TableRow>
@@ -346,18 +360,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
                     <TableCell className="py-2 text-xs text-gray-600 dark:text-gray-300">
                       {new Date(automation.createdAt).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="py-2">
-                      <div className="flex flex-wrap gap-1">
-                        {automation.postIds.map((id) => (
-                          <span
-                            key={id}
-                            className="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
-                          >
-                            {id}
-                          </span>
-                        ))}
-                      </div>
-                    </TableCell>
+
                     <TableCell className="py-2">
                       <div className="flex flex-wrap gap-1">
                         {automation.hitCount}
@@ -397,6 +400,17 @@ export function AutomationTable({ type }: AutomationTableProps) {
                               {automation.commentMessage}
                             </span>
                           )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-2">
+                      <div className="flex items-center justify-center">
+                        <Switch
+                          checked={automation.isActive}
+                          onCheckedChange={() =>
+                            toggleActive(automation._id, automation.isActive)
+                          }
+                          className="data-[state=checked]:bg-green-500"
+                        />
                       </div>
                     </TableCell>
                     <TableCell className="py-2">

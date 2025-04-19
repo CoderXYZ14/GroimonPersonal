@@ -9,8 +9,6 @@ export async function POST(request: Request) {
     await dbConnect();
     const body = await request.json();
 
-    console.log("Received body:", body);
-
     const {
       name,
       postIds,
@@ -25,10 +23,8 @@ export async function POST(request: Request) {
       followButtonTitle,
       followUpMessage,
       removeBranding,
+      respondToAll,
     } = body;
-
-    console.log("Message Type:", messageType);
-    console.log("Image URL received:", imageUrl);
 
     // Validation checks
     if (
@@ -41,7 +37,6 @@ export async function POST(request: Request) {
       ((messageType === "ButtonText" || messageType === "ButtonImage") &&
         (!buttons || buttons.length === 0))
     ) {
-      console.log("Validation failed. Missing required fields.");
       return NextResponse.json(
         { message: "Missing required fields" },
         { status: 400 }
@@ -77,16 +72,12 @@ export async function POST(request: Request) {
       followButtonTitle: isFollowed ? followButtonTitle : undefined,
       followUpMessage: isFollowed ? followUpMessage : undefined,
       removeBranding: removeBranding || false,
+      respondToAll: respondToAll || false,
+      isActive: true,
       hitCount: 0,
     });
 
-    console.log("Story to save:", JSON.stringify(story.toObject(), null, 2));
-
     await story.save();
-
-    // Verify saved data
-    const savedStory = await StoryModel.findById(story._id);
-    console.log("Saved story:", JSON.stringify(savedStory, null, 2));
 
     // Update user's stories array
     const updatedUser = await UserModel.findByIdAndUpdate(
@@ -96,7 +87,6 @@ export async function POST(request: Request) {
     );
 
     if (!updatedUser) {
-      console.log("User not found:", user);
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
@@ -194,7 +184,27 @@ export async function PUT(request: Request) {
 
     const body = await request.json();
 
-    // Validate required fields
+    // Special case for toggling isActive status only
+    if (body.isActive !== undefined && Object.keys(body).length === 1) {
+      const story = await StoryModel.findById(id);
+
+      if (!story) {
+        return NextResponse.json(
+          { message: "Story not found" },
+          { status: 404 }
+        );
+      }
+
+      const updatedStory = await StoryModel.findByIdAndUpdate(
+        id,
+        { isActive: body.isActive },
+        { new: true }
+      );
+
+      return NextResponse.json(updatedStory, { status: 200 });
+    }
+
+    // Regular update with validation
     if (!body.name || !body.keywords || !body.messageType || !body.message) {
       return NextResponse.json(
         { message: "Missing required fields" },
@@ -221,10 +231,14 @@ export async function PUT(request: Request) {
         { status: 400 }
       );
     }
-    
+
     // Additional check for isFollowed
     if (body.isFollowed) {
-      if (!body.notFollowerMessage || !body.followButtonTitle || !body.followUpMessage) {
+      if (
+        !body.notFollowerMessage ||
+        !body.followButtonTitle ||
+        !body.followUpMessage
+      ) {
         return NextResponse.json(
           {
             message:

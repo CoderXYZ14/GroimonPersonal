@@ -73,6 +73,8 @@ const formSchema = z.object({
   notFollowerMessage: z.string().optional(),
   followButtonTitle: z.string().optional(),
   followUpMessage: z.string().optional(),
+  isActive: z.boolean().default(true),
+  respondToAll: z.boolean().default(false),
   removeBranding: z.boolean().default(false),
 });
 
@@ -91,6 +93,8 @@ interface EditStoryFormProps {
     notFollowerMessage?: string;
     followButtonTitle?: string;
     followUpMessage?: string;
+    isActive?: boolean;
+    respondToAll?: boolean;
     removeBranding: boolean;
   };
 }
@@ -135,6 +139,8 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
       followUpMessage:
         story.followUpMessage ||
         "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
+      isActive: story.isActive !== undefined ? story.isActive : true,
+      respondToAll: story.respondToAll !== undefined ? story.respondToAll : false,
       removeBranding: story.removeBranding,
     },
   });
@@ -216,13 +222,27 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsLoading(true);
+      
+      // Handle the case when respondToAll is true - keywords can be empty
+      let processedKeywords;
+      if (values.respondToAll) {
+        // If respondToAll is true, we can send an empty array for keywords
+        processedKeywords = [];
+      } else {
+        // Otherwise, split by comma and trim
+        processedKeywords = values.keywords ? String(values.keywords).split(",").map((k) => k.trim()) : [];
+      }
+      
       const formData = {
         ...values,
+        keywords: processedKeywords,
         buttons:
           values.messageType === "ButtonText" ||
           values.messageType === "ButtonImage"
             ? buttons
             : undefined,
+        // Explicitly include respondToAll to ensure it's sent to the backend
+        respondToAll: values.respondToAll,
       };
 
       await axios.put(`/api/automations/stories/${story.id}`, formData);
@@ -700,6 +720,67 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
                   )}
                 />
               </div>
+            )}
+          </div>
+
+          {/* Trigger/Keywords section */}
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium">Trigger</h2>
+              {!form.watch("respondToAll") && (
+                <div className="text-green-500 flex items-center">
+                  {keywordsCount} keyword{keywordsCount !== 1 ? "s" : ""}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center space-x-2 mb-4">
+              <FormField
+                control={form.control}
+                name="respondToAll"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <Label>Respond to all messages</Label>
+                      <FormDescription>
+                        When enabled, keywords are not required
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {!form.watch("respondToAll") && (
+              <FormField
+                control={form.control}
+                name="keywords"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Textarea
+                        placeholder="keyword1, keyword2, keyword3"
+                        className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                      Separate keywords with commas
+                    </FormDescription>
+                    {form.formState.isSubmitted && !field.value && (
+                      <p className="text-sm font-medium text-destructive mt-2">
+                        At least one keyword is required when not responding to all messages
+                      </p>
+                    )}
+                  </FormItem>
+                )}
+              />
             )}
           </div>
 

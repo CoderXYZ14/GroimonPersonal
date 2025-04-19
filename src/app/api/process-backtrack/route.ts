@@ -5,6 +5,7 @@ import { processComment } from "../webhook/route";
 interface InstagramComment {
   id: string;
   text: string;
+  timestamp?: string;
   media: {
     id: string;
     media_product_type?: string;
@@ -39,13 +40,14 @@ async function fetchAllComments(
         return {
           id: commentData.id,
           text: commentData.text,
+          timestamp: commentData.timestamp || comment.timestamp,
           media: {
             id: mediaId,
             media_product_type: "FEED",
           },
           from: {
             id: commentData.from?.id || comment.id,
-            username: commentData.username || commentData.from?.username,
+            username: commentData.username || commentData.from?.username || "unknown",
           },
         };
       } catch (error) {
@@ -53,7 +55,20 @@ async function fetchAllComments(
           `Error fetching details for comment ${comment.id}:`,
           error
         );
-        return null;
+        // Return a basic comment object with available data
+        return {
+          id: comment.id,
+          text: comment.text || "",
+          timestamp: comment.timestamp,
+          media: {
+            id: mediaId,
+            media_product_type: "FEED",
+          },
+          from: {
+            id: comment.from?.id || comment.id,
+            username: comment.username || comment.from?.username || "unknown",
+          },
+        };
       }
     });
 
@@ -70,8 +85,8 @@ async function fetchAllComments(
 export async function POST(request: NextRequest) {
   try {
     const payload = await request.json();
-    console.log("Received payload:", payload);
-    const { mediaId, mediaIds, accessToken } = payload;
+    console.log("Received backtrack payload:", payload);
+    const { mediaId, mediaIds, accessToken, respondToAll, automationId } = payload;
 
     if (!accessToken) {
       return NextResponse.json(
@@ -85,28 +100,64 @@ export async function POST(request: NextRequest) {
 
     // Support both single mediaId and array of mediaIds
     const mediaIdsToProcess = mediaIds || (mediaId ? [mediaId] : []);
+    if (mediaIdsToProcess.length === 0) {
+      return NextResponse.json({
+        success: false,
+        message: "No media IDs provided for backtracking",
+      }, { status: 400 });
+    }
 
     let processedCount = 0;
+    let errorCount = 0;
+    
+    console.log(`Processing backtrack with respondToAll: ${respondToAll}, automationId: ${automationId}`);
 
     for (const mediaId of mediaIdsToProcess) {
-      const comments = await fetchAllComments(mediaId, accessToken);
-      console.log(`Found ${comments.length} comments for media ${mediaId}`);
+      try {
+        const comments = await fetchAllComments(mediaId, accessToken);
+        console.log(`Found ${comments.length} comments for media ${mediaId}`);
 
-      for (const comment of comments) {
-        try {
-          // Process each comment using the webhook's processComment function
-          await processComment(comment, true); // true indicates it's a backtrack comment
-          processedCount++;
-        } catch (error) {
-          console.error(`Error processing comment ${comment.id}:`, error);
-          continue;
+        // Process comments in reverse chronological order (newest first)
+        // This helps with Instagram's time-based limitations
+        const sortedComments = comments.sort((a, b) => {
+          // If we have timestamp info, use it
+          if (a.timestamp && b.timestamp) {
+            return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+          }
+          return 0; // Keep original order if no timestamp
+        });
+
+        for (const comment of sortedComments) {
+          try {
+            // Process each comment using the webhook's processComment function
+            // The second parameter (true) indicates it's a backtrack comment
+            await processComment(comment, true);
+            processedCount++;
+            
+            // Add a small delay between processing comments to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 100));
+          } catch (error) {
+            console.error(`Error processing comment ${comment.id}:`, error);
+            errorCount++;
+            // Continue with next comment even if this one fails
+            continue;
+          }
         }
+      } catch (error) {
+        console.error(`Error fetching comments for media ${mediaId}:`, error);
+        errorCount++;
+        // Continue with next media ID even if this one fails
+        continue;
       }
     }
 
+    // Return a detailed response with success and error counts
     return NextResponse.json({
       success: true,
       message: `Processed ${processedCount} comments across ${mediaIdsToProcess.length} posts`,
+      processedCount,
+      errorCount,
+      totalMediaIds: mediaIdsToProcess.length
     });
   } catch (error) {
     console.error("Error processing backtrack:", error);

@@ -56,31 +56,51 @@ const buttonSchema = z.object({
   buttonText: z.string().min(1, "Button text is required"),
 });
 
-const formSchema = z.object({
-  name: z
-    .string()
-    .min(2, "Name must be at least 2 characters")
-    .max(50, "Name must be less than 50 characters"),
-  keywords: z.string().min(1, "At least one keyword is required"),
-  messageType: z
-    .enum(["message", "ButtonText", "ButtonImage"])
-    .default("message"),
-  message: z.string().min(1, "Message template is required"),
-  imageUrl: z.union([
-    z.string().url("Must be a valid image URL").optional(),
-    z.literal("").optional(),
-    z.undefined(),
-  ]),
-  buttons: z.array(buttonSchema).optional(),
-  enableCommentAutomation: z.boolean(),
-  commentMessage: z.string().min(1, "Comment message is required"),
-  enableBacktrack: z.boolean().default(false),
-  isFollowed: z.boolean().default(false),
-  notFollowerMessage: z.string().optional(),
-  followButtonTitle: z.string().optional(),
-  followUpMessage: z.string().optional(),
-  removeBranding: z.boolean().default(false),
-});
+const formSchema = z
+  .object({
+    name: z
+      .string()
+      .min(2, "Name must be at least 2 characters")
+      .max(50, "Name must be less than 50 characters"),
+    keywords: z.string().optional(),
+    messageType: z
+      .enum(["message", "ButtonText", "ButtonImage"])
+      .default("message"),
+    message: z.string().min(1, "Message template is required"),
+    imageUrl: z.union([
+      z.string().url("Must be a valid image URL").optional(),
+      z.literal("").optional(),
+      z.undefined(),
+    ]),
+    buttons: z.array(buttonSchema).optional(),
+    enableCommentAutomation: z.boolean(),
+    commentMessage: z.string().optional(),
+    enableBacktrack: z.boolean().default(false),
+    isFollowed: z.boolean().default(false),
+    notFollowerMessage: z.string().optional(),
+    followButtonTitle: z.string().optional(),
+    followUpMessage: z.string().optional(),
+    isActive: z.boolean().default(true),
+    respondToAll: z.boolean().default(false),
+    removeBranding: z.boolean().default(false),
+  })
+  .refine(
+    (data) => {
+      // If respondToAll is false, keywords are required
+      if (
+        !data.respondToAll &&
+        (!data.keywords || data.keywords.trim() === "")
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message:
+        "At least one keyword is required when not responding to all messages",
+      path: ["keywords"],
+    }
+  );
 
 interface EditAutomationFormProps {
   automation: IAutomation;
@@ -184,6 +204,9 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
       followUpMessage:
         automation.followUpMessage ||
         "Thanks for following! Here's your message...",
+      isActive: automation.isActive !== undefined ? automation.isActive : true,
+      respondToAll:
+        automation.respondToAll !== undefined ? automation.respondToAll : false,
       removeBranding: automation.removeBranding,
     },
   });
@@ -224,9 +247,22 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setIsLoading(true);
+
+      // Handle the case when respondToAll is true - keywords can be empty
+      let processedKeywords;
+      if (values.respondToAll) {
+        // If respondToAll is true, we can send an empty array for keywords
+        processedKeywords = [];
+      } else {
+        // Otherwise, split by comma and trim
+        processedKeywords = values.keywords
+          ? values.keywords.split(",").map((k) => k.trim())
+          : [];
+      }
+
       const formData = {
         ...values,
-        keywords: values.keywords.split(",").map((k) => k.trim()),
+        keywords: processedKeywords,
         postIds: automation.postIds,
         imageUrl:
           values.messageType === "ButtonImage" ? values.imageUrl : undefined,
@@ -242,6 +278,8 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
           values.messageType === "ButtonImage"
             ? buttons
             : undefined,
+        // Explicitly include respondToAll to ensure it's sent to the backend
+        respondToAll: values.respondToAll,
       };
 
       await axios.put(`/api/automations?id=${automation._id}`, formData);
@@ -410,35 +448,62 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
           <div className="p-6 border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium">Trigger</h2>
-              <Button
-                type="button"
-                variant="ghost"
-                className="text-green-500 flex items-center"
-              >
-                {keywordsCount} keyword{keywordsCount !== 1 ? "s" : ""}
-                <ChevronDown className="w-4 h-4 ml-1" />
-              </Button>
+              {!form.watch("respondToAll") && (
+                <div className="text-green-500 flex items-center">
+                  {keywordsCount} keyword{keywordsCount !== 1 ? "s" : ""}
+                </div>
+              )}
             </div>
 
-            <FormField
-              control={form.control}
-              name="keywords"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Input
-                      placeholder="send, dm me, hello"
-                      className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-md"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                    Separate keywords with commas
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="flex items-center space-x-2 mb-4">
+              <FormField
+                control={form.control}
+                name="respondToAll"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <Label>Respond to all messages</Label>
+                      <FormDescription>
+                        When enabled, keywords are not required
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {!form.watch("respondToAll") && (
+              <FormField
+                control={form.control}
+                name="keywords"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Textarea
+                        placeholder="keyword1, keyword2, keyword3"
+                        className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                      Separate keywords with commas
+                    </FormDescription>
+                    {form.formState.isSubmitted && !field.value && (
+                      <p className="text-sm font-medium text-destructive mt-2">
+                        At least one keyword is required when not responding to
+                        all messages
+                      </p>
+                    )}
+                  </FormItem>
+                )}
+              />
+            )}
           </div>
 
           {/* DM Type section */}

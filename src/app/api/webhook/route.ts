@@ -150,19 +150,45 @@ async function processStory(messaging: StoryMessage) {
 
     console.log(`Found ${stories.length} matching story automations`);
 
-    // Check if the comment matches any keywords and process each matching story
+    // Process each matching story
     for (const story of stories) {
-      const keywords = story.keywords.map((k) => k.toLowerCase());
-      const commentLower = commentText.toLowerCase();
-
-      if (!keywords.some((keyword) => commentLower.includes(keyword))) {
-        console.log(
-          `Comment doesn't match keywords for story automation: ${story.name}`
-        );
-        continue; // Skip this story but check others
+      // Skip if automation is not active
+      if (story.isActive === false) {
+        console.log(`Story automation is disabled: ${story.name}`);
+        continue;
       }
 
-      console.log(`Matched keywords for story automation: ${story.name}`);
+      let shouldProcess = false;
+
+      // If respondToAll is true, process all messages regardless of keywords
+      if (story.respondToAll) {
+        console.log(
+          `Processing story with respondToAll enabled: ${story.name}`
+        );
+        shouldProcess = true;
+      } else {
+        // Otherwise check if the message contains any of the keywords
+        const keywords = story.keywords.map((k) => k.toLowerCase());
+        const commentLower = commentText.toLowerCase();
+
+        if (keywords.some((keyword) => commentLower.includes(keyword))) {
+          console.log(
+            `Keyword match found for story automation: ${story.name}`
+          );
+          shouldProcess = true;
+        } else {
+          console.log(
+            `Comment doesn't match keywords for story automation: ${story.name}`
+          );
+        }
+      }
+
+      // Skip if no keyword match and respondToAll is not enabled
+      if (!shouldProcess) {
+        continue;
+      }
+
+      console.log(`Processing story automation: ${story.name}`);
 
       // Send DM response
       if (!story.user.instagramAccessToken) {
@@ -237,14 +263,20 @@ export async function processComment(
     console.log(`Comment from user: ${comment.from.username}`);
     console.log(`Comment text: "${comment.text}"`);
 
+    // Find matching automations
     const automations = await AutomationModel.find({
       postIds: comment.media.id,
-    }).populate("user");
+      isActive: true, // Only get active automations
+    }).populate<{ user: IUser }>("user");
 
     if (!automations || automations.length === 0) {
-      console.log(`No automations found for post ID: ${comment.media.id}`);
+      console.log(
+        `No matching active automation found for media ID: ${comment.media.id}`
+      );
       return;
     }
+
+    console.log(`Found ${automations.length} automations for this post`);
 
     // If this is a new comment and there are automations with backtrack enabled,
     // fetch and process previous comments
@@ -284,9 +316,8 @@ export async function processComment(
       }
     }
 
-    console.log(`Found ${automations.length} automations for this post`);
-
     for (const automation of automations) {
+      // Skip if the comment is from the post owner (commented out in original code)
       // if (
       //   automation.user &&
       //   typeof automation.user === "object" &&
@@ -297,27 +328,52 @@ export async function processComment(
       //   continue;
       // }
 
-      if (!automation.keywords || automation.keywords.length === 0) {
+      // Check if respondToAll is enabled or if there's a keyword match
+      let shouldProcess = false;
+
+      if (automation.respondToAll) {
+        console.log(
+          `Automation ${automation.name} has respondToAll enabled - processing all comments`
+        );
+        shouldProcess = true;
+      } else if (!automation.keywords || automation.keywords.length === 0) {
         console.log(`Automation ${automation.name} has no keywords, skipping`);
         continue;
+      } else {
+        const commentText = comment.text.toLowerCase();
+        const matchedKeyword = automation.keywords.find((keyword) =>
+          commentText.includes(keyword.toLowerCase())
+        );
+
+        if (matchedKeyword) {
+          console.log(
+            `Keyword match found: "${matchedKeyword}" in automation "${automation.name}"`
+          );
+          shouldProcess = true;
+        }
       }
 
-      const commentText = comment.text.toLowerCase();
-      const matchedKeyword = automation.keywords.find((keyword) =>
-        commentText.includes(keyword.toLowerCase())
-      );
-
-      if (matchedKeyword) {
-        console.log(
-          `Keyword match found: "${matchedKeyword}" in automation "${automation.name}"`
-        );
-
-        await handleAutomationResponse(
-          comment,
-          automation as IAutomation,
-          automation.name,
-          automation._id.toString()
-        );
+      if (shouldProcess) {
+        try {
+          await handleAutomationResponse(
+            comment,
+            automation as IAutomation,
+            automation.name,
+            automation._id.toString()
+          );
+        } catch (error) {
+          console.error(
+            `Error processing automation ${automation.name}:`,
+            error
+          );
+          // Continue processing other automations even if one fails
+          // This is especially important during backtracking
+          if (isBacktrackComment) {
+            console.log(
+              `Continuing with other automations despite error during backtracking`
+            );
+          }
+        }
       } else {
         console.log(
           `No keyword matches found for automation "${automation.name}"`
@@ -378,10 +434,25 @@ async function handleAutomationResponse(
     }
 
     // Always send DM regardless of reply limit
-    await sendDM(comment, automation.message, automationName, automationId);
+    const dmResult = await sendDM(
+      comment,
+      automation.message,
+      automationName,
+      automationId,
+      false
+    );
+
+    // If sendDM returns null, it means it handled a known error gracefully
+    // We don't need to throw an error in this case
+    if (dmResult === null) {
+      console.log(
+        `DM was not sent for ${comment.from.username} due to a handled limitation`
+      );
+    }
   } catch (error) {
     console.error("Error handling automation response:", error);
-    throw error;
+    // Don't rethrow the error to prevent the entire webhook from failing
+    // This allows processing to continue for other automations
   }
 }
 
@@ -643,50 +714,57 @@ async function sendDM(
     let body;
 
     // For backtrack, always use comment_id
-    const recipient = isBacktrack
-      ? { comment_id: comment.id }
-      : { comment_id: comment.id };
+    const recipient = { comment_id: comment.id };
 
-    // If follow check is required and this isn't a backtrack request
+    // Skip follow check for backtracked comments to avoid API errors with old comments
+    // For backtracked comments, we'll assume the user is following
     if (!isBacktrack && automation.isFollowed) {
-      const isFollowing = await checkIfUserFollowsBusiness(
-        comment.from.id,
-        user.instagramAccessToken
-      );
+      try {
+        const isFollowing = await checkIfUserFollowsBusiness(
+          comment.from.id,
+          user.instagramAccessToken
+        );
 
-      if (!isFollowing) {
-        body = {
-          recipient,
-          message: {
-            attachment: {
-              type: "template",
-              payload: {
-                template_type: "button",
-                text:
-                  automation.notFollowerMessage ||
-                  "Please follow our account to receive the information you requested. Once you've followed, click the button below.",
-                buttons: [
-                  {
-                    type: "postback",
-                    title: automation.followButtonTitle || "I'm following now",
-                    payload: JSON.stringify({
-                      action: "followConfirmed",
-                      automationId,
-                      commentId: comment.id,
-                      userId: comment.from.id,
-                      username: comment.from.username,
-                      mediaId: comment.media.id,
-                      originalMessage: originalMessage,
-                      notFollowerMessage: automation.notFollowerMessage,
-                      followButtonTitle: automation.followButtonTitle,
-                      followUpMessage: automation.followUpMessage,
-                    }),
-                  },
-                ],
+        if (!isFollowing) {
+          body = {
+            recipient,
+            message: {
+              attachment: {
+                type: "template",
+                payload: {
+                  template_type: "button",
+                  text:
+                    automation.notFollowerMessage ||
+                    "Please follow our account to receive the information you requested. Once you've followed, click the button below.",
+                  buttons: [
+                    {
+                      type: "postback",
+                      title:
+                        automation.followButtonTitle || "I'm following now",
+                      payload: JSON.stringify({
+                        action: "followConfirmed",
+                        automationId,
+                        commentId: comment.id,
+                        userId: comment.from.id,
+                        username: comment.from.username,
+                        mediaId: comment.media.id,
+                        originalMessage: originalMessage,
+                        notFollowerMessage: automation.notFollowerMessage,
+                        followButtonTitle: automation.followButtonTitle,
+                        followUpMessage: automation.followUpMessage,
+                      }),
+                    },
+                  ],
+                },
               },
             },
-          },
-        };
+          };
+        }
+      } catch (error) {
+        console.log(
+          `Error checking follow status, assuming user is following: ${error.message}`
+        );
+        // Continue without follow check if it fails
       }
     }
 
@@ -715,8 +793,8 @@ async function sendDM(
                         type: "web_url",
                         url:
                           `${
-                            process.env.NEXT_PUBLIC_APP_URL ||
-                            "https://www.groimon.vercel.app"
+                            process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
+                            "https://www.groimon.com"
                           }/redirect?url=${encodeURIComponent(button.url)}` ||
                           button.url,
                         title: button.buttonText,
@@ -741,8 +819,8 @@ async function sendDM(
                     type: "web_url",
                     url:
                       `${
-                        process.env.NEXT_PUBLIC_APP_URL ||
-                        "https://www.groimon.vercel.app"
+                        process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
+                        "https://www.groimon.com"
                       }/redirect?url=${encodeURIComponent(button.url)}` ||
                       button.url,
                     title: button.buttonText,
@@ -778,6 +856,7 @@ async function sendDM(
 
       return response.data;
     } catch (error) {
+      // Handle 24-hour messaging window limit
       if (
         error.response?.data?.error?.code === 10 &&
         error.response?.data?.error?.error_subcode === 2534022
@@ -788,12 +867,32 @@ async function sendDM(
         return null;
       }
 
+      // Handle "comment is too old" error (common during backtracking)
+      if (
+        error.response?.data?.error?.error_subcode === 2534024 ||
+        error.response?.data?.error?.message?.includes("comment is too old")
+      ) {
+        console.log(
+          `Cannot send DM to ${comment.from.username}: Comment is too old to get a reply`
+        );
+        return null;
+      }
+
       console.error("Error sending Instagram DM:", {
         username: comment.from.username,
         errorMessage: error.response?.data?.error?.message || error.message,
         errorCode: error.response?.data?.error?.code,
         errorSubcode: error.response?.data?.error?.error_subcode,
       });
+
+      // For backtracking, we want to continue processing other comments even if one fails
+      if (isBacktrack) {
+        console.log(
+          `Skipping error for backtracked comment from ${comment.from.username}`
+        );
+        return null;
+      }
+
       throw error;
     }
   } catch (error) {
@@ -817,15 +916,19 @@ export async function checkIfUserFollowsBusiness(
 
     const response = await axios.get(url, { params });
 
-    console.log(
-      `Follow check response for user ${instagramScopedId}:`,
-      response.data
-    );
-
     // Return true if the user follows the business, false otherwise
     return response.data && response.data.is_user_follow_business === true;
   } catch (error) {
-    console.error("Error checking if user follows business:", error);
+    // For certain error types, we can make assumptions
+    if (error.response?.status === 400) {
+      console.log(
+        `User ${instagramScopedId} follow status check failed with 400 error - assuming user is following`
+      );
+      return true;
+    }
+
+    console.error("Error checking if user follows business:", error.message);
+    // Default to assuming the user follows the business to avoid blocking the flow
     return true;
   }
 }
@@ -967,8 +1070,8 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                                 type: "web_url",
                                 url:
                                   `${
-                                    process.env.NEXT_PUBLIC_APP_URL ||
-                                    "https://www.groimon.vercel.app"
+                                    process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
+                                    "https://www.groimon.com"
                                   }/redirect?url=${encodeURIComponent(
                                     button.url
                                   )}` || button.url,
