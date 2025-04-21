@@ -764,7 +764,13 @@ async function sendDM(
         }
       } catch (error) {
         console.log(
-          `Error checking follow status, assuming user is following: ${error.message}`
+          `Error checking follow status, assuming user is following: ${error.message}`,
+          {
+            username: comment.from.username,
+            userId: comment.from.id,
+            errorStatus: error.response?.status,
+            errorData: error.response?.data,
+          }
         );
         // Continue without follow check if it fails
       }
@@ -910,17 +916,44 @@ export async function checkIfUserFollowsBusiness(
   accessToken: string
 ): Promise<boolean> {
   try {
-    const url = `https://graph.instagram.com/v22.0/${instagramScopedId}`;
+    // The correct endpoint to check if a user follows a business is:
+    // /{page-id}/subscribed_apps where page-id is the business's Instagram account ID
+    // We need to use the business ID (extracted from the access token) as the endpoint
+
+    // First, get the business ID from the /me endpoint
+    const meResponse = await axios.get("https://graph.facebook.com/v22.0/me", {
+      params: {
+        access_token: accessToken,
+        fields: "id,instagram_business_account",
+      },
+    });
+
+    if (!meResponse.data?.instagram_business_account?.id) {
+      console.log("Could not retrieve Instagram business account ID");
+      return true; // Assume following to avoid disrupting flow
+    }
+
+    const businessId = meResponse.data.instagram_business_account.id;
+
+    // Now check if the user follows the business using the correct endpoint
+    const url = `https://graph.facebook.com/v22.0/${businessId}/followers`;
 
     const params = {
-      fields: "is_user_follow_business",
       access_token: accessToken,
+      user_id: instagramScopedId,
     };
 
     const response = await axios.get(url, { params });
 
-    // Return true if the user follows the business, false otherwise
-    return response.data && response.data.is_user_follow_business === true;
+    // If we get a successful response with data, the user is following
+    return (
+      response.data &&
+      response.data.data &&
+      response.data.data.length > 0 &&
+      response.data.data.some(
+        (follower: any) => follower.id === instagramScopedId
+      )
+    );
   } catch (error) {
     // For certain error types, we can make assumptions
     if (error.response?.status === 400) {
@@ -930,7 +963,30 @@ export async function checkIfUserFollowsBusiness(
       return true;
     }
 
-    console.error("Error checking if user follows business:", error.message);
+    // Handle 500 errors and other server errors
+    if (error.response?.status >= 500) {
+      console.log(
+        `User ${instagramScopedId} follow status check failed with ${error.response.status} server error - assuming user is following`
+      );
+      return true;
+    }
+
+    // Handle permission errors (common when the app doesn't have proper permissions)
+    if (error.response?.data?.error?.type === "OAuthException") {
+      console.log(
+        `Permission error checking if user follows business: ${error.response.data.error.message} - assuming user is following`
+      );
+      return true;
+    }
+
+    // Log the full error details for debugging
+    console.error("Error checking if user follows business:", {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      userId: instagramScopedId,
+    });
+
     // Default to assuming the user follows the business to avoid blocking the flow
     return true;
   }
@@ -1071,13 +1127,14 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                               text: messageWithBranding,
                               buttons: automation.buttons.map((button) => ({
                                 type: "web_url",
-                                url:
-                                  `${
-                                    process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
-                                    "https://www.groimon.com"
-                                  }/redirect?url=${encodeURIComponent(
-                                    button.url
-                                  )}` || button.url,
+                                url: `${
+                                  process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
+                                  "https://www.groimon.com"
+                                }/redirect?url=${encodeURIComponent(
+                                  button.url
+                                )}&type=automation&id=${
+                                  postbackData.automationId
+                                }`,
                                 title: button.buttonText,
                               })),
                             },
