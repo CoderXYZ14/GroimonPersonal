@@ -961,7 +961,6 @@ export async function checkIfUserFollowsBusiness(
       return true;
     }
 
-    // Handle 500 errors and other server errors
     if (error.response?.status >= 500) {
       console.log(
         `User ${instagramScopedId} follow status check failed with ${error.response.status} server error - assuming user is following`
