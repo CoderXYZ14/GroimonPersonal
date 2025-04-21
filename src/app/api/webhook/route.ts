@@ -950,9 +950,7 @@ export async function checkIfUserFollowsBusiness(
       response.data &&
       response.data.data &&
       response.data.data.length > 0 &&
-      response.data.data.some(
-        (follower: any) => follower.id === instagramScopedId
-      )
+      response.data.data.some((follower) => follower.id === instagramScopedId)
     );
   } catch (error) {
     // For certain error types, we can make assumptions
