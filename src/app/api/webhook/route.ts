@@ -528,15 +528,10 @@ export async function sendStoryDM(
       return;
     }
 
-    // Check if user follows the business account
-    const isFollowing = await checkIfUserFollowsBusiness(
-      comment.from.id,
-      accessToken
-    );
-
-    if (!isFollowing && story.isFollowed) {
+    // Modified logic: Skip initial follow check when isFollowed is enabled
+    if (story.isFollowed) {
       console.log(
-        `User ${comment.from.id} is not following but follow is required. Sending follow request.`
+        `Story has isFollowed enabled. Directly sending follow confirmation request to user ${comment.from.id}`
       );
 
       const url = `https://graph.instagram.com/v22.0/${story.user.instagramId}/messages`;
@@ -545,7 +540,7 @@ export async function sendStoryDM(
         "Content-Type": "application/json",
       };
 
-      // Send follow request message with button
+      // Send follow request message with button without checking first
       const followRequestBody = {
         recipient: {
           id: comment.from.id,
@@ -556,8 +551,8 @@ export async function sendStoryDM(
             payload: {
               template_type: "button",
               text:
-                story.notFollowerMessage ||
-                "Please follow our account to receive our message. Click the button below once you're following.",
+                story.followUpMessage ||
+                "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
               buttons: [
                 {
                   type: "postback",
@@ -582,7 +577,9 @@ export async function sendStoryDM(
       };
 
       await axios.post(url, followRequestBody, { headers });
-      console.log(`Follow request sent to user ${comment.from.id}`);
+      console.log(
+        `Follow confirmation request sent to user ${comment.from.id}`
+      );
       return;
     }
 
@@ -721,59 +718,39 @@ async function sendDM(
     // Skip follow check for backtracked comments to avoid API errors with old comments
     // For backtracked comments, we'll assume the user is following
     if (!isBacktrack && automation.isFollowed) {
-      try {
-        const isFollowing = await checkIfUserFollowsBusiness(
-          comment.from.id,
-          user.instagramAccessToken
-        );
-
-        if (!isFollowing) {
-          body = {
-            recipient,
-            message: {
-              attachment: {
-                type: "template",
-                payload: {
-                  template_type: "button",
-                  text:
-                    automation.notFollowerMessage ||
-                    "Please follow our account to receive the information you requested. Once you've followed, click the button below.",
-                  buttons: [
-                    {
-                      type: "postback",
-                      title:
-                        automation.followButtonTitle || "I'm following now",
-                      payload: JSON.stringify({
-                        action: "followConfirmed",
-                        automationId,
-                        commentId: comment.id,
-                        userId: comment.from.id,
-                        username: comment.from.username,
-                        mediaId: comment.media.id,
-                        originalMessage: originalMessage,
-                        notFollowerMessage: automation.notFollowerMessage,
-                        followButtonTitle: automation.followButtonTitle,
-                        followUpMessage: automation.followUpMessage,
-                      }),
-                    },
-                  ],
+      // Modified logic: Skip initial follow check and directly ask if user is following
+      body = {
+        recipient,
+        message: {
+          attachment: {
+            type: "template",
+            payload: {
+              template_type: "button",
+              text:
+                automation.followUpMessage ||
+                "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
+              buttons: [
+                {
+                  type: "postback",
+                  title: automation.followButtonTitle || "I'm following now",
+                  payload: JSON.stringify({
+                    action: "followConfirmed",
+                    automationId,
+                    commentId: comment.id,
+                    userId: comment.from.id,
+                    username: comment.from.username,
+                    mediaId: comment.media.id,
+                    originalMessage: originalMessage,
+                    notFollowerMessage: automation.notFollowerMessage,
+                    followButtonTitle: automation.followButtonTitle,
+                    followUpMessage: automation.followUpMessage,
+                  }),
                 },
-              },
+              ],
             },
-          };
-        }
-      } catch (error) {
-        console.log(
-          `Error checking follow status, assuming user is following: ${error.message}`,
-          {
-            username: comment.from.username,
-            userId: comment.from.id,
-            errorStatus: error.response?.status,
-            errorData: error.response?.data,
-          }
-        );
-        // Continue without follow check if it fails
-      }
+          },
+        },
+      };
     }
 
     // If no follow check needed or user is following
@@ -894,7 +871,6 @@ async function sendDM(
         errorSubcode: error.response?.data?.error?.error_subcode,
       });
 
-      // For backtracking, we want to continue processing other comments even if one fails
       if (isBacktrack) {
         console.log(
           `Skipping error for backtracked comment from ${comment.from.username}`
@@ -910,85 +886,32 @@ async function sendDM(
   }
 }
 
-// Updated function to check if user follows the business using the proper Instagram API endpoint
 export async function checkIfUserFollowsBusiness(
   instagramScopedId: string,
   accessToken: string
 ): Promise<boolean> {
   try {
-    // The correct endpoint to check if a user follows a business is:
-    // /{page-id}/subscribed_apps where page-id is the business's Instagram account ID
-    // We need to use the business ID (extracted from the access token) as the endpoint
-
-    // First, get the business ID from the /me endpoint
-    const meResponse = await axios.get("https://graph.facebook.com/v22.0/me", {
-      params: {
-        access_token: accessToken,
-        fields: "id,instagram_business_account",
-      },
-    });
-
-    if (!meResponse.data?.instagram_business_account?.id) {
-      console.log("Could not retrieve Instagram business account ID");
-      return true; // Assume following to avoid disrupting flow
-    }
-
-    const businessId = meResponse.data.instagram_business_account.id;
-
-    // Now check if the user follows the business using the correct endpoint
-    const url = `https://graph.facebook.com/v22.0/${businessId}/followers`;
+    const url = `https://graph.instagram.com/v22.0/${instagramScopedId}`;
 
     const params = {
+      fields: "is_user_follow_business",
       access_token: accessToken,
-      user_id: instagramScopedId,
     };
 
     const response = await axios.get(url, { params });
 
-    // If we get a successful response with data, the user is following
-    return (
-      response.data &&
-      response.data.data &&
-      response.data.data.length > 0 &&
-      response.data.data.some((follower) => follower.id === instagramScopedId)
+    console.log(
+      `Follow check response for user ${instagramScopedId}:`,
+      response.data
     );
+
+    // Return true if the user follows the business, false otherwise
+    return response.data && response.data.is_user_follow_business === true;
   } catch (error) {
-    // For certain error types, we can make assumptions
-    if (error.response?.status === 400) {
-      console.log(
-        `User ${instagramScopedId} follow status check failed with 400 error - assuming user is following`
-      );
-      return true;
-    }
-
-    if (error.response?.status >= 500) {
-      console.log(
-        `User ${instagramScopedId} follow status check failed with ${error.response.status} server error - assuming user is following`
-      );
-      return true;
-    }
-
-    // Handle permission errors (common when the app doesn't have proper permissions)
-    if (error.response?.data?.error?.type === "OAuthException") {
-      console.log(
-        `Permission error checking if user follows business: ${error.response.data.error.message} - assuming user is following`
-      );
-      return true;
-    }
-
-    // Log the full error details for debugging
-    console.error("Error checking if user follows business:", {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      userId: instagramScopedId,
-    });
-
-    // Default to assuming the user follows the business to avoid blocking the flow
+    console.error("Error checking if user follows business:", error);
     return true;
   }
 }
-
 async function handlePostback(payload: InstagramWebhookPayload) {
   try {
     console.log("Postback payload received:", JSON.stringify(payload, null, 2));
@@ -1047,6 +970,7 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                     continue;
                   }
 
+                  // Check if the user is actually following the business
                   const isNowFollowing = await checkIfUserFollowsBusiness(
                     senderId,
                     user.instagramAccessToken
@@ -1059,8 +983,12 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                     "Content-Type": "application/json",
                   };
 
+                  console.log("isNowFollowing", isNowFollowing);
                   if (isNowFollowing) {
-                    // When user is following, send the actual message
+                    // When user is actually following, send the actual message
+                    console.log(
+                      `User ${senderId} is confirmed to be following. Sending actual message.`
+                    );
                     const actualMessage = messageContent;
 
                     // Add branding based on the type (story or automation)
@@ -1079,7 +1007,6 @@ async function handlePostback(payload: InstagramWebhookPayload) {
 
                     let messageBody;
 
-                    // Handle different message types based on whether it's a story or automation
                     if (isStory) {
                       // For story, we just send a simple text message
                       messageBody = {
@@ -1151,6 +1078,11 @@ async function handlePostback(payload: InstagramWebhookPayload) {
 
                     await axios.post(url, messageBody, { headers });
                   } else {
+                    // User clicked the button but is not actually following
+                    console.log(
+                      `User ${senderId} clicked the follow button but is not actually following. Sending reminder message.`
+                    );
+
                     const followRequestBody = {
                       recipient: {
                         id: senderId,
@@ -1161,8 +1093,8 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                           payload: {
                             template_type: "button",
                             text:
-                              postbackData.followUpMessage ||
-                              "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
+                              postbackData.notFollowerMessage ||
+                              "We couldn't verify that you're following our account. Please make sure you're following us and click the button below again.",
                             buttons: [
                               {
                                 type: "postback",
