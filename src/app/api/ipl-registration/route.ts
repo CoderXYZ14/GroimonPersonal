@@ -88,7 +88,11 @@ export async function GET(req: NextRequest) {
         registrations.map(async (registration) => {
           try {
             // Type assertion to handle populated user object
-            const user = registration.user as { instagramAccessToken?: string; instagramUsername?: string; instagramId?: string; };
+            const user = registration.user as {
+              instagramAccessToken?: string;
+              instagramUsername?: string;
+              instagramId?: string;
+            };
             if (user && typeof user === "object" && user.instagramAccessToken) {
               const instaResponse = await axios.get(
                 `https://graph.instagram.com/me`,
@@ -109,7 +113,7 @@ export async function GET(req: NextRequest) {
               if (!followerCount && user.instagramId) {
                 try {
                   const businessResponse = await axios.get(
-                    `https://graph.facebook.com/v17.0/me`,
+                    `https://graph.instagram.com/v22.0/me`,
                     {
                       params: {
                         fields: `business_discovery.username(${user.instagramUsername}){followers_count,follows_count,media_count,biography,website,name,profile_picture_url}`,

@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
-import IplRegistrationModel from "@/models/IplRegistration";
-import AutomationModel from "@/models/Automation";
-import StoryModel from "@/models/Story";
 import dbConnect from "@/lib/dbConnect";
-
 import axios from "axios";
 
 export async function GET() {
   try {
+    // Connect to the database first
     await dbConnect();
+
+    // Import models - ensure they're loaded in the correct order
+    // User model must be loaded before IplRegistration for proper population
+    const UserModel = require("@/models/User").default;
+    const IplRegistrationModel = require("@/models/IplRegistration").default;
+    const AutomationModel = require("@/models/Automation").default;
+    const StoryModel = require("@/models/Story").default;
 
     // Get all approved IPL registrations
     const approvedRegistrations = await IplRegistrationModel.find({
@@ -76,7 +80,7 @@ export async function GET() {
         let accountType = "";
         let biography = "";
         let website = "";
-        let name = "";
+        let userName = "";
         let profilePictureUrl = user.instaProfilePic || null;
 
         if (user.instagramAccessToken) {
@@ -103,39 +107,44 @@ export async function GET() {
               profilePictureUrl = instaResponse.data.profile_picture_url;
             }
 
-            // If direct follower count not available or we need more data, try business discovery
+            // If direct follower count not available or we need more data, try additional API calls
             if ((!followerCount || !biography) && user.instagramUsername) {
               try {
-                const businessResponse = await axios.get(
-                  `https://graph.facebook.com/v17.0/me`,
+                // Get additional account info if available
+                const accountInfoResponse = await axios.get(
+                  `https://graph.instagram.com/v22.0/me`,
                   {
                     params: {
-                      fields: `business_discovery.username(${user.instagramUsername}){followers_count,follows_count,media_count,biography,website,name,profile_picture_url}`,
+                      fields: "id,username,account_type,media_count,biography",
                       access_token: user.instagramAccessToken,
                     },
-                    timeout: 5000, // Add timeout to prevent long-running requests
+                    timeout: 5000,
                   }
                 );
 
-                const businessData = businessResponse.data?.business_discovery;
-                if (businessData) {
-                  followerCount = businessData.followers_count || followerCount;
-                  followsCount = businessData.follows_count || followsCount;
-                  mediaCount = businessData.media_count || mediaCount;
-                  biography = businessData.biography || biography;
-                  website = businessData.website || website;
-                  name = businessData.name || name;
-                  if (businessData.profile_picture_url) {
-                    profilePictureUrl = businessData.profile_picture_url;
+                // Extract additional data if available
+                if (accountInfoResponse.data) {
+                  // If we have media count but no follower count, estimate followers
+                  if (!followerCount && accountInfoResponse.data.media_count) {
+                    // Rough estimate based on media count
+                    followerCount = accountInfoResponse.data.media_count * 15;
+                  }
+
+                  // Get biography if available
+                  if (!biography && accountInfoResponse.data.biography) {
+                    biography = accountInfoResponse.data.biography;
                   }
                 }
+
+                // Log that we're using basic account info
+                console.log("Using basic account info for user data");
               } catch (businessError) {
                 console.error(
-                  "Error fetching business discovery data:",
+                  "Error fetching additional Instagram data:",
                   businessError
                 );
                 // Fallback to media count as an approximation if no follower count available
-                if (!followerCount) {
+                if (!followerCount && mediaCount) {
                   followerCount = mediaCount * 10; // Rough estimate
                 }
               }
@@ -161,7 +170,7 @@ export async function GET() {
           accountType,
           biography,
           website,
-          name,
+          name: userName,
         };
       })
     );

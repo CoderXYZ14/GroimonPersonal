@@ -93,7 +93,10 @@ export async function GET(req: NextRequest) {
       registrations.map(async (registration) => {
         try {
           // Type assertion to handle populated user object
-          const user = registration.user as { instagramAccessToken?: string; instagramUsername?: string; };
+          const user = registration.user as {
+            instagramAccessToken?: string;
+            instagramUsername?: string;
+          };
           if (user && typeof user === "object" && user.instagramAccessToken) {
             const instaResponse = await axios.get(
               `https://graph.instagram.com/me`,
@@ -114,13 +117,17 @@ export async function GET(req: NextRequest) {
             let biography = "";
             let website = "";
             let name = "";
-            let profilePictureUrl = instaResponse.data.profile_picture_url || null;
+            let profilePictureUrl =
+              instaResponse.data.profile_picture_url || null;
 
             // If direct follower count not available, try business discovery
-            if ((!followerCount || !profilePictureUrl) && user.instagramUsername) {
+            if (
+              (!followerCount || !profilePictureUrl) &&
+              user.instagramUsername
+            ) {
               try {
                 const businessResponse = await axios.get(
-                  `https://graph.facebook.com/v17.0/me`,
+                  `https://graph.instagram.com/v22.0/me`,
                   {
                     params: {
                       fields: `business_discovery.username(${user.instagramUsername}){followers_count,follows_count,media_count,biography,website,name,profile_picture_url}`,
@@ -129,8 +136,7 @@ export async function GET(req: NextRequest) {
                   }
                 );
 
-                const businessData =
-                  businessResponse.data?.business_discovery;
+                const businessData = businessResponse.data?.business_discovery;
                 if (businessData) {
                   followerCount = businessData.followers_count || followerCount;
                   followsCount = businessData.follows_count || followsCount;
