@@ -29,9 +29,10 @@ let UserModel: mongoose.Model<IUser>;
 try {
   // Try to get the existing model first
   UserModel = mongoose.model<IUser>("User");
-} catch (error) {
+} catch (err) {
   // If the model doesn't exist yet, create it
   UserModel = mongoose.model<IUser>("User", UserSchema);
+  console.error("Error creating User model:", err);
 }
 
 export default UserModel;

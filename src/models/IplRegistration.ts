@@ -12,10 +12,10 @@ const IplRegistrationSchema: Schema<IIplRegistration> = new Schema(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
     registrationTime: { type: Date, default: Date.now },
-    status: { 
-      type: String, 
-      enum: ["pending", "approved", "rejected"], 
-      default: "pending" 
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
     },
     rejectionReason: { type: String },
   },
@@ -28,9 +28,13 @@ let IplRegistrationModel: mongoose.Model<IIplRegistration>;
 try {
   // Try to get the existing model first
   IplRegistrationModel = mongoose.model<IIplRegistration>("IplRegistration");
-} catch (error) {
+} catch (err) {
   // If the model doesn't exist yet, create it
-  IplRegistrationModel = mongoose.model<IIplRegistration>("IplRegistration", IplRegistrationSchema);
+  IplRegistrationModel = mongoose.model<IIplRegistration>(
+    "IplRegistration",
+    IplRegistrationSchema
+  );
+  console.error("Error creating IplRegistration model:", err);
 }
 
 export default IplRegistrationModel;

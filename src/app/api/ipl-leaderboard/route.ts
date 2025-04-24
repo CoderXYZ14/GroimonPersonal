@@ -1,18 +1,14 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import axios from "axios";
+import IplRegistrationModel from "@/models/IplRegistration";
+import AutomationModel from "@/models/Automation";
+import StoryModel from "@/models/Story";
 
 export async function GET() {
   try {
     // Connect to the database first
     await dbConnect();
-
-    // Import models - ensure they're loaded in the correct order
-    // User model must be loaded before IplRegistration for proper population
-    const UserModel = require("@/models/User").default;
-    const IplRegistrationModel = require("@/models/IplRegistration").default;
-    const AutomationModel = require("@/models/Automation").default;
-    const StoryModel = require("@/models/Story").default;
 
     // Get all approved IPL registrations
     const approvedRegistrations = await IplRegistrationModel.find({
@@ -79,8 +75,8 @@ export async function GET() {
         let mediaCount = 0;
         let accountType = "";
         let biography = "";
-        let website = "";
-        let userName = "";
+        const website = "";
+        const userName = "";
         let profilePictureUrl = user.instaProfilePic || null;
 
         if (user.instagramAccessToken) {
