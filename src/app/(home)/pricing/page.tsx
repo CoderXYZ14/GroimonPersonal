@@ -5,7 +5,6 @@ import { Check, MessageCircle, Send, Zap } from "lucide-react";
 export default function Pricing() {
   return (
     <main className="flex-1">
-      {/* Pricing Hero Section */}
       <section className="relative overflow-hidden py-24 md:py-32 bg-white/50 dark:bg-black/50">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-violet-500/10 via-fuchsia-400/5 to-transparent dark:from-violet-900/20 dark:via-fuchsia-900/10 dark:to-transparent"></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[conic-gradient(from_0deg,_var(--tw-gradient-stops))] from-violet-500/20 via-fuchsia-500/10 to-transparent rounded-full blur-3xl"></div>
@@ -19,13 +18,10 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* Pricing Table Section */}
       <section className="py-16 md:py-24 bg-white dark:bg-background">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto">
-            {/* Pricing Card */}
             <div className="relative rounded-2xl overflow-hidden border-2 border-violet-500 shadow-xl">
-              {/* Popular Tag */}
               <div className="absolute top-0 right-0">
                 <div className="bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white px-6 py-1 transform translate-x-8 translate-y-4 rotate-45 shadow-md">
                   <span className="font-medium text-sm">Free Access</span>
@@ -56,7 +52,6 @@ export default function Pricing() {
                   </Link>
                 </div>
 
-                {/* Features Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                   <div className="flex items-start space-x-3">
                     <div className="flex-shrink-0 mt-1">
@@ -129,7 +124,6 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* Feature Highlights */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-white to-gray-50 dark:from-black dark:to-gray-950">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-6 bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-fuchsia-500">
@@ -218,7 +212,6 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* FAQ Section */}
       <section className="py-16 md:py-24 bg-white/80 dark:bg-black/80">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
@@ -271,7 +264,6 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* CTA Section */}
       <section className="py-24 relative overflow-hidden bg-white/80 dark:bg-black/80">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom,_var(--tw-gradient-stops))] from-violet-500/20 via-fuchsia-400/10 to-transparent dark:from-violet-900/30 dark:via-fuchsia-900/20 dark:to-transparent"></div>
         <div className="container relative z-10 mx-auto px-4 text-center">

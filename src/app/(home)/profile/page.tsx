@@ -1,59 +1,44 @@
 "use client";
-
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Instagram, AlertCircle, Hash } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
-import axios from "axios";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 const ProfilePage = () => {
-  const [userData, setUserData] = useState({
-    instaId: "",
-    automationsCreated: 0,
-    profileImage: "",
-    provider: "",
-  });
+  const { userData, isLoading, error, handleDelinkAccount } = useUserProfile();
 
-  useEffect(() => {
-    const updateDetails = async () => {
-      const userDetails = localStorage.getItem("user_details");
-      if (userDetails) {
-        try {
-          const parsedUser = JSON.parse(userDetails);
-          const response = await axios.get(`/api/get-user-details`, {
-            params: { id: parsedUser._id },
-          });
-
-          const userData = {
-            instaId: parsedUser.instagramUsername,
-            automationsCreated: response.data.numberOfAutomations,
-            profileImage: response.data.profileImage,
-            provider: parsedUser.provider,
-          };
-          setUserData(userData);
-          // No more editing functionality needed
-        } catch (error) {
-          console.error("Error parsing user data:", error);
-        }
-      }
-    };
-    updateDetails();
-  }, []);
-
-  const handleDelinkAccount = () => {
-    if (
-      window.confirm("Are you sure you want to delink your Instagram account?")
-    ) {
-      toast.success("Instagram delinked successfully !!");
-      setUserData((prev) => ({
-        ...prev,
-        instaId: "",
-        automationsCreated: 0,
-      }));
+  const onDelinkAccount = () => {
+    const success = handleDelinkAccount();
+    if (success) {
+      toast.success("Instagram delinked successfully!!");
     }
   };
+
+  if (isLoading) {
+    return (
+      <main className="flex-1 flex items-center justify-center py-12 md:py-20">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-t-purple-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-500 dark:text-gray-400">Loading profile...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="flex-1 flex items-center justify-center py-12 md:py-20">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <p className="text-red-500 mb-2">Error loading profile</p>
+          <p className="text-gray-500 dark:text-gray-400">{error}</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex-1">
@@ -90,7 +75,7 @@ const ProfilePage = () => {
                 </div>
                 <div className="mt-4 md:mt-0 flex gap-4">
                   <Button
-                    onClick={handleDelinkAccount}
+                    onClick={onDelinkAccount}
                     variant="outline"
                     className="border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 flex items-center gap-2"
                   >
@@ -108,7 +93,7 @@ const ProfilePage = () => {
                       <span>Instagram ID</span>
                     </div>
                     <div className="bg-white dark:bg-gray-900 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-800 h-8">
-                      {userData.instaId}
+                      {userData.instaId || "Not connected"}
                     </div>
                   </div>
 

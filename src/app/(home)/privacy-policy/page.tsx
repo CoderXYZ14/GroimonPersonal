@@ -180,7 +180,7 @@ export default function PrivacyPolicyPage() {
                     data practices, please contact us at:
                   </p>
                   <p className="mt-3 font-medium">
-                    Email:{" "}
+                    Email:
                     <a
                       href="mailto:hardik@longtermcollab.com"
                       className="text-purple-500 hover:underline"

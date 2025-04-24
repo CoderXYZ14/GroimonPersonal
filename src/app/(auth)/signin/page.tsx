@@ -16,7 +16,7 @@ export default function SignIn() {
     try {
       handleInstagramLogin();
     } catch (error) {
-      console.error("Instagram Link Error:", error);
+      console.error("Instagram Login Error:", error);
     }
   };
 
