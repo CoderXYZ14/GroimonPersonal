@@ -22,19 +22,8 @@ const IplRegistrationSchema: Schema<IIplRegistration> = new Schema(
   { timestamps: true }
 );
 
-// Make sure to check if the model exists before creating a new one
-let IplRegistrationModel: mongoose.Model<IIplRegistration>;
+const IplRegistrationModel =
+  mongoose.models.IplRegistration ||
+  mongoose.model<IIplRegistration>("IplRegistration", IplRegistrationSchema);
 
-try {
-  // Try to get the existing model first
-  IplRegistrationModel = mongoose.model<IIplRegistration>("IplRegistration");
-} catch (err) {
-  // If the model doesn't exist yet, create it
-  IplRegistrationModel = mongoose.model<IIplRegistration>(
-    "IplRegistration",
-    IplRegistrationSchema
-  );
-  console.error("Error creating IplRegistration model:", err);
-}
-
-export default IplRegistrationModel;
+export default IplRegistrationModel as mongoose.Model<IIplRegistration>;

@@ -23,16 +23,6 @@ const UserSchema: Schema<IUser> = new Schema(
   { timestamps: true }
 );
 
-// Make sure to check if the model exists before creating a new one
-let UserModel: mongoose.Model<IUser>;
-
-try {
-  // Try to get the existing model first
-  UserModel = mongoose.model<IUser>("User");
-} catch (err) {
-  // If the model doesn't exist yet, create it
-  UserModel = mongoose.model<IUser>("User", UserSchema);
-  console.error("Error creating User model:", err);
-}
-
-export default UserModel;
+const UserModel =
+  mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
+export default UserModel as mongoose.Model<IUser>;
