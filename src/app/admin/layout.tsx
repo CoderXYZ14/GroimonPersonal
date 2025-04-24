@@ -20,7 +20,7 @@ export default function AdminLayout({
               className="mr-2 font-bold"
               onClick={() => router.push("/dashboard")}
             >
-              ChatoMeta Admin
+              Groimon Admin
             </Button>
           </div>
           <nav className="flex items-center space-x-4 lg:space-x-6">

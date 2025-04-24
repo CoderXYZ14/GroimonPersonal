@@ -255,6 +255,8 @@ const IplRegistrationsAdminPage = () => {
                                     registration.name ||
                                     registration.user.instagramUsername
                                   }
+                                  width={32}
+                                  height={32}
                                   className="h-full w-full object-cover"
                                 />
                               </div>
