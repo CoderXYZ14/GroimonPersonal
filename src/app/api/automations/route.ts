@@ -347,7 +347,8 @@ export async function PUT(request: Request) {
       ...body,
       keywords,
       user: user.id,
-      postIds: automation.postIds,
+      // Use postIds from the request if provided, otherwise keep the original
+      postIds: body.postIds || automation.postIds,
       // Explicitly set respondToAll as a boolean
       respondToAll: body.respondToAll === true,
     };

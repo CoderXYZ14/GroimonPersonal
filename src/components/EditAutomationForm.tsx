@@ -62,6 +62,8 @@ const formSchema = z
       .string()
       .min(2, "Name must be at least 2 characters")
       .max(50, "Name must be less than 50 characters"),
+    applyOption: z.enum(["all", "selected"]),
+    postId: z.string().optional(),
     keywords: z.string().optional(),
     messageType: z
       .enum(["message", "ButtonText", "ButtonImage"])
@@ -109,6 +111,7 @@ interface EditAutomationFormProps {
 export function EditAutomationForm({ automation }: EditAutomationFormProps) {
   const router = useRouter();
   const user = useAppSelector((state) => state.user);
+  const [selectPostOpen, setSelectPostOpen] = useState(true);
   const [dmTypeOpen, setDmTypeOpen] = useState(true);
   const [commentAutomationOpen, setCommentAutomationOpen] = useState(false);
   const [isFollowedOpen, setIsFollowedOpen] = useState(false);
@@ -118,53 +121,53 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
     Array<{ title: string; url: string; buttonText: string }>
   >(automation.buttons || []);
 
+  // Define fetchMedia outside useEffect so it can be called directly
+  const fetchMedia = async () => {
+    setIsLoading(true);
+    const instagramId = user.instagramId;
+    const instagramAccessToken = user.instagramAccessToken;
+
+    if (!instagramId || !instagramAccessToken) {
+      console.error("Instagram user ID or access token not found");
+      toast.error("Instagram user ID or access token not found");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://graph.instagram.com/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&access_token=${instagramAccessToken}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data: InstagramMediaResponse = await response.json();
+
+      // Transform the data - show ALL posts, not just the ones in the automation
+      const transformedMedia = data.data.map((item) => ({
+        id: item.id,
+        title: item.caption || "No caption",
+        mediaUrl: item.media_url,
+        mediaType: item.media_type,
+        thumbnailUrl: item.thumbnail_url,
+        timestamp: item.timestamp,
+      }));
+
+      setMedia(transformedMedia);
+    } catch (error) {
+      console.error("Error fetching Instagram media:", error);
+      toast.error("Failed to fetch Instagram media");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Call fetchMedia when component mounts and when user credentials change
   useEffect(() => {
-    const fetchMedia = async () => {
-      setIsLoading(true);
-      const instagramId = user.instagramId;
-      const instagramAccessToken = user.instagramAccessToken;
-
-      if (!instagramId || !instagramAccessToken) {
-        console.error("Instagram user ID or access token not found");
-        toast.error("Instagram user ID or access token not found");
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch(
-          `https://graph.instagram.com/v22.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&access_token=${instagramAccessToken}`
-        );
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch media: ${response.statusText}`);
-        }
-
-        const data: InstagramMediaResponse = await response.json();
-        const allMedia = data.data.map((item: InstagramMediaItem) => ({
-          id: item.id,
-          title: item.caption || `Post ${item.id}`,
-          mediaUrl: item.media_url,
-          mediaType: item.media_type,
-          thumbnailUrl: item.thumbnail_url,
-          timestamp: item.timestamp,
-        }));
-
-        // Filter to show only posts that are part of this automation
-        const automationPosts = allMedia.filter((post) =>
-          automation.postIds.includes(post.id)
-        );
-        setMedia(automationPosts);
-      } catch (error) {
-        console.error("Error fetching Instagram media:", error);
-        toast.error("Failed to fetch Instagram media");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchMedia();
-  }, [user.instagramId, user.instagramAccessToken, automation.postIds]);
+  }, [user.instagramId, user.instagramAccessToken]);
 
   const toggleDmType = () => {
     setDmTypeOpen(!dmTypeOpen);
@@ -182,12 +185,24 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
     }
   };
 
+  const toggleSelectPost = () => {
+    setSelectPostOpen(!selectPostOpen);
+  };
+
   // Default values for the form with proper handling of all fields
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "onSubmit",
     defaultValues: {
       name: automation.name,
+      applyOption:
+        automation.postIds && automation.postIds.length === 1
+          ? "selected"
+          : "all",
+      postId:
+        automation.postIds && automation.postIds.length === 1
+          ? automation.postIds[0]
+          : "",
       keywords: automation.keywords.join(", "),
       messageType: automation.messageType || "message",
       message: automation.message,
@@ -260,12 +275,29 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
           : [];
       }
 
-      const formData = {
+      const postIds =
+        values.applyOption === "all"
+          ? media.map((post) => post.id)
+          : values.postId
+          ? [values.postId]
+          : [];
+      if (values.applyOption === "selected" && !values.postId) {
+        throw new Error("Please select a post");
+      }
+
+      // Ensure imageUrl is properly handled
+      const finalImageUrl =
+        values.messageType === "ButtonImage" && values.imageUrl
+          ? values.imageUrl
+          : undefined;
+
+      // Update the automation - try a different approach that might work better with ngrok
+      await axios.put(`/api/automations?id=${automation._id}`, {
+        id: automation._id,
         ...values,
+        postIds,
         keywords: processedKeywords,
-        postIds: automation.postIds,
-        imageUrl:
-          values.messageType === "ButtonImage" ? values.imageUrl : undefined,
+        imageUrl: finalImageUrl,
         notFollowerMessage: values.isFollowed
           ? values.notFollowerMessage
           : undefined,
@@ -280,9 +312,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
             : undefined,
         // Explicitly include respondToAll to ensure it's sent to the backend
         respondToAll: values.respondToAll,
-      };
-
-      await axios.put(`/api/automations?id=${automation._id}`, formData);
+      });
 
       toast.success("Automation updated successfully");
       router.push("/dashboard/automation?type=post");
@@ -352,114 +382,146 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
           {/* Post selection section */}
           <div className="p-6 border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">Selected Posts</h2>
+              <h2 className="text-lg font-medium">Posts</h2>
+              {form.watch("applyOption") === "selected" && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-gray-600 dark:text-gray-300 flex items-center"
+                  onClick={toggleSelectPost}
+                >
+                  Select post
+                  {selectPostOpen ? (
+                    <ChevronUp className="w-4 h-4 ml-1" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 ml-1" />
+                  )}
+                </Button>
+              )}
             </div>
 
-            {isLoading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-              </div>
-            ) : media.length === 1 ? (
-              <div className="flex justify-center">
-                <Card className="overflow-hidden max-w-md w-full">
-                  <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative">
-                    {media[0].mediaType === "IMAGE" && (
-                      <Image
-                        src={media[0].mediaUrl}
-                        alt={media[0].title}
-                        fill
-                        className="w-20 h-20"
-                      />
-                    )}
-                    {media[0].mediaType === "VIDEO" && (
-                      <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                        {media[0].thumbnailUrl ? (
-                          <Image
-                            src={media[0].thumbnailUrl}
-                            alt="Video Thumbnail"
-                            width={150}
-                            height={150}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-gray-500 dark:text-gray-400">
-                            Video Preview
-                          </span>
-                        )}
+            <FormField
+              control={form.control}
+              name="applyOption"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="grid grid-cols-2 gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="all" id="all" />
+                        <Label htmlFor="all" className="text-sm">
+                          Apply on all posts
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="selected" id="selected" />
+                        <Label htmlFor="selected" className="text-sm">
+                          Apply on selected post
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {form.watch("applyOption") === "selected" && (
+              <div className="mt-4">
+                {isLoading ? (
+                  <div className="flex justify-center py-6">
+                    <div className="w-8 h-8 border-4 border-t-purple-500 border-b-purple-300 border-l-purple-300 border-r-purple-300 rounded-full animate-spin"></div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {media.length > 0 ? (
+                      media.map((item) => (
+                        <Card
+                          key={item.id}
+                          className="overflow-hidden w-full border border-gray-200 dark:border-gray-700 transition-transform hover:scale-[1.02]"
+                        >
+                          <div className="aspect-square bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                            {item.mediaType === "IMAGE" && (
+                              <Image
+                                src={item.mediaUrl}
+                                alt={item.title}
+                                width={150}
+                                height={150}
+                                className="w-full h-full object-cover"
+                              />
+                            )}
+                            {item.mediaType === "VIDEO" && (
+                              <div className="relative w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                {item.thumbnailUrl ? (
+                                  <Image
+                                    src={item.thumbnailUrl}
+                                    alt={item.title}
+                                    width={150}
+                                    height={150}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="absolute text-gray-500 dark:text-gray-400 text-xs">
+                                    Video Preview
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {item.mediaType === "CAROUSEL_ALBUM" && (
+                              <Image
+                                src={
+                                  item.thumbnailUrl ||
+                                  "/api/placeholder/150/150"
+                                }
+                                alt={item.title}
+                                width={150}
+                                height={150}
+                                className="w-full h-full object-cover"
+                              />
+                            )}
+                          </div>
+                          <div className="p-2 flex items-center justify-between">
+                            <FormField
+                              control={form.control}
+                              name="postId"
+                              render={({ field }) => (
+                                <FormItem className="flex items-center space-x-2 m-0">
+                                  <FormControl>
+                                    <RadioGroup
+                                      onValueChange={field.onChange}
+                                      value={field.value}
+                                    >
+                                      <div className="flex items-center space-x-2">
+                                        <RadioGroupItem
+                                          value={item.id}
+                                          id={item.id}
+                                          checked={field.value === item.id}
+                                        />
+                                        <Label
+                                          htmlFor={item.id}
+                                          className="text-xs"
+                                        >
+                                          Select
+                                        </Label>
+                                      </div>
+                                    </RadioGroup>
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </Card>
+                      ))
+                    ) : (
+                      <div className="text-center w-full py-4 text-muted-foreground">
+                        No media found
                       </div>
                     )}
-                    {media[0].mediaType === "CAROUSEL_ALBUM" && (
-                      <Image
-                        src={media[0].thumbnailUrl || media[0].mediaUrl}
-                        alt={media[0].title}
-                        fill
-                        className="object-cover"
-                      />
-                    )}
                   </div>
-                  <div className="p-4">
-                    <h3 className="font-medium mb-1 truncate">
-                      {media[0].title}
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      {new Date(media[0].timestamp).toLocaleDateString()}
-                    </p>
-                  </div>
-                </Card>
-              </div>
-            ) : media.length > 1 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {media.map((item) => (
-                  <Card key={item.id} className="overflow-hidden">
-                    <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative">
-                      {item.mediaType === "IMAGE" && (
-                        <Image
-                          src={item.mediaUrl}
-                          alt={item.title}
-                          fill
-                          className="object-cover"
-                        />
-                      )}
-                      {item.mediaType === "VIDEO" && (
-                        <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                          {item.thumbnailUrl ? (
-                            <Image
-                              src={item.thumbnailUrl}
-                              alt="Video Thumbnail"
-                              width={150}
-                              height={150}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-gray-500 dark:text-gray-400">
-                              Video Preview
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      {item.mediaType === "CAROUSEL_ALBUM" && (
-                        <Image
-                          src={item.thumbnailUrl || item.mediaUrl}
-                          alt={item.title}
-                          fill
-                          className="object-cover"
-                        />
-                      )}
-                    </div>
-                    <div className="p-3">
-                      <p className="text-sm font-medium truncate">
-                        {item.title}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {new Date(item.timestamp).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                No posts found for this automation
+                )}
               </div>
             )}
           </div>
