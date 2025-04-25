@@ -511,12 +511,13 @@ export function CreateAutomationForm() {
                                   <FormControl>
                                     <RadioGroup
                                       onValueChange={field.onChange}
-                                      defaultValue={field.value}
+                                      value={field.value} // Use value instead of defaultValue
                                     >
                                       <div className="flex items-center space-x-2">
                                         <RadioGroupItem
                                           value={item.id}
                                           id={item.id}
+                                          checked={field.value === item.id} // Explicitly check if this item is selected
                                         />
                                         <Label
                                           htmlFor={item.id}

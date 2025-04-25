@@ -140,7 +140,8 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
         story.followUpMessage ||
         "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
       isActive: story.isActive !== undefined ? story.isActive : true,
-      respondToAll: story.respondToAll !== undefined ? story.respondToAll : false,
+      respondToAll:
+        story.respondToAll !== undefined ? story.respondToAll : false,
       removeBranding: story.removeBranding,
     },
   });
@@ -222,7 +223,7 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsLoading(true);
-      
+
       // Handle the case when respondToAll is true - keywords can be empty
       let processedKeywords;
       if (values.respondToAll) {
@@ -230,9 +231,13 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
         processedKeywords = [];
       } else {
         // Otherwise, split by comma and trim
-        processedKeywords = values.keywords ? String(values.keywords).split(",").map((k) => k.trim()) : [];
+        processedKeywords = values.keywords
+          ? String(values.keywords)
+              .split(",")
+              .map((k) => k.trim())
+          : [];
       }
-      
+
       const formData = {
         ...values,
         keywords: processedKeywords,
@@ -310,7 +315,6 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
               </Button>
             </div>
           </div>
-
           {/* Story selection section */}
           <div className="p-6 border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
@@ -326,22 +330,23 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
                 <Card className="overflow-hidden max-w-md w-full">
                   <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative">
                     {stories[0].mediaType === "IMAGE" && (
-                      <Image
-                        src={stories[0].mediaUrl}
-                        alt={stories[0].title}
-                        fill
-                        className="w-20 h-20"
-                      />
+                      <div className="w-full h-full relative">
+                        <Image
+                          src={stories[0].mediaUrl}
+                          alt={stories[0].title}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
                     )}
                     {stories[0].mediaType === "VIDEO" && (
-                      <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                      <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center relative">
                         {stories[0].thumbnailUrl ? (
                           <Image
                             src={stories[0].thumbnailUrl}
                             alt="Video Thumbnail"
-                            width={150}
-                            height={150}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
                           />
                         ) : (
                           <span className="text-gray-500 dark:text-gray-400">
@@ -351,12 +356,14 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
                       </div>
                     )}
                     {stories[0].mediaType === "CAROUSEL_ALBUM" && (
-                      <Image
-                        src={stories[0].thumbnailUrl || stories[0].mediaUrl}
-                        alt={stories[0].title}
-                        fill
-                        className="object-cover"
-                      />
+                      <div className="w-full h-full relative">
+                        <Image
+                          src={stories[0].thumbnailUrl || stories[0].mediaUrl}
+                          alt={stories[0].title}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
                     )}
                   </div>
                   <div className="p-4">
@@ -372,25 +379,26 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
             ) : stories.length > 1 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {stories.map((item) => (
-                  <Card key={item.id} className="overflow-hidden">
+                  <Card key={item.id} className="overflow-hidden w-full">
                     <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative">
                       {item.mediaType === "IMAGE" && (
-                        <Image
-                          src={item.mediaUrl}
-                          alt={item.title}
-                          fill
-                          className="object-cover"
-                        />
+                        <div className="w-full h-full relative">
+                          <Image
+                            src={item.mediaUrl}
+                            alt={item.title}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
                       )}
                       {item.mediaType === "VIDEO" && (
-                        <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                        <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center relative">
                           {item.thumbnailUrl ? (
                             <Image
                               src={item.thumbnailUrl}
                               alt="Video Thumbnail"
-                              width={150}
-                              height={150}
-                              className="w-full h-full object-cover"
+                              fill
+                              className="object-cover"
                             />
                           ) : (
                             <span className="text-gray-500 dark:text-gray-400">
@@ -400,12 +408,14 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
                         </div>
                       )}
                       {item.mediaType === "CAROUSEL_ALBUM" && (
-                        <Image
-                          src={item.thumbnailUrl || item.mediaUrl}
-                          alt={item.title}
-                          fill
-                          className="object-cover"
-                        />
+                        <div className="w-full h-full relative">
+                          <Image
+                            src={item.thumbnailUrl || item.mediaUrl}
+                            alt={item.title}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
                       )}
                     </div>
                     <div className="p-3">
@@ -795,7 +805,8 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
                     </FormDescription>
                     {form.formState.isSubmitted && !field.value && (
                       <p className="text-sm font-medium text-destructive mt-2">
-                        At least one keyword is required when not responding to all messages
+                        At least one keyword is required when not responding to
+                        all messages
                       </p>
                     )}
                   </FormItem>
