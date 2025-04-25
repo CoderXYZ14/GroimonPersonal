@@ -365,7 +365,7 @@ export function CreateStoryAutomationForm() {
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value} // Changed from defaultValue to value
                       className="grid grid-cols-2 gap-4"
                     >
                       <div className="flex items-center space-x-2">
@@ -429,33 +429,36 @@ export function CreateStoryAutomationForm() {
                             )}
                           </div>
                           <div className="p-2 flex items-center justify-between">
-                            <FormField
-                              control={form.control}
-                              name="storyId"
-                              render={({ field }) => (
-                                <FormItem className="flex items-center space-x-2 m-0">
-                                  <FormControl>
-                                    <RadioGroup
-                                      onValueChange={field.onChange}
-                                      defaultValue={field.value}
-                                    >
-                                      <div className="flex items-center space-x-2">
-                                        <RadioGroupItem
-                                          value={item.id}
-                                          id={item.id}
-                                        />
-                                        <Label
-                                          htmlFor={item.id}
-                                          className="text-xs"
-                                        >
-                                          Select
-                                        </Label>
-                                      </div>
-                                    </RadioGroup>
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
+                            <div className="p-2 flex items-center justify-between">
+                              <FormField
+                                control={form.control}
+                                name="storyId"
+                                render={({ field }) => (
+                                  <FormItem className="flex items-center space-x-2 m-0">
+                                    <FormControl>
+                                      <RadioGroup
+                                        onValueChange={field.onChange}
+                                        value={field.value} // Changed from defaultValue to value
+                                      >
+                                        <div className="flex items-center space-x-2">
+                                          <RadioGroupItem
+                                            value={item.id}
+                                            id={item.id}
+                                            checked={field.value === item.id} // Added explicit checked state
+                                          />
+                                          <Label
+                                            htmlFor={item.id}
+                                            className="text-xs"
+                                          >
+                                            Select
+                                          </Label>
+                                        </div>
+                                      </RadioGroup>
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
                           </div>
                         </Card>
                       ))
