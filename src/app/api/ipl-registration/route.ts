@@ -109,45 +109,59 @@ export async function GET(req: NextRequest) {
               let followerCount = instaResponse.data.followers_count || 0;
               let followsCount = instaResponse.data.follows_count || 0;
 
-              // If direct follower count not available, try business discovery
-              if (!followerCount && user.instagramId) {
-                try {
-                  const businessResponse = await axios.get(
-                    `https://graph.instagram.com/v22.0/me`,
-                    {
-                      params: {
-                        fields: `business_discovery.username(${user.instagramUsername}){followers_count,follows_count,media_count,biography,website,name,profile_picture_url}`,
-                        access_token: user.instagramAccessToken,
-                      },
-                    }
-                  );
+              return {
+                ...registration.toObject(),
+                followerCount,
+                followsCount,
+                mediaCount: instaResponse.data.media_count || 0,
+                accountType: instaResponse.data.account_type || "Unknown",
+                name: instaResponse.data.name,
+                profilePictureUrl: instaResponse.data.profile_picture_url,
+                instaData: instaResponse.data,
+              };
+            }
+            return registration.toObject();
+          } catch (error) {
+            console.error("Error fetching Instagram data:", error);
+            return registration.toObject();
+          }
+        })
+      );
 
-                  const businessData =
-                    businessResponse.data?.business_discovery;
-                  if (businessData) {
-                    followerCount = businessData.followers_count || 0;
-                    followsCount = businessData.follows_count || followsCount;
+      return NextResponse.json({ registrations: registrationsWithInstaData });
+    }
 
-                    // Add additional business data if available
-                    instaResponse.data.biography = businessData.biography;
-                    instaResponse.data.website = businessData.website;
-                    instaResponse.data.name = businessData.name;
-                    if (
-                      !instaResponse.data.profile_picture_url &&
-                      businessData.profile_picture_url
-                    ) {
-                      instaResponse.data.profile_picture_url =
-                        businessData.profile_picture_url;
-                    }
-                  }
-                } catch (businessError) {
-                  console.error(
-                    "Error fetching business discovery data:",
-                    businessError
-                  );
-                  // Fallback to media count as an approximation if no follower count available
+    // Regular user request
+    if (!userId) {
+      return NextResponse.json(
+        { message: "User ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Find the user
+    const user = await UserModel.findById(userId);
+
+    if (!user) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
+    }
+
+    // Get user's registrations
+    const registrations = await IplRegistrationModel.find({
+      user: user._id,
+    }).sort({ createdAt: -1 });
+
+    return NextResponse.json({ registrations });
+  } catch (error) {
+    console.error("Error fetching IPL registrations:", error);
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
                   if (!followerCount) {
-                    followerCount = instaResponse.data.media_count * 10; // Rough estimate
+                    followerCount = instaResponse.data.media_count * 10;
                   }
                 }
               }

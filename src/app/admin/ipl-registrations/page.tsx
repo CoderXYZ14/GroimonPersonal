@@ -59,6 +59,8 @@ const IplRegistrationsAdminPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [processingBulk, setProcessingBulk] = useState(false);
+  const [selectedRegistrations, setSelectedRegistrations] = useState<string[]>([]);
   const [filter, setFilter] = useState<
     "all" | "pending" | "approved" | "rejected"
   >("all");
@@ -90,6 +92,63 @@ const IplRegistrationsAdminPage = () => {
     fetchRegistrations();
   }, [fetchRegistrations]);
 
+  const handleBulkApprove = async () => {
+    if (selectedRegistrations.length === 0) return;
+    
+    try {
+      setProcessingBulk(true);
+      const response = await axios.put("/api/admin/ipl-registration", {
+        registrationIds: selectedRegistrations,
+        action: "approve"
+      });
+
+      if (response.status === 200) {
+        toast.success(`${selectedRegistrations.length} registrations approved successfully`);
+        setSelectedRegistrations([]);
+        fetchRegistrations();
+      }
+    } catch (error) {
+      console.error("Error approving registrations:", error);
+      toast.error("Failed to approve registrations");
+    } finally {
+      setProcessingBulk(false);
+    }
+  };
+
+  const handleBulkReject = async () => {
+    if (selectedRegistrations.length === 0) return;
+    
+    try {
+      setProcessingBulk(true);
+      const response = await axios.put("/api/admin/ipl-registration", {
+        registrationIds: selectedRegistrations,
+        action: "reject"
+      });
+
+      if (response.status === 200) {
+        toast.success(`${selectedRegistrations.length} registrations rejected successfully`);
+        setSelectedRegistrations([]);
+        fetchRegistrations();
+      }
+    } catch (error) {
+      console.error("Error rejecting registrations:", error);
+      toast.error("Failed to reject registrations");
+    } finally {
+      setProcessingBulk(false);
+    }
+  };
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      const pendingIds = registrations
+        .filter(reg => reg.status === "pending")
+        .map(reg => reg._id);
+      setSelectedRegistrations(pendingIds);
+    } else {
+      setSelectedRegistrations([]);
+    }
+  };
+
   const handleApprove = async (id: string) => {
     try {
       setProcessingId(id);
@@ -114,28 +173,10 @@ const IplRegistrationsAdminPage = () => {
   const handleReject = async (id: string) => {
     try {
       setProcessingId(id);
-
-      // Prompt for rejection reason
-      const reason = window.prompt(
-        "Please provide a reason for rejecting this registration:"
-      );
-
-      if (reason === null) {
-        // User cancelled the prompt
-        setProcessingId(null);
-        return;
-      }
-
-      if (reason.trim() === "") {
-        toast.error("A rejection reason is required");
-        setProcessingId(null);
-        return;
-      }
-
+      
       const response = await axios.put("/api/admin/ipl-registration", {
         registrationId: id,
-        action: "reject",
-        rejectionReason: reason,
+        action: "reject"
       });
 
       if (response.status === 200) {
@@ -213,6 +254,30 @@ const IplRegistrationsAdminPage = () => {
                 Rejected
               </Button>
             </div>
+            {selectedRegistrations.length > 0 && (
+              <div className="flex space-x-2 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1 border-green-500 text-green-500 hover:bg-green-50 hover:text-green-600"
+                  onClick={handleBulkApprove}
+                  disabled={processingBulk || selectedRegistrations.length === 0}
+                >
+                  <Check className="h-4 w-4" />
+                  Approve Selected ({selectedRegistrations.length})
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1 border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600"
+                  onClick={handleBulkReject}
+                  disabled={processingBulk || selectedRegistrations.length === 0}
+                >
+                  <X className="h-4 w-4" />
+                  Reject Selected ({selectedRegistrations.length})
+                </Button>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             {registrations.length === 0 ? (
@@ -226,6 +291,18 @@ const IplRegistrationsAdminPage = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12">
+                        <input
+                          type="checkbox"
+                          onChange={handleSelectAll}
+                          checked={
+                            selectedRegistrations.length > 0 &&
+                            selectedRegistrations.length ===
+                              registrations.filter((r) => r.status === "pending").length
+                          }
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                      </TableHead>
                       <TableHead>Instagram Username</TableHead>
                       <TableHead className="text-center">Followers</TableHead>
                       <TableHead className="text-center">Following</TableHead>
@@ -241,6 +318,24 @@ const IplRegistrationsAdminPage = () => {
                   <TableBody>
                     {registrations.map((registration) => (
                       <TableRow key={registration._id}>
+                        <TableCell className="w-12">
+                          {registration.status === "pending" && (
+                            <input
+                              type="checkbox"
+                              checked={selectedRegistrations.includes(registration._id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedRegistrations([...selectedRegistrations, registration._id]);
+                                } else {
+                                  setSelectedRegistrations(
+                                    selectedRegistrations.filter((id) => id !== registration._id)
+                                  );
+                                }
+                              }}
+                              className="h-4 w-4 rounded border-gray-300"
+                            />
+                          )}
+                        </TableCell>
                         <TableCell className="font-medium">
                           <div className="flex items-center space-x-2">
                             {registration.profilePictureUrl ||
@@ -361,13 +456,7 @@ const IplRegistrationsAdminPage = () => {
                               </Button>
                             </div>
                           )}
-                          {registration.status === "rejected" &&
-                            registration.rejectionReason && (
-                              <div className="text-sm text-gray-500">
-                                <span className="font-semibold">Reason:</span>{" "}
-                                {registration.rejectionReason}
-                              </div>
-                            )}
+
                         </TableCell>
                       </TableRow>
                     ))}

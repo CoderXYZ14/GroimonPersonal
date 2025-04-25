@@ -7,11 +7,20 @@ export async function PUT(req: NextRequest) {
   try {
     await dbConnect();
 
-    const { registrationId, action, rejectionReason } = await req.json();
+    const { registrationId, registrationIds, action } = await req.json();
 
-    if (!registrationId || !action) {
+    // Handle both single ID and array of IDs
+    const ids = registrationIds
+      ? Array.isArray(registrationIds)
+        ? registrationIds
+        : [registrationIds]
+      : registrationId
+      ? [registrationId]
+      : [];
+
+    if (ids.length === 0 || !action) {
       return NextResponse.json(
-        { message: "Registration ID and action are required" },
+        { message: "Registration ID(s) and action are required" },
         { status: 400 }
       );
     }
@@ -23,42 +32,49 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    if (action === "reject" && !rejectionReason) {
+    // For bulk operations, use updateMany
+    if (ids.length > 1) {
+      const result = await IplRegistrationModel.updateMany(
+        { _id: { $in: ids } },
+        { $set: { status: action === "approve" ? "approved" : "rejected" } }
+      );
+
       return NextResponse.json(
         {
-          message: "Rejection reason is required when rejecting a registration",
+          message: `${result.modifiedCount} registrations ${
+            action === "approve" ? "approved" : "rejected"
+          } successfully`,
+          modifiedCount: result.modifiedCount,
         },
-        { status: 400 }
+        { status: 200 }
       );
-    }
+    } else {
+      // For single operation, maintain backward compatibility
+      const registration = await IplRegistrationModel.findById(ids[0]);
 
-    const registration = await IplRegistrationModel.findById(registrationId);
+      if (!registration) {
+        return NextResponse.json(
+          { message: "Registration not found" },
+          { status: 404 }
+        );
+      }
 
-    if (!registration) {
+      // Update registration status
+      registration.status = action === "approve" ? "approved" : "rejected";
+
+      // Remove rejection reason field usage
+      await registration.save();
+
       return NextResponse.json(
-        { message: "Registration not found" },
-        { status: 404 }
+        {
+          message: `Registration ${
+            action === "approve" ? "approved" : "rejected"
+          } successfully`,
+          registration,
+        },
+        { status: 200 }
       );
     }
-
-    // Update registration status
-    registration.status = action === "approve" ? "approved" : "rejected";
-
-    if (action === "reject") {
-      registration.rejectionReason = rejectionReason;
-    }
-
-    await registration.save();
-
-    return NextResponse.json(
-      {
-        message: `Registration ${
-          action === "approve" ? "approved" : "rejected"
-        } successfully`,
-        registration,
-      },
-      { status: 200 }
-    );
   } catch (error) {
     console.error("Error updating IPL registration:", error);
     return NextResponse.json(
@@ -109,7 +125,6 @@ export async function GET(req: NextRequest) {
               }
             );
 
-            // Get follower count directly if available or from business discovery
             let followerCount = instaResponse.data.followers_count || 0;
             let followsCount = instaResponse.data.follows_count || 0;
             let mediaCount = instaResponse.data.media_count || 0;
@@ -152,7 +167,7 @@ export async function GET(req: NextRequest) {
                   "Error fetching business discovery data:",
                   businessError
                 );
-                // Fallback to media count as an approximation if no follower count available
+
                 if (!followerCount) {
                   followerCount = mediaCount * 10; // Rough estimate
                 }
