@@ -142,7 +142,6 @@ export async function GET(request: Request) {
     const getTotalHits = url.searchParams.get("getTotalHits");
     const redirectCount = url.searchParams.get("redirectCount");
 
-    // Handle total hits request
     if (getTotalHits === "true" && userId) {
       const totalHitsPost = await AutomationModel.aggregate([
         { $match: { user: new mongoose.Types.ObjectId(userId) } },
@@ -179,9 +178,25 @@ export async function GET(request: Request) {
       const totalRedirectHits =
         (redirectHitsPost.length > 0 ? redirectHitsPost[0].total : 0) +
         (redirectHitsStory.length > 0 ? redirectHitsStory[0].total : 0);
+
+      //total dm count
+      const totalHitsPost = await AutomationModel.aggregate([
+        { $match: { user: new mongoose.Types.ObjectId(userId) } },
+        { $group: { _id: null, total: { $sum: "$hitCount" } } },
+      ]);
+
+      const totalHitsStory = await StoryModel.aggregate([
+        { $match: { user: new mongoose.Types.ObjectId(userId) } },
+        { $group: { _id: null, total: { $sum: "$hitCount" } } },
+      ]);
+
+      const totalHits =
+        (totalHitsPost.length > 0 ? totalHitsPost[0].total : 0) +
+        (totalHitsStory.length > 0 ? totalHitsStory[0].total : 0);
       return NextResponse.json(
         {
           totalRedirectHits,
+          totalHits,
         },
         { status: 200 }
       );

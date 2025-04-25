@@ -111,70 +111,10 @@ export async function GET(req: NextRequest) {
 
               return {
                 ...registration.toObject(),
-                followerCount,
-                followsCount,
-                mediaCount: instaResponse.data.media_count || 0,
-                accountType: instaResponse.data.account_type || "Unknown",
-                name: instaResponse.data.name,
-                profilePictureUrl: instaResponse.data.profile_picture_url,
-                instaData: instaResponse.data,
-              };
-            }
-            return registration.toObject();
-          } catch (error) {
-            console.error("Error fetching Instagram data:", error);
-            return registration.toObject();
-          }
-        })
-      );
-
-      return NextResponse.json({ registrations: registrationsWithInstaData });
-    }
-
-    // Regular user request
-    if (!userId) {
-      return NextResponse.json(
-        { message: "User ID is required" },
-        { status: 400 }
-      );
-    }
-
-    // Find the user
-    const user = await UserModel.findById(userId);
-
-    if (!user) {
-      return NextResponse.json({ message: "User not found" }, { status: 404 });
-    }
-
-    // Get user's registrations
-    const registrations = await IplRegistrationModel.find({
-      user: user._id,
-    }).sort({ createdAt: -1 });
-
-    return NextResponse.json({ registrations });
-  } catch (error) {
-    console.error("Error fetching IPL registrations:", error);
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
-                  if (!followerCount) {
-                    followerCount = instaResponse.data.media_count * 10;
-                  }
-                }
-              }
-
-              return {
-                ...registration.toObject(),
                 followerCount: followerCount,
                 followsCount: followsCount,
                 mediaCount: instaResponse.data.media_count || 0,
                 accountType: instaResponse.data.account_type || "Unknown",
-                biography: instaResponse.data.biography,
-                website: instaResponse.data.website,
-                name: instaResponse.data.name,
                 profilePictureUrl: instaResponse.data.profile_picture_url,
                 instaData: instaResponse.data,
               };

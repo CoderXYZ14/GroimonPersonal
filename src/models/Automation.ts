@@ -22,6 +22,7 @@ export interface IAutomation extends Document {
   removeBranding: boolean;
   hitCount: number;
   redirectCount: number;
+  dmCount: number;
   autoReplyLimit: number;
   autoReplyLimitLeft: number;
   notFollowerMessage?: string;
@@ -62,6 +63,7 @@ const AutomationSchema: Schema<IAutomation> = new Schema(
     removeBranding: { type: Boolean, default: false },
     hitCount: { type: Number, default: 0 },
     redirectCount: { type: Number, default: 0 },
+    dmCount: { type: Number, default: 0 },
     autoReplyLimit: { type: Number, default: 100 },
     autoReplyLimitLeft: { type: Number, default: 100 },
     notFollowerMessage: { type: String },

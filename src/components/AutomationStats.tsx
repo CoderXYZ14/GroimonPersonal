@@ -9,6 +9,7 @@ import Image from "next/image";
 export function AutomationStats() {
   const user = useAppSelector((state) => state.user);
   const hasInstagramAuth = user.instagramUsername && user.instagramId;
+  const [redirectCount, setRedirectCount] = useState<number>(0);
   const [totalHits, setTotalHits] = useState<number>(0);
   const [automationsCount, setAutomationsCount] = useState<number>(0);
   const [profilePic, setProfilePic] = useState<string | null>(null);
@@ -18,15 +19,17 @@ export function AutomationStats() {
       if (user._id) {
         try {
           const [hitsResponse, automationsResponsePost] = await Promise.all([
-            axios.get(`/api/automations?userId=${user._id}&redirectCount=true`),
+            axios.get(
+              `/api/automations?userId=${user._id}&redirectCount=true&`
+            ),
             axios.get(`/api/automations?userId=${user._id}`),
           ]);
 
           const automationsResponseStory = await axios.get(
             `/api/automations/stories?userId=${user._id}`
           );
-
           setTotalHits(hitsResponse.data.totalRedirectHits);
+          setRedirectCount(hitsResponse.data.totalHits);
           setAutomationsCount(
             automationsResponsePost.data.length +
               automationsResponseStory.data.length
@@ -83,7 +86,7 @@ export function AutomationStats() {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
       <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl p-4">
         <div className="flex items-center space-x-3">
           <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-800 shrink-0 flex items-center justify-center overflow-hidden">
@@ -130,6 +133,22 @@ export function AutomationStats() {
         </div>
       </div>
 
+      <div className="bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-900/20 dark:to-teal-900/20 rounded-2xl p-4">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 rounded-full bg-green-100 dark:bg-green-800 shrink-0">
+            <Zap className="w-5 h-5 text-green-600 dark:text-green-300" />
+          </div>
+
+          <div className="min-w-0">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Total Redirect Hits
+            </p>
+            <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+              {redirectCount.toLocaleString()}
+            </p>
+          </div>
+        </div>
+      </div>
       <div className="bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-900/20 dark:to-teal-900/20 rounded-2xl p-4">
         <div className="flex items-center space-x-3">
           <div className="p-2 rounded-full bg-green-100 dark:bg-green-800 shrink-0">

@@ -46,6 +46,8 @@ export async function GET() {
 
         // Calculate metrics
         const totalAutomations = automations.length + stories.length;
+        
+        // Post automation metrics
         const totalHitCount = automations.reduce(
           (sum, automation) => sum + (automation.hitCount || 0),
           0
@@ -66,8 +68,8 @@ export async function GET() {
         );
 
         // Total combined metrics
-        const combinedHitCount = totalHitCount + storyHitCount;
-        const combinedRedirectCount = totalRedirectCount + storyRedirectCount;
+        const combinedHitCount = totalHitCount + storyHitCount; // Total DM Count
+        const combinedRedirectCount = totalRedirectCount + storyRedirectCount; // Total Redirect Hits
 
         // Get Instagram follower count and other data
         let followerCount = 0;
@@ -157,8 +159,8 @@ export async function GET() {
           username: user.instagramUsername || "Unknown",
           profilePicture: profilePictureUrl || user.instaProfilePic || null,
           automationCount: totalAutomations,
-          hitCount: combinedHitCount,
-          redirectCount: combinedRedirectCount,
+          dmCount: combinedHitCount, // Total DM Count
+          redirectCount: combinedRedirectCount, // Total Redirect Hits
           registrationDate: registration.registrationTime,
           followerCount,
           followsCount,
@@ -171,13 +173,13 @@ export async function GET() {
       })
     );
 
-    // Filter out null values and sort by engagement metrics (hit count and follower count)
+    // Filter out null values and sort by engagement metrics (DM count as primary metric)
     const filteredLeaderboard = leaderboardData
       .filter((item) => item !== null)
       .sort((a, b) => {
-        // First sort by hit count (primary metric)
-        if (b.hitCount !== a.hitCount) {
-          return b.hitCount - a.hitCount;
+        // First sort by DM count (primary metric)
+        if (b.dmCount !== a.dmCount) {
+          return b.dmCount - a.dmCount;
         }
         // Then by redirect count (secondary metric)
         if (b.redirectCount !== a.redirectCount) {

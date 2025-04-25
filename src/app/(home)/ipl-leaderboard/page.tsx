@@ -25,7 +25,7 @@ interface LeaderboardItem {
   username: string;
   profilePicture: string | null;
   automationCount: number;
-  hitCount: number;
+  dmCount: number; // Changed from hitCount to dmCount
   redirectCount: number;
   registrationDate: string;
   followerCount: number;
@@ -184,9 +184,9 @@ const IPLLeaderboardPage = () => {
                         <TableHead className="text-center">
                           Automations
                         </TableHead>
-                        <TableHead className="text-center">Hit Count</TableHead>
+                        <TableHead className="text-center">DM Count</TableHead>
                         <TableHead className="text-center">
-                          Redirect Count
+                          Redirect Hits
                         </TableHead>
                       </TableRow>
                     </TableHeader>
@@ -278,7 +278,7 @@ const IPLLeaderboardPage = () => {
                             {currentUserRank.item.automationCount}
                           </TableCell>
                           <TableCell className="text-center font-bold text-purple-700 dark:text-purple-300">
-                            {currentUserRank.item.hitCount.toLocaleString()}
+                            {currentUserRank.item.dmCount.toLocaleString()}
                           </TableCell>
                           <TableCell className="text-center">
                             {currentUserRank.item.redirectCount.toLocaleString()}
@@ -389,10 +389,10 @@ const IPLLeaderboardPage = () => {
                                 }
                               `}
                               >
-                                {item.hitCount.toLocaleString()}
+                                {item.dmCount.toLocaleString()}
                               </span>
                             ) : (
-                              item.hitCount.toLocaleString()
+                              item.dmCount.toLocaleString()
                             )}
                           </TableCell>
                           <TableCell className="text-center">
@@ -481,7 +481,7 @@ const IPLLeaderboardPage = () => {
                             {item.automationCount}
                           </TableCell>
                           <TableCell className="text-center">
-                            {item.hitCount.toLocaleString()}
+                            {item.dmCount.toLocaleString()}
                           </TableCell>
                           <TableCell className="text-center">
                             {item.redirectCount.toLocaleString()}
