@@ -46,7 +46,7 @@ export async function GET() {
 
         // Calculate metrics
         const totalAutomations = automations.length + stories.length;
-        
+
         // Post automation metrics
         const totalHitCount = automations.reduce(
           (sum, automation) => sum + (automation.hitCount || 0),

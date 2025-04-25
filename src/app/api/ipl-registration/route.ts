@@ -106,12 +106,12 @@ export async function GET(req: NextRequest) {
               );
 
               // Get follower count directly if available or from business discovery
-              let followerCount = instaResponse.data.followers_count || 0;
-              let followsCount = instaResponse.data.follows_count || 0;
+              const followerCount = instaResponse.data.followers_count || 0;
+              const followsCount = instaResponse.data.follows_count || 0;
 
               return {
                 ...registration.toObject(),
-                followerCount: followerCount,
+                followerCount,
                 followsCount: followsCount,
                 mediaCount: instaResponse.data.media_count || 0,
                 accountType: instaResponse.data.account_type || "Unknown",

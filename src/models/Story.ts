@@ -22,7 +22,6 @@ export interface IStory extends Document {
   removeBranding: boolean;
   hitCount: number;
   redirectCount: number;
-  dmCount: number;
   isActive?: boolean;
   respondToAll?: boolean;
   user: mongoose.Types.ObjectId | IUser;
@@ -58,7 +57,6 @@ const StorySchema: Schema<IStory> = new Schema(
     removeBranding: { type: Boolean, default: false },
     hitCount: { type: Number, default: 0 },
     redirectCount: { type: Number, default: 0 },
-    dmCount: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
     respondToAll: { type: Boolean, default: false },
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
