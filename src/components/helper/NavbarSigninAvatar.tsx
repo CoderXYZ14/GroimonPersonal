@@ -16,7 +16,17 @@ const NavbarSigninAvatar = () => {
         <AvatarDropdown />
       ) : (
         <Link href="/signin">
-          <Button className="relative px-6 py-2 font-medium text-sm rounded-full overflow-hidden bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 dark:from-purple-400 dark:to-pink-400 dark:hover:from-purple-500 dark:hover:to-pink-500 text-white transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-lg">
+          <Button
+            className="
+              relative rounded-full px-6 py-2 text-sm font-semibold text-white
+              bg-[rgb(26,105,221)]
+              hover:bg-[rgb(22,95,200)]
+              focus:outline-none focus:ring-2 focus:ring-blue-400
+              transition-all duration-300 ease-in-out
+              shadow-md hover:shadow-lg
+              hover:scale-105 active:scale-95
+            "
+          >
             Sign In
           </Button>
         </Link>

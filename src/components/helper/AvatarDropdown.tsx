@@ -38,41 +38,37 @@ const AvatarDropdown = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Avatar className="h-9 w-9 cursor-pointer ring-offset-background transition-all duration-300 hover:scale-105 hover:shadow-md">
-          {/* <AvatarImage
-            src={user.image || ""}
-            className="object-cover"
-            loading="lazy"
-          /> */}
-          <AvatarFallback className="bg-gradient-to-r from-purple-600 to-pink-500 dark:from-purple-400 dark:to-pink-400 text-white animate-in zoom-in">
+        <Avatar className="h-10 w-10 cursor-pointer rounded-full transition-transform duration-300 hover:scale-105 hover:shadow-xl">
+          <AvatarFallback className="bg-gradient-to-r from-blue-500 to-teal-500 text-white font-semibold animate-in zoom-in">
             {user.instagramUsername
               ? user.instagramUsername.charAt(0).toUpperCase()
               : "I"}
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
+
       <DropdownMenuContent
         align="end"
-        className="w-56 mt-2 p-2 bg-white/80 dark:bg-gray-950/80 backdrop-blur-lg border border-border/40 rounded-xl shadow-lg animate-in slide-in-from-top-2 duration-200"
+        className="w-60 mt-2 p-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-xl shadow-lg border border-gray-300 dark:border-gray-700 backdrop-blur-lg animate-in slide-in-from-top-2"
       >
-        <div className="px-2 py-2 mb-2 border-b border-border/40">
-          <p className="text-sm font-medium text-foreground">
+        <div className="px-3 py-2 mb-2 border-b border-gray-200 dark:border-gray-700">
+          <p className="text-lg font-semibold text-gray-900 dark:text-white">
             {user.instagramUsername || "Instagram User"}
           </p>
-          <p className="text-xs text-muted-foreground truncate">
+          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
             Connected via Instagram
           </p>
         </div>
 
-        <DropdownMenuItem className="flex items-center gap-2 cursor-pointer text-sm text-foreground hover:text-foreground/90 px-2 py-2 rounded-md hover:bg-muted/50 transition-colors">
+        <DropdownMenuItem className="flex items-center gap-3 cursor-pointer text-base text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-3 py-2 transition-all duration-200">
           <div className="flex-1">Instagram Profile</div>
         </DropdownMenuItem>
 
-        <div className="h-px bg-border/40 my-2" />
+        <div className="h-px bg-gray-300 dark:bg-gray-600 my-2" />
 
         <DropdownMenuItem
           onClick={handleSignOut}
-          className="flex items-center gap-2 cursor-pointer text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 px-2 py-2 rounded-md hover:bg-red-50/50 dark:hover:bg-red-950/50 transition-colors"
+          className="flex items-center gap-3 cursor-pointer text-base text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-500 rounded-md px-3 py-2 transition-all duration-200"
         >
           <div className="flex-1">Logout</div>
         </DropdownMenuItem>

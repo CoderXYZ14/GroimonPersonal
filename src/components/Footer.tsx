@@ -5,24 +5,35 @@ import React from "react";
 const Footer = () => {
   return (
     <footer className="border-t py-12 bg-background">
-      <div className="container mx-auto px-4 max-w-3xl">
+      <div className="container mx-auto px-4 max-w-6xl">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 font-bold text-xl mb-4">
-              <Image src="/logo.svg" alt="logo" width={80} height={80} className="h-[25px] w-auto" />
-              <span>Groimon</span>
+          {/* Logo and Description Section */}
+          <div className="text-center md:text-left">
+            <div className="flex items-center justify-center md:justify-start gap-2 font-bold text-xl mb-4">
+              <Image
+                src="/logo.svg"
+                alt="logo"
+                width={80}
+                height={80}
+                className="h-[30px] w-auto"
+              />
+              <span className="text-xl font-semibold text-primary">
+                Groimon
+              </span>
             </div>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               Automate your Instagram engagement and save hours of manual work.
             </p>
           </div>
-          <div className="text-center">
-            <h3 className="font-semibold mb-4">Product</h3>
+
+          {/* Product Links Section */}
+          <div className="text-center md:text-left">
+            <h3 className="font-semibold mb-4 text-lg">Product</h3>
             <ul className="space-y-2">
               <li>
                 <Link
                   href="/features"
-                  className="text-muted-foreground hover:text-purple-500 transition-colors"
+                  className="text-muted-foreground hover:text-primary transition-colors"
                 >
                   Features
                 </Link>
@@ -30,7 +41,7 @@ const Footer = () => {
               <li>
                 <Link
                   href="/pricing"
-                  className="text-muted-foreground hover:text-purple-500 transition-colors"
+                  className="text-muted-foreground hover:text-primary transition-colors"
                 >
                   Pricing
                 </Link>
@@ -38,7 +49,7 @@ const Footer = () => {
               <li>
                 <Link
                   href="/dashboard/automation?type=post"
-                  className="text-muted-foreground hover:text-purple-500 transition-colors"
+                  className="text-muted-foreground hover:text-primary transition-colors"
                 >
                   Dashboard
                 </Link>
@@ -46,20 +57,22 @@ const Footer = () => {
               <li>
                 <Link
                   href="#"
-                  className="text-muted-foreground hover:text-purple-500 transition-colors"
+                  className="text-muted-foreground hover:text-primary transition-colors"
                 >
                   FAQ
                 </Link>
               </li>
             </ul>
           </div>
-          <div className="text-center">
-            <h3 className="font-semibold mb-4">Legal</h3>
+
+          {/* Legal Links Section */}
+          <div className="text-center md:text-left">
+            <h3 className="font-semibold mb-4 text-lg">Legal</h3>
             <ul className="space-y-2">
               <li>
                 <Link
                   href="/privacy-policy"
-                  className="text-muted-foreground hover:text-purple-500 transition-colors"
+                  className="text-muted-foreground hover:text-primary transition-colors"
                 >
                   Privacy Policy
                 </Link>
@@ -67,7 +80,7 @@ const Footer = () => {
               <li>
                 <Link
                   href="/terms-of-service"
-                  className="text-muted-foreground hover:text-purple-500 transition-colors"
+                  className="text-muted-foreground hover:text-primary transition-colors"
                 >
                   Terms of Service
                 </Link>
@@ -75,8 +88,13 @@ const Footer = () => {
             </ul>
           </div>
         </div>
+
+        {/* Footer Bottom Section */}
         <div className="border-t mt-12 pt-8 text-center text-muted-foreground">
-          <p>© {new Date().getFullYear()} Groimon. All rights reserved.</p>
+          <p className="text-sm">
+            © {new Date().getFullYear()}{" "}
+            <span className="text-primary">Groimon</span>. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>

@@ -1,53 +1,83 @@
+"use client";
 import Link from "next/link";
-import React from "react";
-
-import NavbarSigninAvatar from "./helper/NavbarSigninAvatar";
+import React, { useState } from "react";
 import Image from "next/image";
+import { Menu, X, Flame } from "lucide-react";
+import NavbarSigninAvatar from "./helper/NavbarSigninAvatar";
 
 const Header = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between max-w-7xl px-4 mx-auto">
-        <Link href="/" className="transition-opacity hover:opacity-80">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/logo.svg"
-              alt="logo"
-              width={80}
-              height={80}
-              className="dark:invert h-[25px] w-auto"
-            />
-            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-500 dark:from-purple-400 dark:to-pink-400">
-              Groimon
-            </h1>
-          </div>
+    <header className="sticky top-0 z-50">
+      <nav className="bg-white/70 backdrop-blur-md border border-gray-200 shadow-sm max-w-7xl mx-auto mt-4 px-6 md:px-10 py-4 rounded-2xl flex items-center justify-between">
+        <Link
+          href="/"
+          className="flex items-center gap-3 transition-opacity hover:opacity-80"
+        >
+          <Image
+            src="/logo.svg"
+            alt="Groimon Logo"
+            width={32}
+            height={32}
+            className="object-contain"
+          />
+          <span className="text-xl font-semibold tracking-tight text-blue-600">
+            Groimon
+          </span>
         </Link>
 
-        <nav className="hidden md:flex items-center space-x-8">
+        <nav className="hidden md:flex items-center gap-8 text-[15px] font-medium">
           <Link
-            href="/features"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group"
+            href="/ipl-registration"
+            className="relative group inline-flex items-center gap-2 px-2 py-1 rounded-lg transition duration-200 ease-in-out"
           >
-            Features
-            <span className="absolute inset-x-0 -bottom-0.5 h-0.5 bg-gradient-to-r from-purple-600 to-pink-500 scale-x-0 group-hover:scale-x-100 transition-transform" />
+            <Flame className="w-4 h-4 text-blue-600 group-hover:scale-110 transition" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 text-base font-semibold group-hover:underline decoration-2 underline-offset-4 whitespace-nowrap">
+              Influencer Premier League
+            </span>
+            <span className="absolute -inset-0.5 bg-indigo-500 opacity-0 blur-md group-hover:opacity-20 rounded-xl transition duration-300" />
           </Link>
-          <Link
-            href="/pricing"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative group"
-          >
+          <Link href="/pricing" className="hover:text-blue-600 transition">
             Pricing
-            <span className="absolute inset-x-0 -bottom-0.5 h-0.5 bg-gradient-to-r from-purple-600 to-pink-500 scale-x-0 group-hover:scale-x-100 transition-transform" />
           </Link>
+          <Link href="/settings" className="hover:text-blue-600 transition">
+            Settings
+          </Link>
+        </nav>
+        <div className="hidden md:flex items-center gap-4">
+          <NavbarSigninAvatar />
+        </div>
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="md:hidden focus:outline-none"
+        >
+          {mobileMenuOpen ? (
+            <X className="w-6 h-6 text-gray-800" />
+          ) : (
+            <Menu className="w-6 h-6 text-gray-800" />
+          )}
+        </button>
+      </nav>
+
+      {mobileMenuOpen && (
+        <div className="md:hidden max-w-7xl mx-auto px-6 py-4 space-y-3 bg-white/70 backdrop-blur-md mt-2 rounded-xl shadow-sm text-sm font-medium">
           <Link
             href="/dashboard/automation?type=post"
-            className="text-sm font-medium px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-500 text-white hover:opacity-90 transition-opacity"
+            className="block hover:text-blue-600"
           >
             Dashboard
           </Link>
-        </nav>
-
-        <NavbarSigninAvatar />
-      </div>
+          <Link href="/pricing" className="block hover:text-blue-600">
+            Pricing
+          </Link>
+          <Link href="/settings" className="block hover:text-blue-600">
+            Settings
+          </Link>
+          <hr className="my-2 border-gray-200" />
+          <NavbarSigninAvatar />
+        </div>
+      )}
     </header>
   );
 };

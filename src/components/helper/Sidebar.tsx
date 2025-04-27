@@ -12,8 +12,8 @@ import {
   FileText,
   Lock,
   Zap,
-  Trophy,
-  UserPlus,
+  // Trophy,
+  // UserPlus,
 } from "lucide-react";
 
 import {
@@ -49,18 +49,18 @@ export function AppSidebar() {
       icon: Bot,
       href: "/dashboard/automation?type=post",
     },
-    {
-      title: "IPL Registration",
-      icon: UserPlus,
-      href: "/ipl-registration",
-      isNew: true,
-    },
-    {
-      title: "IPL Leaderboard",
-      icon: Trophy,
-      href: "/ipl-leaderboard",
-      isNew: true,
-    },
+    // {
+    //   title: "IPL Registration",
+    //   icon: UserPlus,
+    //   href: "/ipl-registration",
+    //   isNew: true,
+    // },
+    // {
+    //   title: "IPL Leaderboard",
+    //   icon: Trophy,
+    //   href: "/ipl-leaderboard",
+    //   isNew: true,
+    // },
     {
       title: "Settings",
       icon: Settings,
@@ -180,7 +180,7 @@ export function AppSidebar() {
                               : ""
                           )}
                         />
-                        {!isCollapsed && (
+                        {/* {!isCollapsed && (
                           <div className="flex items-center gap-2">
                             <span>{item.title}</span>
                             {item.isNew && (
@@ -189,13 +189,13 @@ export function AppSidebar() {
                               </span>
                             )}
                           </div>
-                        )}
+                        )} */}
                         {isActive && (
                           <span className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-purple-600 to-pink-500 dark:from-purple-400 dark:to-pink-400 rounded-r-full" />
                         )}
-                        {isCollapsed && item.isNew && (
+                        {/* {isCollapsed && item.isNew && (
                           <span className="absolute -top-1 -right-1 w-2 h-2 bg-pink-500 rounded-full animate-pulse"></span>
-                        )}
+                        )} */}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

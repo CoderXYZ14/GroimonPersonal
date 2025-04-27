@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, KeyboardEvent } from "react";
 import { useAppSelector } from "@/redux/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -58,7 +58,7 @@ const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   applyOption: z.enum(["all", "selected"]),
   storyId: z.string().optional(),
-  keywords: z.string().min(1, "At least one keyword is required"),
+  keywords: z.array(z.string()).min(1, "At least one keyword is required"),
   messageType: z
     .enum(["message", "ButtonText", "ButtonImage"])
     .default("message"),
@@ -109,6 +109,7 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
   const [buttons, setButtons] = useState<
     Array<{ title: string; url: string; buttonText: string }>
   >(story.buttons || []);
+  const [newKeyword, setNewKeyword] = useState("");
 
   const toggleDmType = () => {
     setDmTypeOpen(!dmTypeOpen);
@@ -127,7 +128,9 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
       name: story.name,
       applyOption: story.applyOption,
       storyId: story.storyId,
-      keywords: story.keywords,
+      keywords: story.keywords
+        ? story.keywords.split(",").map((k) => k.trim())
+        : [],
       messageType: story.messageType,
       message: story.message,
       imageUrl: story.imageUrl,
@@ -225,22 +228,11 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
       setIsLoading(true);
 
       // Handle the case when respondToAll is true - keywords can be empty
-      let processedKeywords;
-      if (values.respondToAll) {
-        // If respondToAll is true, we can send an empty array for keywords
-        processedKeywords = [];
-      } else {
-        // Otherwise, split by comma and trim
-        processedKeywords = values.keywords
-          ? String(values.keywords)
-              .split(",")
-              .map((k) => k.trim())
-          : [];
-      }
+      const keywordsArray = values.respondToAll ? [] : values.keywords || [];
 
       const formData = {
         ...values,
-        keywords: processedKeywords,
+        keywords: keywordsArray,
         buttons:
           values.messageType === "ButtonText" ||
           values.messageType === "ButtonImage"
@@ -264,9 +256,7 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
   };
 
   const keywordsCount = form.watch("keywords")
-    ? String(form.watch("keywords"))
-        .split(",")
-        .filter((k) => k.trim()).length
+    ? form.watch("keywords").length
     : 0;
 
   return (
@@ -440,35 +430,122 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
           <div className="p-6 border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium">Trigger</h2>
-              <Button
-                type="button"
-                variant="ghost"
-                className="text-green-500 flex items-center"
-              >
-                {keywordsCount} keyword{keywordsCount !== 1 ? "s" : ""}
-                <ChevronDown className="w-4 h-4 ml-1" />
-              </Button>
+              {!form.watch("respondToAll") && (
+                <div className="text-green-500 flex items-center">
+                  {keywordsCount} keyword{keywordsCount !== 1 ? "s" : ""}
+                  <ChevronDown className="w-4 h-4 ml-1" />
+                </div>
+              )}
             </div>
 
             <FormField
               control={form.control}
-              name="keywords"
+              name="respondToAll"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="mb-4">
                   <FormControl>
-                    <Input
-                      placeholder="send, dm me, hello"
-                      className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-md"
-                      {...field}
-                    />
+                    <RadioGroup
+                      onValueChange={(value) =>
+                        field.onChange(value === "true")
+                      }
+                      defaultValue={field.value ? "true" : "false"}
+                      className="flex flex-col space-y-2"
+                    >
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="false" />
+                        </FormControl>
+                        <Label className="font-normal">
+                          a specific word or words
+                        </Label>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="true" />
+                        </FormControl>
+                        <Label className="font-normal">any word</Label>
+                      </FormItem>
+                    </RadioGroup>
                   </FormControl>
-                  <FormDescription className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                    Separate keywords with commas
-                  </FormDescription>
-                  <FormMessage />
                 </FormItem>
               )}
             />
+
+            {!form.watch("respondToAll") && (
+              <div>
+                <FormField
+                  control={form.control}
+                  name="keywords"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {field.value?.map((keyword, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-md px-3 py-1 text-sm"
+                          >
+                            <span>{keyword}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newKeywords = [...field.value];
+                                newKeywords.splice(index, 1);
+                                field.onChange(newKeywords);
+                              }}
+                              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 ml-2"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex">
+                        <Input
+                          placeholder="Add keyword"
+                          className="w-full rounded-md"
+                          value={newKeyword}
+                          onChange={(e) => setNewKeyword(e.target.value)}
+                          onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+                            if (e.key === "Enter" && newKeyword.trim()) {
+                              e.preventDefault();
+                              const updatedKeywords = [...(field.value || [])];
+                              updatedKeywords.push(newKeyword.trim());
+                              field.onChange(updatedKeywords);
+                              setNewKeyword("");
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="ml-2"
+                          onClick={() => {
+                            if (newKeyword.trim()) {
+                              const updatedKeywords = [...(field.value || [])];
+                              updatedKeywords.push(newKeyword.trim());
+                              field.onChange(updatedKeywords);
+                              setNewKeyword("");
+                            }
+                          }}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      <FormDescription className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        Press Enter or click Add to add a keyword
+                      </FormDescription>
+                      {form.formState.isSubmitted &&
+                        (!field.value || field.value.length === 0) && (
+                          <p className="text-sm font-medium text-destructive mt-2">
+                            At least one keyword is required when not responding
+                            to all messages
+                          </p>
+                        )}
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
           </div>
 
           {/* DM Type section */}
@@ -750,68 +827,6 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
                   )}
                 />
               </div>
-            )}
-          </div>
-
-          {/* Trigger/Keywords section */}
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">Trigger</h2>
-              {!form.watch("respondToAll") && (
-                <div className="text-green-500 flex items-center">
-                  {keywordsCount} keyword{keywordsCount !== 1 ? "s" : ""}
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center space-x-2 mb-4">
-              <FormField
-                control={form.control}
-                name="respondToAll"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <Label>Respond to all messages</Label>
-                      <FormDescription>
-                        When enabled, keywords are not required
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {!form.watch("respondToAll") && (
-              <FormField
-                control={form.control}
-                name="keywords"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Textarea
-                        placeholder="keyword1, keyword2, keyword3"
-                        className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[100px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                      Separate keywords with commas
-                    </FormDescription>
-                    {form.formState.isSubmitted && !field.value && (
-                      <p className="text-sm font-medium text-destructive mt-2">
-                        At least one keyword is required when not responding to
-                        all messages
-                      </p>
-                    )}
-                  </FormItem>
-                )}
-              />
             )}
           </div>
 
