@@ -17,7 +17,13 @@ const Footer = () => {
                 height={80}
                 className="h-[30px] w-auto"
               />
-              <span className="text-xl font-semibold text-primary">
+              <span
+                className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-[#1A69DD] to-[#26A5E9]"
+                style={{
+                  fontFamily: "'Outfit', 'Urbanist', 'Poppins', sans-serif",
+                  letterSpacing: "-0.5px",
+                }}
+              >
                 Groimon
               </span>
             </div>
@@ -93,7 +99,10 @@ const Footer = () => {
         <div className="border-t mt-12 pt-8 text-center text-muted-foreground">
           <p className="text-sm">
             © {new Date().getFullYear()}{" "}
-            <span className="text-primary">Groimon</span>. All rights reserved.
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#1A69DD] to-[#26A5E9]">
+              Groimon
+            </span>
+            . All rights reserved.
           </p>
         </div>
       </div>

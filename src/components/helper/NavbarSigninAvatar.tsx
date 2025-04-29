@@ -25,6 +25,8 @@ const NavbarSigninAvatar = () => {
               transition-all duration-300 ease-in-out
               shadow-md hover:shadow-lg
               hover:scale-105 active:scale-95
+              dark:bg-[rgb(26,105,221)] dark:hover:bg-[rgb(22,95,200)]
+              dark:focus:ring-blue-400 dark:text-white
             "
           >
             Sign In
