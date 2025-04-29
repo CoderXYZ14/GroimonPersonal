@@ -275,12 +275,14 @@ export function CreateAutomationForm() {
           : undefined;
 
       // In the onSubmit function, modify the axios POST request:
+      // In the onSubmit function, modify the axios POST request:
       const response = await axios.post("/api/automations", {
         ...values,
         postIds,
         keywords: values.keywords,
         user: userId,
         imageUrl: finalImageUrl,
+        autoReplyLimitLeft: values.autoReplyLimit || 100,
         notFollowerMessage: values.isFollowed
           ? values.notFollowerMessage
           : undefined,
@@ -295,7 +297,6 @@ export function CreateAutomationForm() {
             : undefined,
         respondToAll: Boolean(values.respondToAll),
       });
-
       toast.success("Automation created successfully!");
 
       // Process backtrack if enabled
@@ -563,7 +564,9 @@ export function CreateAutomationForm() {
                 <FormItem className="space-y-3">
                   <FormControl>
                     <RadioGroup
-                      onValueChange={(value) => field.onChange(value === "true")}
+                      onValueChange={(value) =>
+                        field.onChange(value === "true")
+                      }
                       defaultValue={field.value ? "true" : "false"}
                       className="flex flex-col space-y-1"
                     >
@@ -571,7 +574,9 @@ export function CreateAutomationForm() {
                         <FormControl>
                           <RadioGroupItem value="false" />
                         </FormControl>
-                        <Label className="font-normal">a specific word or words</Label>
+                        <Label className="font-normal">
+                          a specific word or words
+                        </Label>
                       </FormItem>
                       <FormItem className="flex items-center space-x-3 space-y-0">
                         <FormControl>
@@ -623,7 +628,9 @@ export function CreateAutomationForm() {
                             onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
                               if (e.key === "Enter" && newKeyword.trim()) {
                                 e.preventDefault();
-                                const updatedKeywords = [...(field.value || [])];
+                                const updatedKeywords = [
+                                  ...(field.value || []),
+                                ];
                                 updatedKeywords.push(newKeyword.trim());
                                 field.onChange(updatedKeywords);
                                 setNewKeyword("");
@@ -636,7 +643,9 @@ export function CreateAutomationForm() {
                             className="ml-2"
                             onClick={() => {
                               if (newKeyword.trim()) {
-                                const updatedKeywords = [...(field.value || [])];
+                                const updatedKeywords = [
+                                  ...(field.value || []),
+                                ];
                                 updatedKeywords.push(newKeyword.trim());
                                 field.onChange(updatedKeywords);
                                 setNewKeyword("");

@@ -4,6 +4,7 @@ import AutomationModel, {
   IAutomation as AutomationType,
 } from "@/models/Automation";
 import StoryModel from "@/models/Story";
+import CommenterModel from "@/models/Commenter";
 
 import axios from "axios";
 import { IUser } from "@/models/User";
@@ -507,80 +508,138 @@ export async function sendStoryDM(
     console.log(
       `Sending Story DM to user ${comment.from.id} for story ${storyName}`
     );
-
-    await dbConnect();
-
-    // Get the story to check user's access token and branding settings
     const story = await StoryModel.findById(storyId).populate<{
       user: IUser;
     }>("user");
 
-    if (!story) {
-      console.error(`Story ${storyId} not found`);
+    if (!story || !story.user || !story.user.instagramAccessToken) {
+      console.log(`Story or user not found for ID ${storyId}`);
       return;
     }
 
+    // Get the access token
     const accessToken = story.user.instagramAccessToken;
-    if (!accessToken) {
-      console.error(
-        `No Instagram access token found for user ${story.user._id}`
-      );
-      return;
-    }
 
-    // Modified logic: Skip initial follow check when isFollowed is enabled
+    // Check if the story has isFollowed enabled
     if (story.isFollowed) {
-      console.log(
-        `Story has isFollowed enabled. Directly sending follow confirmation request to user ${comment.from.id}`
+      // Check if this commenter has commented before
+      const { isFirstTime } = await storeAndCheckCommenter(
+        story.user._id.toString(),
+        comment.from.id
       );
 
-      const url = `https://graph.instagram.com/v22.0/${story.user.instagramId}/messages`;
+      // Construct the URL for the Instagram Graph API
+      const url = `https://graph.facebook.com/v22.0/me/messages`;
+
       const headers = {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       };
 
-      // Send follow request message with button without checking first
-      const followRequestBody = {
-        recipient: {
-          id: comment.from.id,
-        },
-        message: {
-          attachment: {
-            type: "template",
-            payload: {
-              template_type: "button",
-              text:
-                story.followUpMessage ||
-                "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
-              buttons: [
-                {
-                  type: "postback",
-                  title: story.followButtonTitle || "I'm following now",
-                  payload: JSON.stringify({
-                    action: "followConfirmed",
-                    storyId: storyId,
-                    commentId: comment.id,
-                    userId: comment.from.id,
-                    username: comment.from.username,
-                    mediaId: comment.media.id,
-                    originalMessage: message,
-                    notFollowerMessage: story.notFollowerMessage,
-                    followButtonTitle: story.followButtonTitle,
-                    followUpMessage: story.followUpMessage,
-                  }),
-                },
-              ],
+      if (isFirstTime) {
+        // For first-time commenters, ONLY send the follow request message
+        console.log(`First-time commenter ${comment.from.id} - sending follow request ONLY`);
+        const followRequestBody = {
+          recipient: {
+            id: comment.from.id,
+          },
+          message: {
+            attachment: {
+              type: "template",
+              payload: {
+                template_type: "button",
+                text:
+                  story.followUpMessage ||
+                  "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
+                buttons: [
+                  {
+                    type: "postback",
+                    title: story.followButtonTitle || "I'm following now",
+                    payload: JSON.stringify({
+                      action: "followConfirmed",
+                      storyId: storyId,
+                      commentId: comment.id,
+                      userId: comment.from.id,
+                      username: comment.from.username,
+                      mediaId: comment.media.id,
+                      originalMessage: message,
+                      notFollowerMessage: story.notFollowerMessage,
+                      followButtonTitle: story.followButtonTitle,
+                      followUpMessage: story.followUpMessage,
+                    }),
+                  },
+                ],
+              },
             },
           },
-        },
-      };
+        };
 
-      await axios.post(url, followRequestBody, { headers });
-      console.log(
-        `Follow confirmation request sent to user ${comment.from.id}`
-      );
-      return;
+        await axios.post(url, followRequestBody, { headers });
+        console.log(`Follow confirmation request sent to user ${comment.from.id}`);
+        return;
+      } else {
+        // If it's not the first time, check if they're following now
+        console.log(`Returning commenter ${comment.from.id} - checking if they're following now`);
+        const isFollowing = await checkIfUserFollowsBusiness(
+          comment.from.id,
+          accessToken
+        );
+
+        if (isFollowing) {
+          console.log(`User ${comment.from.id} is now following - sending direct message`);
+          // Send the original message directly
+          const messageBody = {
+            recipient: {
+              id: comment.from.id,
+            },
+            message: {
+              text: message,
+            },
+          };
+
+          await axios.post(url, messageBody, { headers });
+          return;
+        } else {
+          console.log(`User ${comment.from.id} has commented before but still not following - sending notFollowerMessage ONLY`);
+          // Send the notFollowerMessage with follow button
+          const followRequestBody = {
+            recipient: {
+              id: comment.from.id,
+            },
+            message: {
+              attachment: {
+                type: "template",
+                payload: {
+                  template_type: "button",
+                  text: story.notFollowerMessage || 
+                    "We noticed you still haven't followed us. Please follow our account to continue.",
+                  buttons: [
+                    {
+                      type: "postback",
+                      title: story.followButtonTitle || "I'm following now",
+                      payload: JSON.stringify({
+                        action: "followConfirmed",
+                        storyId: storyId,
+                        commentId: comment.id,
+                        userId: comment.from.id,
+                        username: comment.from.username,
+                        mediaId: comment.media.id,
+                        originalMessage: message,
+                        notFollowerMessage: story.notFollowerMessage,
+                        followButtonTitle: story.followButtonTitle,
+                        followUpMessage: story.followUpMessage,
+                      }),
+                    },
+                  ],
+                },
+              },
+            },
+          };
+
+          await axios.post(url, followRequestBody, { headers });
+          return;
+        }
+      }
     }
 
     // User is following or follow not required, send the message
@@ -717,44 +776,106 @@ async function sendDM(
 
     // Skip follow check for backtracked comments to avoid API errors with old comments
     // For backtracked comments, we'll assume the user is following
+    let skipNormalMessage = false;
+    
     if (!isBacktrack && automation.isFollowed) {
-      // Modified logic: Skip initial follow check and directly ask if user is following
-      body = {
-        recipient,
-        message: {
-          attachment: {
-            type: "template",
-            payload: {
-              template_type: "button",
-              text:
-                automation.followUpMessage ||
-                "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
-              buttons: [
-                {
-                  type: "postback",
-                  title: automation.followButtonTitle || "I'm following now",
-                  payload: JSON.stringify({
-                    action: "followConfirmed",
-                    automationId,
-                    commentId: comment.id,
-                    userId: comment.from.id,
-                    username: comment.from.username,
-                    mediaId: comment.media.id,
-                    originalMessage: originalMessage,
-                    notFollowerMessage: automation.notFollowerMessage,
-                    followButtonTitle: automation.followButtonTitle,
-                    followUpMessage: automation.followUpMessage,
-                  }),
-                },
-              ],
+      // Check if this commenter has commented before
+      const { isFirstTime } = await storeAndCheckCommenter(
+        automation.user._id.toString(),
+        comment.from.id
+      );
+      
+      if (isFirstTime) {
+        // For first-time commenters, ONLY send the follow request message
+        console.log(`First-time commenter ${comment.from.id} - sending follow request ONLY`);
+        body = {
+          recipient,
+          message: {
+            attachment: {
+              type: "template",
+              payload: {
+                template_type: "button",
+                text:
+                  automation.followUpMessage ||
+                  "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
+                buttons: [
+                  {
+                    type: "postback",
+                    title: automation.followButtonTitle || "I'm following now",
+                    payload: JSON.stringify({
+                      action: "followConfirmed",
+                      automationId,
+                      commentId: comment.id,
+                      userId: comment.from.id,
+                      username: comment.from.username,
+                      mediaId: comment.media.id,
+                      originalMessage: originalMessage,
+                      notFollowerMessage: automation.notFollowerMessage,
+                      followButtonTitle: automation.followButtonTitle,
+                      followUpMessage: automation.followUpMessage,
+                    }),
+                  },
+                ],
+              },
             },
           },
-        },
-      };
+        };
+        // Set flag to skip sending normal message
+        skipNormalMessage = true;
+      } else {
+        // If it's not the first time, check if they're following now
+        console.log(`Returning commenter ${comment.from.id} - checking if they're following now`);
+        const isFollowing = await checkIfUserFollowsBusiness(
+          comment.from.id,
+          user.instagramAccessToken
+        );
+
+        if (isFollowing) {
+          console.log(`User ${comment.from.id} is now following - will send direct message`);
+          // Skip setting body here, it will be handled in the next section
+          // This allows the normal message flow to continue
+        } else {
+          console.log(`User ${comment.from.id} has commented before but still not following - sending notFollowerMessage ONLY`);
+          // Send the notFollowerMessage with follow button
+          body = {
+            recipient,
+            message: {
+              attachment: {
+                type: "template",
+                payload: {
+                  template_type: "button",
+                  text: automation.notFollowerMessage || 
+                    "We noticed you still haven't followed us. Please follow our account to continue.",
+                  buttons: [
+                    {
+                      type: "postback",
+                      title: automation.followButtonTitle || "I'm following now",
+                      payload: JSON.stringify({
+                        action: "followConfirmed",
+                        automationId,
+                        commentId: comment.id,
+                        userId: comment.from.id,
+                        username: comment.from.username,
+                        mediaId: comment.media.id,
+                        originalMessage: originalMessage,
+                        notFollowerMessage: automation.notFollowerMessage,
+                        followButtonTitle: automation.followButtonTitle,
+                        followUpMessage: automation.followUpMessage,
+                      }),
+                    },
+                  ],
+                },
+              },
+            },
+          };
+          // Set flag to skip sending normal message
+          skipNormalMessage = true;
+        }
+      }
     }
 
-    // If no follow check needed or user is following
-    if (!body) {
+    // If no follow check needed or user is following and we're not skipping the normal message
+    if (!body && !skipNormalMessage) {
       if (
         (automation.messageType === "ButtonText" ||
           automation.messageType === "ButtonImage") &&
@@ -912,6 +1033,44 @@ export async function checkIfUserFollowsBusiness(
     return true;
   }
 }
+/**
+ * Stores a commenter ID and checks if they've commented before
+ * @param userId The Instagram user ID of the post/story owner
+ * @param commenterId The Instagram ID of the commenter
+ * @returns Object with isFirstTime flag and the commenter record
+ */
+async function storeAndCheckCommenter(userId: string, commenterId: string) {
+  try {
+    // Find the user's commenter record
+    let commenterRecord = await CommenterModel.findOne({ user: userId });
+    
+    // If no record exists, create one
+    if (!commenterRecord) {
+      commenterRecord = new CommenterModel({
+        user: userId,
+        commenterIds: [commenterId]
+      });
+      await commenterRecord.save();
+      return { isFirstTime: true, commenterRecord };
+    }
+    
+    // Check if this commenter ID is already in the array
+    const isFirstTime = !commenterRecord.commenterIds.includes(commenterId);
+    
+    // If it's the first time, add the commenter ID to the array
+    if (isFirstTime) {
+      commenterRecord.commenterIds.push(commenterId);
+      await commenterRecord.save();
+    }
+    
+    return { isFirstTime, commenterRecord };
+  } catch (error) {
+    console.error("Error storing/checking commenter ID:", error);
+    // Default to treating as first time in case of error
+    return { isFirstTime: true, commenterRecord: null };
+  }
+}
+
 async function handlePostback(payload: InstagramWebhookPayload) {
   try {
     console.log("Postback payload received:", JSON.stringify(payload, null, 2));
@@ -969,6 +1128,12 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                   if (!user.instagramAccessToken) {
                     continue;
                   }
+
+                  // Store the commenter ID in our database regardless of follow status
+                  await storeAndCheckCommenter(
+                    user._id.toString(),
+                    senderId
+                  );
 
                   // Check if the user is actually following the business
                   const isNowFollowing = await checkIfUserFollowsBusiness(

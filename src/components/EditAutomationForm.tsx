@@ -165,7 +165,6 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
     }
   }, [user.instagramId, user.instagramAccessToken]);
 
-  // Call fetchMedia when component mounts and when user credentials change
   useEffect(() => {
     fetchMedia();
   }, [user.instagramId, user.instagramAccessToken, fetchMedia]);
