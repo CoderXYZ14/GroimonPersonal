@@ -1,8 +1,7 @@
 // src/app/(home)/pricing/page.tsx
 import Link from "next/link";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Check, MessageCircle, Send, Zap, Play } from "lucide-react";
+import { Check, MessageCircle, Send, Zap } from "lucide-react";
 
 export default function Pricing() {
   return (

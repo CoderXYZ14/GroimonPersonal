@@ -2,22 +2,14 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Instagram, AlertCircle, Hash, Sun, Moon } from "lucide-react";
+import { Instagram, AlertCircle, Hash } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { motion } from "framer-motion";
-import { useTheme } from "next-themes";
 
 const ProfilePage = () => {
   const { userData, isLoading, error, handleDelinkAccount } = useUserProfile();
-  const { theme, setTheme } = useTheme();
-
-  const [mounted, setMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const onDelinkAccount = () => {
     const success = handleDelinkAccount();

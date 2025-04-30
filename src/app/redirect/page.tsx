@@ -98,7 +98,7 @@ const RedirectContent = () => {
             Redirecting You
           </h2>
           <p className="text-muted-foreground mb-6">
-            You're being securely redirected to an external website
+            You&apos;re being securely redirected to an external website
           </p>
 
           {/* Destination URL */}
@@ -144,7 +144,7 @@ const RedirectContent = () => {
                   No Data Shared
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  We don't send any personal information
+                  We don&apos;t send any personal information
                 </p>
               </div>
             </div>

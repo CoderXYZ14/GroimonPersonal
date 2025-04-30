@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShineBorder } from "@/components/magicui/shine-border";
 import { useTheme } from "next-themes";
-import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import handleInstagramLogin from "@/hooks/handleInstagramLogin";
@@ -90,7 +89,7 @@ export default function SignIn() {
               <span className="font-semibold text-[#1A69DD] dark:text-[#26A5E9]">
                 Instagram
               </span>
-              , set your permissions, and you're ready to connect with{" "}
+              , set your permissions, and you&apos;re ready to connect with{" "}
               <span className="font-semibold text-[#1A69DD] dark:text-[#26A5E9]">
                 Groimon
               </span>

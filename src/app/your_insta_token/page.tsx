@@ -121,7 +121,8 @@ export default function YourInstaToken() {
             Securely connecting to Instagram
           </h3>
           <p className="text-sm text-muted-foreground text-center max-w-xs">
-            We're verifying your credentials with Instagram's secure API
+            We&apos;re verifying your credentials with Instagram&apos;s secure
+            API
           </p>
         </div>
 
