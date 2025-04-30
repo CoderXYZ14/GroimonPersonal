@@ -95,8 +95,46 @@ const Footer = () => {
           </div>
         </div>
 
+        {/* Social Media Section */}
+        <div className="flex justify-center mt-12 space-x-6">
+          <a 
+            href="https://www.instagram.com/longtermcollaboration/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-primary transition-colors"
+            aria-label="Instagram"
+          >
+            <div className="w-6 h-6">
+              <Image 
+                src="/instagram.svg" 
+                alt="Instagram" 
+                width={24} 
+                height={24} 
+                className="w-full h-full" 
+              />
+            </div>
+          </a>
+          <a 
+            href="https://www.linkedin.com/company/long-term-collab/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-primary transition-colors"
+            aria-label="LinkedIn"
+          >
+            <div className="w-6 h-6">
+              <Image 
+                src="/linkedin.svg" 
+                alt="LinkedIn" 
+                width={24} 
+                height={24} 
+                className="w-full h-full" 
+              />
+            </div>
+          </a>
+        </div>
+
         {/* Footer Bottom Section */}
-        <div className="border-t mt-12 pt-8 text-center text-muted-foreground">
+        <div className="border-t mt-6 pt-8 text-center text-muted-foreground">
           <p className="text-sm">
             © {new Date().getFullYear()}{" "}
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#1A69DD] to-[#26A5E9]">

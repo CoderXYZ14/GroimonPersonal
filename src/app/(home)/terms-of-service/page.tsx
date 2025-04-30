@@ -14,17 +14,18 @@ export default function TermsOfServicePage() {
   return (
     <main className="flex-1">
       <div className="relative overflow-hidden py-16 bg-white dark:bg-transparent">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-400/10 via-pink-300/5 to-transparent dark:from-purple-900/20 dark:via-pink-900/10 dark:to-transparent"></div>
+        {/* Gradient background */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-400/10 via-cyan-300/5 to-transparent dark:from-blue-900/20 dark:via-cyan-900/10 dark:to-transparent"></div>
 
         <div className="container relative z-10 mx-auto px-4 max-w-4xl">
           <div className="flex items-center gap-2 mb-8">
-            <Scale className="h-8 w-8 text-purple-500" />
-            <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-500">
+            <Scale className="h-8 w-8 text-[#1A69DD]" />
+            <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#1A69DD] to-[#26A5E9]">
               Terms of Service
             </h1>
           </div>
 
-          <div className="bg-white dark:bg-background rounded-xl p-8 shadow-sm border mb-8">
+          <div className="bg-white dark:bg-[#0F172A] rounded-xl p-8 shadow-sm border border-border mb-8">
             <p className="text-lg mb-6 text-muted-foreground">
               Welcome to Groimon. These Terms of Service (&quot;Terms&quot;)
               govern your access to and use of our Instagram automation
@@ -35,8 +36,10 @@ export default function TermsOfServicePage() {
             <div className="space-y-8">
               <section>
                 <div className="flex items-center gap-2 mb-3">
-                  <FileText className="h-5 w-5 text-purple-500" />
-                  <h2 className="text-xl font-bold">Acceptance of Terms</h2>
+                  <FileText className="h-5 w-5 text-[#1A69DD]" />
+                  <h2 className="text-xl font-bold text-foreground">
+                    Acceptance of Terms
+                  </h2>
                 </div>
                 <div className="pl-7">
                   <p className="text-muted-foreground">
@@ -50,8 +53,10 @@ export default function TermsOfServicePage() {
 
               <section>
                 <div className="flex items-center gap-2 mb-3">
-                  <Instagram className="h-5 w-5 text-purple-500" />
-                  <h2 className="text-xl font-bold">Description of Services</h2>
+                  <Instagram className="h-5 w-5 text-[#1A69DD]" />
+                  <h2 className="text-xl font-bold text-foreground">
+                    Description of Services
+                  </h2>
                 </div>
                 <div className="pl-7">
                   <p className="text-muted-foreground">
@@ -70,8 +75,8 @@ export default function TermsOfServicePage() {
 
               <section>
                 <div className="flex items-center gap-2 mb-3">
-                  <AlertCircle className="h-5 w-5 text-purple-500" />
-                  <h2 className="text-xl font-bold">
+                  <AlertCircle className="h-5 w-5 text-[#1A69DD]" />
+                  <h2 className="text-xl font-bold text-foreground">
                     Account Responsibilities
                   </h2>
                 </div>
@@ -102,12 +107,14 @@ export default function TermsOfServicePage() {
 
               <section>
                 <div className="flex items-center gap-2 mb-3">
-                  <Ban className="h-5 w-5 text-purple-500" />
-                  <h2 className="text-xl font-bold">Prohibited Activities</h2>
+                  <Ban className="h-5 w-5 text-[#1A69DD]" />
+                  <h2 className="text-xl font-bold text-foreground">
+                    Prohibited Activities
+                  </h2>
                 </div>
                 <div className="pl-7 space-y-3">
                   <p className="text-muted-foreground">
-                    When using our services, you may not&#58;
+                    When using our services, you may not:
                   </p>
                   <ul className="list-disc pl-6 text-muted-foreground space-y-2">
                     <li>Use our services for spamming or harassment</li>
@@ -136,8 +143,10 @@ export default function TermsOfServicePage() {
 
               <section>
                 <div className="flex items-center gap-2 mb-3">
-                  <CreditCard className="h-5 w-5 text-purple-500" />
-                  <h2 className="text-xl font-bold">Pricing and Payment</h2>
+                  <CreditCard className="h-5 w-5 text-[#1A69DD]" />
+                  <h2 className="text-xl font-bold text-foreground">
+                    Pricing and Payment
+                  </h2>
                 </div>
                 <div className="pl-7">
                   <p className="text-muted-foreground">
@@ -171,8 +180,8 @@ export default function TermsOfServicePage() {
 
               <section>
                 <div className="flex items-center gap-2 mb-3">
-                  <Clock className="h-5 w-5 text-purple-500" />
-                  <h2 className="text-xl font-bold">
+                  <Clock className="h-5 w-5 text-[#1A69DD]" />
+                  <h2 className="text-xl font-bold text-foreground">
                     Subscription Term and Cancellation
                   </h2>
                 </div>
@@ -195,8 +204,10 @@ export default function TermsOfServicePage() {
 
               <section>
                 <div className="flex items-center gap-2 mb-3">
-                  <MessageCircle className="h-5 w-5 text-purple-500" />
-                  <h2 className="text-xl font-bold">Termination</h2>
+                  <MessageCircle className="h-5 w-5 text-[#1A69DD]" />
+                  <h2 className="text-xl font-bold text-foreground">
+                    Termination
+                  </h2>
                 </div>
                 <div className="pl-7">
                   <p className="text-muted-foreground">
@@ -218,8 +229,10 @@ export default function TermsOfServicePage() {
 
               <section>
                 <div className="flex items-center gap-2 mb-3">
-                  <FileText className="h-5 w-5 text-purple-500" />
-                  <h2 className="text-xl font-bold">Intellectual Property</h2>
+                  <FileText className="h-5 w-5 text-[#1A69DD]" />
+                  <h2 className="text-xl font-bold text-foreground">
+                    Intellectual Property
+                  </h2>
                 </div>
                 <div className="pl-7">
                   <p className="text-muted-foreground">
@@ -239,8 +252,10 @@ export default function TermsOfServicePage() {
 
               <section>
                 <div className="flex items-center gap-2 mb-3">
-                  <Scale className="h-5 w-5 text-purple-500" />
-                  <h2 className="text-xl font-bold">Limitation of Liability</h2>
+                  <Scale className="h-5 w-5 text-[#1A69DD]" />
+                  <h2 className="text-xl font-bold text-foreground">
+                    Limitation of Liability
+                  </h2>
                 </div>
                 <div className="pl-7">
                   <p className="text-muted-foreground">
@@ -277,8 +292,10 @@ export default function TermsOfServicePage() {
 
               <section>
                 <div className="flex items-center gap-2 mb-3">
-                  <Globe className="h-5 w-5 text-purple-500" />
-                  <h2 className="text-xl font-bold">Governing Law</h2>
+                  <Globe className="h-5 w-5 text-[#1A69DD]" />
+                  <h2 className="text-xl font-bold text-foreground">
+                    Governing Law
+                  </h2>
                 </div>
                 <div className="pl-7">
                   <p className="text-muted-foreground">
@@ -294,8 +311,10 @@ export default function TermsOfServicePage() {
 
               <section>
                 <div className="flex items-center gap-2 mb-3">
-                  <FileText className="h-5 w-5 text-purple-500" />
-                  <h2 className="text-xl font-bold">Changes to Terms</h2>
+                  <FileText className="h-5 w-5 text-[#1A69DD]" />
+                  <h2 className="text-xl font-bold text-foreground">
+                    Changes to Terms
+                  </h2>
                 </div>
                 <div className="pl-7">
                   <p className="text-muted-foreground">
@@ -310,8 +329,10 @@ export default function TermsOfServicePage() {
 
               <section>
                 <div className="flex items-center gap-2 mb-3">
-                  <MessageCircle className="h-5 w-5 text-purple-500" />
-                  <h2 className="text-xl font-bold">Contact Us</h2>
+                  <MessageCircle className="h-5 w-5 text-[#1A69DD]" />
+                  <h2 className="text-xl font-bold text-foreground">
+                    Contact Us
+                  </h2>
                 </div>
                 <div className="pl-7">
                   <p className="text-muted-foreground">
@@ -322,7 +343,7 @@ export default function TermsOfServicePage() {
                     Email:{" "}
                     <a
                       href="mailto:hardik@longtermcollab.com"
-                      className="text-purple-500 hover:underline"
+                      className="text-[#1A69DD] hover:text-[#166dbd] hover:underline transition-colors"
                     >
                       hardik@longtermcollab.com
                     </a>
@@ -331,7 +352,7 @@ export default function TermsOfServicePage() {
               </section>
             </div>
 
-            <div className="mt-8 pt-6 border-t">
+            <div className="mt-8 pt-6 border-t border-border">
               <p className="text-sm text-muted-foreground">
                 Last Updated:{" "}
                 {new Date().toLocaleDateString("en-US", {
