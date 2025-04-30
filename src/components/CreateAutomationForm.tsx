@@ -511,6 +511,8 @@ export function CreateAutomationForm() {
                                 width={150}
                                 height={150}
                                 className="w-full h-full object-cover"
+                                unoptimized={true}
+                                loading="lazy"
                               />
                             )}
                             {item.mediaType === "VIDEO" && (
@@ -522,6 +524,8 @@ export function CreateAutomationForm() {
                                     width={150}
                                     height={150}
                                     className="w-full h-full object-cover"
+                                    unoptimized={true}
+                                    loading="lazy"
                                   />
                                 ) : (
                                   <span className="absolute text-gray-500 dark:text-gray-400 text-xs">
@@ -540,6 +544,8 @@ export function CreateAutomationForm() {
                                 width={150}
                                 height={150}
                                 className="w-full h-full object-cover"
+                                unoptimized={true}
+                                loading="lazy"
                               />
                             )}
                           </div>

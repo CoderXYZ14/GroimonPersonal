@@ -350,9 +350,10 @@ const IplRegistrationsAdminPage = () => {
                                     registration.name ||
                                     registration.user.instagramUsername
                                   }
-                                  width={32}
-                                  height={32}
-                                  className="h-full w-full object-cover"
+                                  width={40}
+                                  height={40}
+                                  className="object-cover"
+                                  unoptimized={true}
                                 />
                               </div>
                             ) : (

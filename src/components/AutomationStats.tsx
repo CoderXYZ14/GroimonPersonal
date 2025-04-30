@@ -97,6 +97,7 @@ export function AutomationStats() {
                 width={20}
                 height={20}
                 className="rounded-full w-5 h-5 object-cover"
+                unoptimized={true}
               />
             ) : (
               <div className="w-5 h-5 text-purple-600 dark:text-purple-300 flex items-center justify-center">

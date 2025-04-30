@@ -68,6 +68,7 @@ const ProfilePage = () => {
                     width={128}
                     height={128}
                     className="object-cover"
+                    unoptimized={true}
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-[#1A69DD] to-[#26A5E9] flex items-center justify-center text-4xl font-bold text-white">

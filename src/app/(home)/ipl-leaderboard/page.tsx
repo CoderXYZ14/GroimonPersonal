@@ -216,6 +216,7 @@ const IPLLeaderboardPage = () => {
                                     width={40}
                                     height={40}
                                     className="object-cover"
+                                    unoptimized={true}
                                   />
                                 ) : (
                                   <span className="text-lg font-bold">
@@ -312,6 +313,7 @@ const IPLLeaderboardPage = () => {
                                     width={40}
                                     height={40}
                                     className="object-cover"
+                                    unoptimized={true}
                                   />
                                 ) : (
                                   <span className="text-lg font-bold">
@@ -424,6 +426,7 @@ const IPLLeaderboardPage = () => {
                                     width={40}
                                     height={40}
                                     className="object-cover"
+                                    unoptimized={true}
                                   />
                                 ) : (
                                   <span className="text-lg font-bold">
