@@ -12,7 +12,7 @@ export interface IStory extends Document {
   postIds: string[];
   keywords: string[];
   messageType: "message" | "ButtonText" | "ButtonImage";
-  message: string;
+  message?: string;
   imageUrl?: string;
   buttons?: Button[];
   isFollowed: boolean;
@@ -47,7 +47,7 @@ const StorySchema: Schema<IStory> = new Schema(
       default: "message",
       required: true,
     },
-    message: { type: String, required: true },
+    message: { type: String, required: function() { return this.messageType === 'message'; } },
     imageUrl: { type: String },
     buttons: { type: [ButtonSchema], default: [] },
     isFollowed: { type: Boolean, default: false },

@@ -71,8 +71,24 @@ export default {
         float: "float 6s ease-in-out infinite",
         "float-delayed": "float 6s ease-in-out 3s infinite",
         "pulse-slow": "pulse 6s ease-in-out infinite",
+        waveMoveRight: "waveMoveRight 8s linear infinite",
+        waveMoveLeft: "waveMoveLeft 4s linear infinite",
       },
       keyframes: {
+        waveMoveRight: {
+          "0%": { transform: "translateX(-150%) translateY(0%)" },
+          "25%": { transform: "translateX(-75%) translateY(-10%)" },
+          "50%": { transform: "translateX(0%) translateY(0%)" },
+          "75%": { transform: "translateX(75%) translateY(10%)" },
+          "100%": { transform: "translateX(150%) translateY(0%)" },
+        },
+        waveMoveLeft: {
+          "0%": { transform: "translateX(150%) translateY(0%)" },
+          "25%": { transform: "translateX(75%) translateY(10%)" },
+          "50%": { transform: "translateX(0%) translateY(0%)" },
+          "75%": { transform: "translateX(-75%) translateY(-10%)" },
+          "100%": { transform: "translateX(-150%) translateY(0%)" },
+        },
         shine: {
           "0%": {
             "background-position": "0% 0%",

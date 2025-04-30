@@ -437,7 +437,7 @@ async function handleAutomationResponse(
     // Always send DM regardless of reply limit
     const dmResult = await sendDM(
       comment,
-      automation.message,
+      automation.messageType === "message" ? automation.message : "",
       automationName,
       automationId,
       false
@@ -724,6 +724,9 @@ async function sendDM(
 
     // Store the original message for later use after follow check
     const originalMessage = message;
+    
+    // Check if this is a button type automation
+    const isButtonType = automation.messageType === "ButtonText" || automation.messageType === "ButtonImage";
 
     if (!automation) {
       console.error(`Automation with ID ${automationId} not found`);
@@ -765,9 +768,10 @@ async function sendDM(
       "Content-Type": "application/json",
     };
 
-    const messageWithBranding = automation.removeBranding
-      ? originalMessage
-      : `${originalMessage}\n\nThis automation is sent by Groimon.`;
+    // For button types, don't include the message
+    const messageWithBranding = isButtonType
+      ? (automation.removeBranding ? "" : "This automation is sent by Groimon.")
+      : (automation.removeBranding ? originalMessage : `${originalMessage}\n\nThis automation is sent by Groimon.`);
 
     let body;
 
@@ -893,7 +897,7 @@ async function sendDM(
                   template_type: "generic",
                   elements: [
                     {
-                      title: messageWithBranding,
+                      title: automation.buttons[0]?.title || "Click the button below",
                       image_url: automation.imageUrl,
                       buttons: automation.buttons.map((button) => ({
                         type: "web_url",
@@ -913,25 +917,29 @@ async function sendDM(
             },
           };
         } else {
-          // Use button template for ButtonText type
+          // Use generic template for ButtonText type
           body = {
             recipient,
             message: {
               attachment: {
                 type: "template",
                 payload: {
-                  template_type: "button",
-                  text: messageWithBranding,
-                  buttons: automation.buttons.map((button) => ({
-                    type: "web_url",
-                    url:
-                      `${
-                        process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
-                        "https://www.groimon.com"
-                      }/redirect?url=${encodeURIComponent(button.url)}` ||
-                      button.url,
-                    title: button.buttonText,
-                  })),
+                  template_type: "generic",
+                  elements: [
+                    {
+                      title: automation.buttons[0]?.title || "Click the button below",
+                      buttons: automation.buttons.map((button) => ({
+                        type: "web_url",
+                        url:
+                          `${
+                            process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
+                            "https://www.groimon.com"
+                          }/redirect?url=${encodeURIComponent(button.url)}` ||
+                          button.url,
+                        title: button.buttonText,
+                      })),
+                    },
+                  ],
                 },
               },
             },

@@ -68,7 +68,7 @@ const formSchema = z
     messageType: z
       .enum(["message", "ButtonText", "ButtonImage"])
       .default("message"),
-    message: z.string().min(1, "Message template is required"),
+    message: z.string().optional(),
     imageUrl: z.union([
       z.string().url("Must be a valid image URL").optional(),
       z.literal("").optional(),
@@ -101,6 +101,22 @@ const formSchema = z
       message:
         "At least one keyword is required when not responding to all messages",
       path: ["keywords"],
+    }
+  )
+  .refine(
+    (data) => {
+      // Message is required only for messageType "message"
+      if (
+        data.messageType === "message" &&
+        (!data.message || data.message.trim() === "")
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Message template is required for message type",
+      path: ["message"],
     }
   );
 
@@ -253,7 +269,13 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
       (messageType === "ButtonText" || messageType === "ButtonImage") &&
       buttons.length === 0
     ) {
-      setButtons([{ title: "", url: "", buttonText: "" }]);
+      setButtons([
+        {
+          title: "Default Button",
+          url: "https://example.com",
+          buttonText: "Click Here",
+        },
+      ]);
     } else if (messageType === "message") {
       setButtons([]);
     }
@@ -289,13 +311,18 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
           ? values.imageUrl
           : undefined;
 
+      // Create request payload without the message field for button types
+      const { ...valuesWithoutMessage } = values;
+
       // Update the automation - try a different approach that might work better with ngrok
       await axios.put(`/api/automations?id=${automation._id}`, {
         id: automation._id,
-        ...values,
+        ...(values.messageType === "message" ? values : valuesWithoutMessage),
         postIds,
         keywords: keywordsArray,
         imageUrl: finalImageUrl,
+        // Only include message field if messageType is 'message'
+        message: values.messageType === "message" ? values.message : undefined,
         notFollowerMessage: values.isFollowed
           ? values.notFollowerMessage
           : undefined,
@@ -663,7 +690,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                 className="text-green-500 flex items-center"
                 onClick={toggleDmType}
               >
-                Message Template
+                Message Type
                 {dmTypeOpen ? (
                   <ChevronUp className="w-4 h-4 ml-1" />
                 ) : (
@@ -710,22 +737,24 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="message"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Enter your message template"
-                          className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[120px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {messageType === "message" && (
+                  <FormField
+                    control={form.control}
+                    name="message"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Enter your message template"
+                            className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[120px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 {messageType === "ButtonImage" && (
                   <FormField

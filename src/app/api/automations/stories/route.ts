@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       !name ||
       !keywords ||
       !messageType ||
-      !message ||
+      (messageType === "message" && !message) ||
       !user ||
       (messageType === "ButtonImage" && !imageUrl) ||
       ((messageType === "ButtonText" || messageType === "ButtonImage") &&
@@ -205,7 +205,8 @@ export async function PUT(request: Request) {
     }
 
     // Regular update with validation
-    if (!body.name || !body.keywords || !body.messageType || !body.message) {
+    if (!body.name || !body.keywords || !body.messageType || 
+        (body.messageType === "message" && !body.message)) {
       return NextResponse.json(
         { message: "Missing required fields" },
         { status: 400 }

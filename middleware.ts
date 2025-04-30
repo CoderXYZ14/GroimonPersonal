@@ -18,12 +18,12 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  if (url.pathname.startsWith("/dashboard")) {
-    const userDetails = request.cookies.get("user_details")?.value;
-    if (!userDetails) {
-      return NextResponse.redirect(new URL("/signin", request.url));
-    }
-  }
+  // if (url.pathname.startsWith("/dashboard")) {
+  //   const userDetails = request.cookies.get("user_details")?.value;
+  //   if (!userDetails) {
+  //     return NextResponse.redirect(new URL("/signin", request.url));
+  //   }
+  // }
 
   return NextResponse.next();
 }

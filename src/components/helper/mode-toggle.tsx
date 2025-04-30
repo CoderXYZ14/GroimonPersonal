@@ -14,7 +14,6 @@ export function ModeToggle() {
       onClick={() => setTheme(theme === "light" ? "dark" : "light")}
       className="relative w-10 h-10 flex items-center justify-center bg-transparent rounded-full"
     >
-      {/* Sun animation for light mode */}
       <Sun
         className={`absolute h-6 w-6 text-[#D6A700] transition-all duration-500 ease-in-out transform 
           ${
@@ -24,7 +23,7 @@ export function ModeToggle() {
           }
         `}
       />
-      {/* Moon animation for dark mode */}
+
       <Moon
         className={`absolute h-6 w-6 text-[#A7A7A7] transition-all duration-500 ease-in-out transform 
           ${

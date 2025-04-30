@@ -2,7 +2,7 @@
 import Link from "next/link";
 import React, { useState } from "react";
 import Image from "next/image";
-import { Menu, X, Flame } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import NavbarSigninAvatar from "./helper/NavbarSigninAvatar";
 
 const Header = () => {
@@ -34,9 +34,8 @@ const Header = () => {
           </span>
         </Link>
 
-        {/* Desktop Nav Links */}
-        <nav className="hidden md:flex items-center gap-8 text-base font-medium">
-          <Link
+        <nav className="hidden md:flex items-center gap-16 text-base font-medium">
+          {/* <Link
             href="/features"
             className="group relative inline-flex items-center gap-2 px-3 py-2 rounded-lg transition-transform duration-200 ease-in-out hover:scale-105"
           >
@@ -45,6 +44,12 @@ const Header = () => {
               Influencer Premier League
             </span>
             <span className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-10 bg-sky-500 transition-opacity dark:bg-sky-400" />
+          </Link> */}
+          <Link
+            href="/dashboard/automation?type=post"
+            className="group text-gray-800 dark:text-gray-200 transition-transform duration-200 ease-in-out hover:text-sky-600 hover:scale-105 dark:hover:text-sky-400"
+          >
+            Dashboard
           </Link>
           <Link
             href="/pricing"
@@ -53,10 +58,10 @@ const Header = () => {
             Pricing
           </Link>
           <Link
-            href="/resources"
+            href="/terms-of-service"
             className="group text-gray-800 dark:text-gray-200 transition-transform duration-200 ease-in-out hover:text-sky-600 hover:scale-105 dark:hover:text-sky-400"
           >
-            Resources
+            Terms of Service
           </Link>
         </nav>
 

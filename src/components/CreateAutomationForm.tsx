@@ -42,7 +42,7 @@ const formSchema = z
     messageType: z
       .enum(["message", "ButtonText", "ButtonImage"])
       .default("message"),
-    message: z.string().min(1, "Message template is required"),
+    message: z.string().optional(),
     imageUrl: z.union([
       z.string().url("Must be a valid image URL").optional(),
       z.literal("").optional(),
@@ -80,6 +80,22 @@ const formSchema = z
       message:
         "At least one keyword is required when not responding to all messages",
       path: ["keywords"],
+    }
+  )
+  .refine(
+    (data) => {
+      // Message is required only for messageType "message"
+      if (
+        data.messageType === "message" &&
+        (!data.message || data.message.trim() === "")
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Message template is required for message type",
+      path: ["message"],
     }
   );
 
@@ -189,6 +205,22 @@ export function CreateAutomationForm() {
     }
   }, [isFollowed]);
 
+  // Add a default button when ButtonText or ButtonImage is selected and no buttons exist
+  useEffect(() => {
+    if (
+      (messageType === "ButtonText" || messageType === "ButtonImage") &&
+      buttons.length === 0
+    ) {
+      setButtons([
+        {
+          title: "Default Button",
+          url: "https://example.com",
+          buttonText: "Click Here",
+        },
+      ]);
+    }
+  }, [messageType, buttons.length]);
+
   useEffect(() => {
     if (messageType === "ButtonImage") {
       if (!form.getValues("imageUrl")) {
@@ -274,14 +306,17 @@ export function CreateAutomationForm() {
           ? values.imageUrl
           : undefined;
 
-      // In the onSubmit function, modify the axios POST request:
+      const { ...valuesWithoutMessage } = values;
+
       // In the onSubmit function, modify the axios POST request:
       const response = await axios.post("/api/automations", {
-        ...values,
+        ...(values.messageType === "message" ? values : valuesWithoutMessage),
         postIds,
         keywords: values.keywords,
         user: userId,
         imageUrl: finalImageUrl,
+        // Only include message field if messageType is 'message'
+        message: values.messageType === "message" ? values.message : undefined,
         autoReplyLimitLeft: values.autoReplyLimit || 100,
         notFollowerMessage: values.isFollowed
           ? values.notFollowerMessage
@@ -303,18 +338,28 @@ export function CreateAutomationForm() {
       if (values.enableBacktrack) {
         toast.info("Processing existing comments...");
         try {
-          const backtrackResponse = await axios.post("/api/process-backtrack", {
+          // Create backtrack payload without message field for button types
+          const backtrackPayload = {
             mediaIds: postIds,
             accessToken: user.instagramAccessToken,
             automationId: response.data.id,
             automationName: values.name,
             keywords: values.keywords,
             commentMessage: values.commentMessage,
-            message: values.message,
             isFollowed: values.isFollowed,
             removeBranding: values.removeBranding,
             respondToAll: Boolean(values.respondToAll),
-          });
+          };
+
+          // Only add message field if messageType is 'message'
+          if (values.messageType === "message" && values.message) {
+            Object.assign(backtrackPayload, { message: values.message });
+          }
+
+          const backtrackResponse = await axios.post(
+            "/api/process-backtrack",
+            backtrackPayload
+          );
 
           if (backtrackResponse.data.success) {
             toast.success("Successfully processed existing comments");
@@ -683,7 +728,7 @@ export function CreateAutomationForm() {
                 className="text-green-500 flex items-center"
                 onClick={toggleDmType}
               >
-                Message Template
+                Message Type
                 {dmTypeOpen ? (
                   <ChevronUp className="w-4 h-4 ml-1" />
                 ) : (
@@ -729,22 +774,24 @@ export function CreateAutomationForm() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="message"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Enter the message to send as an auto-reply"
-                          className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[120px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {form.watch("messageType") === "message" && (
+                  <FormField
+                    control={form.control}
+                    name="message"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Enter the message to send as an auto-reply"
+                            className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[120px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 {form.watch("messageType") === "ButtonImage" && (
                   <FormField

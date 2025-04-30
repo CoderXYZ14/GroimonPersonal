@@ -42,7 +42,7 @@ const formSchema = z
     messageType: z
       .enum(["message", "ButtonText", "ButtonImage"])
       .default("message"),
-    message: z.string().min(1, "Message template is required"),
+    message: z.string().optional(),
     imageUrl: z.union([
       z.string().url("Must be a valid image URL").optional(),
       z.literal("").optional(),
@@ -71,6 +71,22 @@ const formSchema = z
       message:
         "At least one keyword is required when not responding to all messages",
       path: ["keywords"],
+    }
+  )
+  .refine(
+    (data) => {
+      // Message is required only for messageType "message"
+      if (
+        data.messageType === "message" &&
+        (!data.message || data.message.trim() === "")
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Message template is required for message type",
+      path: ["message"],
     }
   );
 
@@ -155,6 +171,22 @@ export function CreateStoryAutomationForm() {
       setIsFollowedOpen(false);
     }
   }, [isFollowed]);
+
+  // Add a default button when ButtonText or ButtonImage is selected and no buttons exist
+  useEffect(() => {
+    if (
+      (messageType === "ButtonText" || messageType === "ButtonImage") &&
+      buttons.length === 0
+    ) {
+      setButtons([
+        {
+          title: "Default Button",
+          url: "https://example.com",
+          buttonText: "Click Here",
+        },
+      ]);
+    }
+  }, [messageType, buttons.length]);
 
   useEffect(() => {
     if (messageType === "ButtonImage") {
@@ -253,12 +285,17 @@ export function CreateStoryAutomationForm() {
           ? values.imageUrl
           : undefined;
 
+      // Create request payload without the message field for button types
+      const { ...valuesWithoutMessage } = values;
+
       await axios.post("/api/automations/stories", {
-        ...values,
+        ...(values.messageType === "message" ? values : valuesWithoutMessage),
         postIds: storyIds,
         keywords: values.keywords || [], // Use keywords array directly
         user: userId,
         imageUrl: finalImageUrl,
+        // Only include message field if messageType is 'message'
+        message: values.messageType === "message" ? values.message : undefined,
         notFollowerMessage: values.isFollowed
           ? values.notFollowerMessage
           : undefined,
@@ -605,7 +642,7 @@ export function CreateStoryAutomationForm() {
                 className="text-green-500 flex items-center"
                 onClick={toggleDmType}
               >
-                Message Template
+                Message Type
                 {dmTypeOpen ? (
                   <ChevronUp className="w-4 h-4 ml-1" />
                 ) : (
@@ -651,22 +688,24 @@ export function CreateStoryAutomationForm() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="message"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Enter the message to send as an auto-reply"
-                          className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[120px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {form.watch("messageType") === "message" && (
+                  <FormField
+                    control={form.control}
+                    name="message"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Enter the message to send as an auto-reply"
+                            className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[120px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 {form.watch("messageType") === "ButtonImage" && (
                   <FormField
