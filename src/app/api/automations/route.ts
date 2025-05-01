@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       !messageType ||
       (messageType === "message" && !message) ||
       !user ||
-      (enableCommentAutomation && !commentMessage) ||
+      (enableCommentAutomation && (!commentMessage || commentMessage.length === 0)) ||
       (enableCommentAutomation && autoReplyLimit === undefined) ||
       (enableCommentAutomation && autoReplyLimitLeft === undefined) ||
       (messageType === "ButtonImage" && !imageUrl) ||

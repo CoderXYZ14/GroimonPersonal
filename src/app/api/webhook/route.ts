@@ -405,14 +405,20 @@ async function handleAutomationResponse(
     }
 
     // Handle comment automation with reply limit
-    if (automation.enableCommentAutomation && automation.commentMessage) {
+    if (automation.enableCommentAutomation && automation.commentMessage && automation.commentMessage.length > 0) {
       const autoReplyLimitLeft = automation.autoReplyLimitLeft ?? -1;
+      
+      // Select a random message from the array to reduce spamming
+      const randomIndex = Math.floor(Math.random() * automation.commentMessage.length);
+      const selectedMessage = automation.commentMessage[randomIndex];
+      
+      console.log(`Selected random comment message (index ${randomIndex}) from ${automation.commentMessage.length} available messages`);
 
       // Send comment if: unlimited (-1) OR has replies left (> 0)
       if (autoReplyLimitLeft === -1 || autoReplyLimitLeft > 0) {
         await replyToComment(
           comment,
-          automation.commentMessage,
+          selectedMessage,
           user.instagramAccessToken
         );
 

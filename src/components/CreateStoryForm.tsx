@@ -350,7 +350,7 @@ export function CreateStoryAutomationForm() {
               )}
             />
             <div className="flex gap-2">
-              <Link href="/dashboard/story-automation">
+              <Link href="/dashboard/automation?type=story">
                 <Button
                   variant="outline"
                   className="border-gray-200 dark:border-gray-700"

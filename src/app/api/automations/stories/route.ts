@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     // Validation checks
     if (
       !name ||
-      !keywords ||
+      (!respondToAll && (!keywords || keywords.length === 0)) ||
       !messageType ||
       (messageType === "message" && !message) ||
       !user ||

@@ -50,7 +50,7 @@ const formSchema = z
     ]),
     buttons: z.array(buttonSchema).optional(),
     enableCommentAutomation: z.boolean(),
-    commentMessage: z.string().optional(),
+    commentMessage: z.array(z.string()).optional().default([]),
     autoReplyLimit: z
       .number()
       .refine((val) => val === -1 || val >= 100, {
@@ -134,6 +134,7 @@ export function CreateAutomationForm() {
     Array<{ title: string; url: string; buttonText: string }>
   >([]);
   const [newKeyword, setNewKeyword] = useState("");
+  const [newCommentMessage, setNewCommentMessage] = useState("");
 
   const toggleSelectPost = () => {
     setSelectPostOpen(!selectPostOpen);
@@ -155,7 +156,7 @@ export function CreateAutomationForm() {
       message: "",
       imageUrl: "",
       enableCommentAutomation: false,
-      commentMessage: "",
+      commentMessage: [],
       autoReplyLimit: 100,
       enableBacktrack: false,
       isFollowed: false,
@@ -960,13 +961,68 @@ export function CreateAutomationForm() {
                   name="commentMessage"
                   render={({ field }) => (
                     <FormItem>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Enter the message to reply to comments"
-                          className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[120px]"
-                          {...field}
-                        />
-                      </FormControl>
+                      <div className="flex flex-col space-y-3">
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {field.value?.map((message, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-md px-3 py-1 text-sm"
+                            >
+                              <span className="mr-1">{message}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newMessages = [...field.value];
+                                  newMessages.splice(index, 1);
+                                  field.onChange(newMessages);
+                                }}
+                                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 ml-1"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex">
+                          <Input
+                            placeholder="Add comment message"
+                            className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-md"
+                            value={newCommentMessage}
+                            onChange={(e) => setNewCommentMessage(e.target.value)}
+                            onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+                              if (e.key === "Enter" && newCommentMessage.trim()) {
+                                e.preventDefault();
+                                const updatedMessages = [
+                                  ...(field.value || []),
+                                ];
+                                updatedMessages.push(newCommentMessage.trim());
+                                field.onChange(updatedMessages);
+                                setNewCommentMessage("");
+                              }
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="ml-2"
+                            onClick={() => {
+                              if (newCommentMessage.trim()) {
+                                const updatedMessages = [
+                                  ...(field.value || []),
+                                ];
+                                updatedMessages.push(newCommentMessage.trim());
+                                field.onChange(updatedMessages);
+                                setNewCommentMessage("");
+                              }
+                            }}
+                          >
+                            Add
+                          </Button>
+                        </div>
+                      </div>
+                      <FormDescription className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                        Press Enter or click Add to add a comment message
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

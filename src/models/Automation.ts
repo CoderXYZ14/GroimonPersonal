@@ -16,7 +16,7 @@ export interface IAutomation extends Document {
   imageUrl?: string;
   buttons?: Button[];
   enableCommentAutomation: boolean;
-  commentMessage?: string;
+  commentMessage?: string[];
   enableBacktrack: boolean;
   isFollowed: boolean;
   removeBranding: boolean;
@@ -61,7 +61,7 @@ const AutomationSchema: Schema<IAutomation> = new Schema(
     imageUrl: { type: String },
     buttons: { type: [ButtonSchema], default: [] },
     enableCommentAutomation: { type: Boolean, default: false },
-    commentMessage: { type: String, default: "" },
+    commentMessage: { type: [String], default: [] },
     enableBacktrack: { type: Boolean, default: false },
     isFollowed: { type: Boolean, default: false },
     removeBranding: { type: Boolean, default: false },
