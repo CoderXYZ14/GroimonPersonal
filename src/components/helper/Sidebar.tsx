@@ -7,15 +7,9 @@ import {
   HelpCircle,
   Settings,
   User2,
-  Home,
   ChevronLeft,
   ChevronRight,
   FileText,
-  Lock,
-  Zap,
-  Trophy,
-  UserPlus,
-  MessageCircle,
   Shield,
 } from "lucide-react";
 
@@ -28,7 +22,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
+
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
