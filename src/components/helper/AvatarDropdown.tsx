@@ -10,6 +10,7 @@ import {
 import { useAppSelector, useAppDispatch } from "@/redux/hooks";
 import { clearUser } from "@/redux/features/userSlice";
 import axios from "axios";
+import Link from "next/link";
 
 const AvatarDropdown = () => {
   const user = useAppSelector((state) => state.user);
@@ -110,9 +111,11 @@ const AvatarDropdown = () => {
           </p>
         </div>
 
-        <DropdownMenuItem className="flex items-center gap-3 cursor-pointer text-base text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-3 py-2 transition-all duration-200">
-          <div className="flex-1">Instagram Profile</div>
-        </DropdownMenuItem>
+        <Link href="/profile">
+          <DropdownMenuItem className="flex items-center gap-3 cursor-pointer text-base text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-3 py-2 transition-all duration-200">
+            <div className="flex-1">Profile</div>
+          </DropdownMenuItem>
+        </Link>
 
         <div className="h-px bg-gray-300 dark:bg-gray-600 my-2" />
 

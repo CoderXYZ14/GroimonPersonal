@@ -93,13 +93,22 @@ export default function Home() {
               <span className="text-base md:text-lg font-medium text-neutral-600 dark:text-neutral-400">
                 Approved by
               </span>
-              <Image
-                src="/meta.svg"
-                alt="Meta Approved"
-                width={40}
-                height={40}
-                className="h-10 w-auto"
-              />
+              <div className="flex flex-row items-center gap-2">
+                <Image
+                  src="/meta.svg"
+                  alt="Meta Approved"
+                  width={40}
+                  height={40}
+                  className="h-10 w-auto"
+                />
+                <Image
+                  src="/meta2.svg"
+                  alt="Meta Approved"
+                  width={40}
+                  height={40}
+                  className="h-10 w-auto dark:invert"
+                />
+              </div>
             </div>
           </div>
         </section>

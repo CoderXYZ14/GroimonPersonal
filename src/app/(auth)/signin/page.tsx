@@ -54,7 +54,7 @@ export default function SignIn() {
             <CardHeader className="pt-8 pb-5 space-y-4">
               <div className="flex items-center justify-center gap-3">
                 <Image
-                  src="/logo.svg"
+                  src="/logo2.svg"
                   alt="Groimon"
                   width={50}
                   height={50}

@@ -11,7 +11,7 @@ const Footer = () => {
           <div className="text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-2 font-bold text-xl mb-4">
               <Image
-                src="/logo.svg"
+                src="/logo2.svg"
                 alt="logo"
                 width={80}
                 height={80}
@@ -97,37 +97,37 @@ const Footer = () => {
 
         {/* Social Media Section */}
         <div className="flex justify-center mt-12 space-x-6">
-          <a 
-            href="https://www.instagram.com/longtermcollaboration/" 
-            target="_blank" 
+          <a
+            href="https://www.instagram.com/longtermcollaboration/"
+            target="_blank"
             rel="noopener noreferrer"
             className="text-muted-foreground hover:text-primary transition-colors"
             aria-label="Instagram"
           >
             <div className="w-6 h-6">
-              <Image 
-                src="/instagram.svg" 
-                alt="Instagram" 
-                width={24} 
-                height={24} 
-                className="w-full h-full" 
+              <Image
+                src="/instagram.svg"
+                alt="Instagram"
+                width={24}
+                height={24}
+                className="w-full h-full"
               />
             </div>
           </a>
-          <a 
-            href="https://www.linkedin.com/company/long-term-collab/" 
-            target="_blank" 
+          <a
+            href="https://www.linkedin.com/company/long-term-collab/"
+            target="_blank"
             rel="noopener noreferrer"
             className="text-muted-foreground hover:text-primary transition-colors"
             aria-label="LinkedIn"
           >
             <div className="w-6 h-6">
-              <Image 
-                src="/linkedin.svg" 
-                alt="LinkedIn" 
-                width={24} 
-                height={24} 
-                className="w-full h-full" 
+              <Image
+                src="/linkedin.svg"
+                alt="LinkedIn"
+                width={24}
+                height={24}
+                className="w-full h-full"
               />
             </div>
           </a>

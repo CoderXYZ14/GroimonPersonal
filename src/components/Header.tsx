@@ -17,7 +17,7 @@ const Header = () => {
           className="flex items-center gap-3 transition-opacity hover:opacity-80"
         >
           <Image
-            src="/logo.svg"
+            src="/logo2.svg"
             alt="Groimon Logo"
             width={32}
             height={32}
