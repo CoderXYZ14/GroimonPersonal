@@ -1,9 +1,8 @@
-import { MessageCircle, Image as ImageIcon, Play, Zap } from "lucide-react";
+import { MessageCircle, Image as ImageIcon, Play } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AutomationTable } from "@/components/AutomationTable";
 import React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
 
 export type AutomationType = "post" | "story" | "dm";
 
@@ -111,8 +110,8 @@ export function AutomationTabs({ defaultType = "post" }: AutomationTabsProps) {
                   Inbox Automation Coming Soon!
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  We're building powerful Inbox automation tools to help you
-                  engage with your audience.
+                  We&apos;re building powerful Inbox automation tools to help
+                  you engage with your audience.
                 </p>
                 <div className="pt-2"></div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1A69DD]/5 dark:bg-[#26A5E9]/5">

@@ -1,17 +1,9 @@
 "use client";
 
-import {
-  MessageCircle,
-  Zap,
-  Users,
-  Link2,
-  Plug2,
-  UserPlus,
-} from "lucide-react";
+import { MessageCircle, Users, Link2, Plug2 } from "lucide-react";
 import { useAppSelector } from "@/redux/hooks";
 import { useEffect, useState } from "react";
 import axios from "axios";
-import Image from "next/image";
 import { motion } from "framer-motion";
 
 export function AutomationStats() {
@@ -20,7 +12,6 @@ export function AutomationStats() {
   const [redirectCount, setRedirectCount] = useState<number>(0);
   const [totalHits, setTotalHits] = useState<number>(0);
   const [automationsCount, setAutomationsCount] = useState<number>(0);
-  const [profilePic, setProfilePic] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -48,30 +39,8 @@ export function AutomationStats() {
       }
     };
 
-    const fetchProfilePic = async () => {
-      if (hasInstagramAuth) {
-        try {
-          const response = await axios.get(
-            `/api/insta_details?userId=${user.instagramId}&accessToken=${user.instagramAccessToken}`
-          );
-
-          if (response.data && response.data.profilePic) {
-            setProfilePic(response.data.profilePic);
-          }
-        } catch (error) {
-          console.error("Error fetching Instagram profile picture:", {
-            error,
-            message: error.response?.data || error.message,
-            userId: user.instagramId,
-            hasToken: !!user.instagramAccessToken,
-          });
-        }
-      }
-    };
-
     fetchStats();
-    fetchProfilePic();
-  }, [user._id, user.instagramId, user.instagramAccessToken, hasInstagramAuth]);
+  }, [user._id]);
 
   if (!hasInstagramAuth) {
     return (

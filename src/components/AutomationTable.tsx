@@ -6,7 +6,6 @@ import {
   Search,
   User2,
   Zap,
-  Star,
 } from "lucide-react";
 import { toast } from "sonner";
 import {

@@ -8,7 +8,7 @@ import { BeatLoader } from "react-spinners";
 import { useAppDispatch } from "@/redux/hooks";
 import { setUser } from "@/redux/features/userSlice";
 import Image from "next/image";
-import { ShieldCheck, Lock, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, Lock } from "lucide-react";
 
 declare global {
   interface Window {
