@@ -205,8 +205,12 @@ export async function PUT(request: Request) {
     }
 
     // Regular update with validation
-    if (!body.name || !body.keywords || !body.messageType || 
-        (body.messageType === "message" && !body.message)) {
+    if (
+      !body.name ||
+      !body.keywords ||
+      !body.messageType ||
+      (body.messageType === "message" && !body.message)
+    ) {
       return NextResponse.json(
         { message: "Missing required fields" },
         { status: 400 }

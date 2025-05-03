@@ -238,7 +238,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
             No Automations Yet
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Create your first automation
+            Create your first {type === "post" ? "Post" : "Story"} Automation
           </p>
         </div>
         <Button
@@ -254,7 +254,11 @@ export function AutomationTable({ type }: AutomationTableProps) {
           />
 
           <Plus className="relative z-10 stroke-[2] h-4 w-4" />
-          <span className="relative z-10 font-semibold">Create Automation</span>
+          <span className="relative z-10 font-semibold">
+            {type === "post"
+              ? "Create Post Automation"
+              : "Create Story Automation"}
+          </span>
         </Button>
       </div>
     );
@@ -362,25 +366,29 @@ export function AutomationTable({ type }: AutomationTableProps) {
                 </div>
               </div>
 
-              {/* <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
-                  Auto Reply
-                </p>
-                <div className="flex items-center gap-3">
-                  <Switch
-                    checked={automation.enableCommentAutomation}
-                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
-                  />
-                  <span className="text-sm">
-                    {automation.enableCommentAutomation ? "Enabled" : "Disabled"}
-                  </span>
-                </div>
-                {automation.enableCommentAutomation && (
-                  <p className="mt-2 text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
-                    "{automation.commentMessage}"
+              {type === "post" && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                    Auto Reply
                   </p>
-                )}
-              </div> */}
+                  <div className="flex items-center gap-3">
+                    <Switch
+                      checked={automation.enableCommentAutomation}
+                      className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                    />
+                    <span className="text-sm">
+                      {automation.enableCommentAutomation
+                        ? "Enabled"
+                        : "Disabled"}
+                    </span>
+                  </div>
+                  {automation.enableCommentAutomation && (
+                    <p className="mt-2 text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
+                      "{automation.commentMessage}"
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="pt-2 flex justify-between items-center">
                 <div className="flex items-center gap-2">
@@ -413,7 +421,9 @@ export function AutomationTable({ type }: AutomationTableProps) {
                 <TableHead className="font-medium py-4">Link Clicks</TableHead>
                 <TableHead className="font-medium py-4">Keywords</TableHead>
                 <TableHead className="font-medium py-4">DM Message</TableHead>
-                <TableHead className="font-medium py-4">Auto Reply</TableHead>
+                {type === "post" && (
+                  <TableHead className="font-medium py-4">Auto Reply</TableHead>
+                )}
                 <TableHead className="font-medium py-4">Status</TableHead>
                 <TableHead className="font-medium py-4 pr-6 text-right">
                   Actions
@@ -495,40 +505,42 @@ export function AutomationTable({ type }: AutomationTableProps) {
                       automation.message
                     )}
                   </TableCell>
-                  <TableCell className="py-4">
-                    <div className="flex flex-col gap-1.5">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center w-fit ${
-                          automation.enableCommentAutomation
-                            ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
-                            : "bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300"
-                        }`}
-                      >
-                        {automation.enableCommentAutomation
-                          ? "Enabled"
-                          : "Disabled"}
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {automation.enableCommentAutomation &&
-                          automation.commentMessage
-                            .slice(0, 2)
-                            .map((comment) => (
-                              <Badge
-                                key={comment}
-                                variant="outline"
-                                className="text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-900"
-                              >
-                                {comment}
-                              </Badge>
-                            ))}
-                        {automation.commentMessage.length > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{automation.commentMessage.length - 2}
-                          </Badge>
-                        )}
+                  {type === "post" && (
+                    <TableCell className="py-4">
+                      <div className="flex flex-col gap-1.5">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center w-fit ${
+                            automation.enableCommentAutomation
+                              ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                              : "bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300"
+                          }`}
+                        >
+                          {automation.enableCommentAutomation
+                            ? "Enabled"
+                            : "Disabled"}
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {automation.enableCommentAutomation &&
+                            automation.commentMessage
+                              .slice(0, 2)
+                              .map((comment) => (
+                                <Badge
+                                  key={comment}
+                                  variant="outline"
+                                  className="text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-900"
+                                >
+                                  {comment}
+                                </Badge>
+                              ))}
+                          {automation.commentMessage.length > 2 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{automation.commentMessage.length - 2}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </TableCell>
+                    </TableCell>
+                  )}
                   <TableCell className="py-4">
                     <div className="flex items-center justify-center">
                       <Switch

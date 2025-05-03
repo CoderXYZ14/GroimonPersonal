@@ -88,7 +88,7 @@ const Header = () => {
       {mobileMenuOpen && (
         <div className="md:hidden max-w-7xl mx-auto px-6 py-4 space-y-3 bg-white/90 border border-gray-200 dark:bg-gray-900 dark:border-gray-700 shadow-lg rounded-2xl backdrop-blur-lg mt-2 text-base font-medium">
           <Link
-            href="/dashboard"
+            href="/dashboard/automation?type=post"
             className="block group text-gray-800 dark:text-gray-200 transition-transform duration-200 ease-in-out hover:text-sky-600 hover:scale-105 dark:hover:text-sky-400"
           >
             Dashboard

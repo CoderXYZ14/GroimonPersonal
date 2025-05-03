@@ -226,7 +226,9 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
       imageUrl: automation.imageUrl || "",
       buttons: automation.buttons,
       enableCommentAutomation: automation.enableCommentAutomation,
-      commentMessage: Array.isArray(automation.commentMessage) ? automation.commentMessage : [],
+      commentMessage: Array.isArray(automation.commentMessage)
+        ? automation.commentMessage
+        : [],
       enableBacktrack: automation.enableBacktrack,
       isFollowed: automation.isFollowed,
       notFollowerMessage:
@@ -959,9 +961,14 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                             placeholder="Add comment message"
                             className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-md"
                             value={newCommentMessage}
-                            onChange={(e) => setNewCommentMessage(e.target.value)}
+                            onChange={(e) =>
+                              setNewCommentMessage(e.target.value)
+                            }
                             onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-                              if (e.key === "Enter" && newCommentMessage.trim()) {
+                              if (
+                                e.key === "Enter" &&
+                                newCommentMessage.trim()
+                              ) {
                                 e.preventDefault();
                                 const trimmedMessage = newCommentMessage.trim();
                                 // Check if message already exists (case insensitive)

@@ -41,7 +41,6 @@ interface StoryItem {
   mediaType: string;
   thumbnailUrl?: string;
   timestamp: string;
-  title?: string;
 }
 
 interface InstagramStoriesResponse {
@@ -97,11 +96,11 @@ const formSchema = z
 
 interface EditStoryFormProps {
   story: {
-    id: string;
+    _id: string;
+    id?: string; // Keep for backward compatibility
     name: string;
-    applyOption: "all" | "selected";
-    storyId?: string;
-    keywords: string;
+    postIds: string[];
+    keywords: string[] | string;
     messageType: "message" | "ButtonText" | "ButtonImage";
     message: string;
     imageUrl?: string;
@@ -123,10 +122,12 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
   const [stories, setStories] = useState<StoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFollowedOpen, setIsFollowedOpen] = useState(false);
+  const [storyLoaded, setStoryLoaded] = useState(false);
   const [buttons, setButtons] = useState<
     Array<{ title: string; url: string; buttonText: string }>
   >(story.buttons || []);
   const [newKeyword, setNewKeyword] = useState("");
+  const [selectStoryOpen, setSelectStoryOpen] = useState(true);
 
   const toggleDmType = () => {
     setDmTypeOpen(!dmTypeOpen);
@@ -138,14 +139,24 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
     }
   };
 
+  const toggleSelectStory = () => {
+    setSelectStoryOpen(!selectStoryOpen);
+  };
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "onSubmit",
     defaultValues: {
       name: story.name,
-      applyOption: story.applyOption,
-      storyId: story.storyId,
-      keywords: story.keywords
+      // Determine applyOption based on postIds array length
+      applyOption:
+        story.postIds && story.postIds.length === 1 ? "selected" : "all",
+      // Initialize with existing storyId if available (first item in postIds)
+      storyId:
+        story.postIds && story.postIds.length === 1 ? story.postIds[0] : "",
+      keywords: Array.isArray(story.keywords)
+        ? story.keywords
+        : story.keywords
         ? story.keywords.split(",").map((k) => k.trim())
         : [],
       messageType: story.messageType,
@@ -168,6 +179,14 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
 
   const messageType = form.watch("messageType");
   const isFollowed = form.watch("isFollowed");
+  const applyOption = form.watch("applyOption");
+
+  // Watch for changes to applyOption and update selectStoryOpen
+  useEffect(() => {
+    if (applyOption === "selected") {
+      setSelectStoryOpen(true);
+    }
+  }, [applyOption]);
 
   // Watch for changes to isFollowed and update isFollowedOpen
   useEffect(() => {
@@ -178,10 +197,15 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
     }
   }, [isFollowed]);
 
-  // Set initial state for isFollowedOpen based on story data
+  // Set initial state for isFollowedOpen and selectStoryOpen based on story data
   useEffect(() => {
     if (story.isFollowed) {
       setIsFollowedOpen(true);
+    }
+
+    // Ensure story selection is open if there's exactly one post ID
+    if (story.postIds && story.postIds.length === 1) {
+      setSelectStoryOpen(true);
     }
   }, [story]);
 
@@ -224,16 +248,16 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
       }
 
       const data: InstagramStoriesResponse = await response.json();
-      const allStories = data.data.map((item: InstagramStoryItem) => ({
+      const fetchedStories = data.data.map((item: InstagramStoryItem) => ({
         id: item.id,
-        title: `Story ${item.id}`,
         mediaUrl: item.media_url,
         mediaType: item.media_type,
         thumbnailUrl: item.thumbnail_url,
         timestamp: item.timestamp,
       }));
 
-      setStories(allStories);
+      setStories(fetchedStories);
+      setStoryLoaded(true);
     } catch (error) {
       console.error("Error fetching stories:", error);
       toast.error("Failed to fetch stories");
@@ -246,43 +270,108 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
     fetchStories();
   }, [fetchStories]);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  // Set the initial storyId when stories are loaded
+  useEffect(() => {
+    if (storyLoaded && stories.length > 0) {
+      const applyOption = form.getValues("applyOption");
+
+      if (applyOption === "selected") {
+        const currentStoryId = form.getValues("storyId");
+
+        // Check if the previously selected story still exists
+        const storyExists = stories.some((item) => item.id === currentStoryId);
+
+        if (storyExists) {
+          // Set the form value to the previously selected story
+          form.setValue("storyId", currentStoryId);
+        } else if (stories.length > 0) {
+          // If the story no longer exists but there are other stories, select the first one
+          form.setValue("storyId", stories[0].id);
+          toast.info(
+            "Previously selected story is no longer available. Selected the first available story."
+          );
+        }
+      }
+    }
+  }, [storyLoaded, stories, form]);
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setIsLoading(true);
+
+      // First, ensure we have a valid story ID
+      if (!story._id) {
+        throw new Error("Automation ID is missing");
+      }
+
+      const storyIds =
+        values.applyOption === "all"
+          ? stories.map((story) => story.id)
+          : values.storyId
+          ? [values.storyId]
+          : [];
+
+      if (values.applyOption === "selected" && !values.storyId) {
+        throw new Error("Please select a story");
+      }
 
       // Handle the case when respondToAll is true - keywords can be empty
       const keywordsArray = values.respondToAll ? [] : values.keywords || [];
 
-      // Create request payload without the message field for button types
-      const { ...valuesWithoutMessage } = values;
+      // Ensure imageUrl is properly handled
+      const finalImageUrl =
+        values.messageType === "ButtonImage" && values.imageUrl
+          ? values.imageUrl
+          : undefined;
 
-      const formData = {
-        ...(values.messageType === "message" ? values : valuesWithoutMessage),
+      // Create request payload
+      const payload = {
+        id: story._id,
+        ...(values.messageType === "message"
+          ? values
+          : {
+              ...values,
+              message: undefined,
+            }),
+        postIds: storyIds,
         keywords: keywordsArray,
-        // Only include message field if messageType is 'message'
-        message: values.messageType === "message" ? values.message : undefined,
+        imageUrl: finalImageUrl,
+        notFollowerMessage: values.isFollowed
+          ? values.notFollowerMessage
+          : undefined,
+        followButtonTitle: values.isFollowed
+          ? values.followButtonTitle
+          : undefined,
+        followUpMessage: values.isFollowed ? values.followUpMessage : undefined,
         buttons:
           values.messageType === "ButtonText" ||
           values.messageType === "ButtonImage"
             ? buttons
             : undefined,
-        // Explicitly include respondToAll to ensure it's sent to the backend
         respondToAll: values.respondToAll,
       };
 
-      await axios.put(`/api/automations/stories/${story.id}`, formData);
+      // Make the API request with the correct URL format (using query parameter instead of path parameter)
+      await axios.put(`/api/automations/stories?id=${story._id}`, payload);
 
-      toast.success("Story automation updated successfully");
+      toast.success("Story automation updated successfully!");
       router.push("/dashboard/automation?type=story");
       router.refresh();
     } catch (error) {
       console.error("Error updating story automation:", error);
-      toast.error("Failed to update story automation");
+      if (axios.isAxiosError(error)) {
+        toast.error(
+          error.response?.data?.message || "Failed to update story automation"
+        );
+      } else if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to update story automation");
+      }
     } finally {
       setIsLoading(false);
     }
-  };
-
+  }
   const keywordsCount = form.watch("keywords")
     ? form.watch("keywords").length
     : 0;
@@ -290,7 +379,7 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
   return (
     <div className="w-full">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
             <FormField
               control={form.control}
@@ -333,127 +422,151 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
               </Button>
             </div>
           </div>
+
           {/* Story selection section */}
           <div className="p-6 border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">Selected Posts</h2>
+              <h2 className="text-lg font-medium">Stories</h2>
+              {applyOption === "selected" && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-gray-600 dark:text-gray-300 flex items-center"
+                  onClick={toggleSelectStory}
+                >
+                  Select story
+                  {selectStoryOpen ? (
+                    <ChevronUp className="w-4 h-4 ml-1" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 ml-1" />
+                  )}
+                </Button>
+              )}
             </div>
 
-            {isLoading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-              </div>
-            ) : stories.length === 1 ? (
-              <div className="flex justify-center">
-                <Card className="overflow-hidden max-w-md w-full">
-                  <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative">
-                    {stories[0].mediaType === "IMAGE" && (
-                      <div className="w-full h-full relative">
-                        <Image
-                          src={stories[0].mediaUrl}
-                          alt={stories[0].title}
-                          fill
-                          className="object-cover"
-                        />
+            <FormField
+              control={form.control}
+              name="applyOption"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="grid grid-cols-2 gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="all" id="all" />
+                        <Label htmlFor="all" className="text-sm">
+                          Apply on all stories
+                        </Label>
                       </div>
-                    )}
-                    {stories[0].mediaType === "VIDEO" && (
-                      <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center relative">
-                        {stories[0].thumbnailUrl ? (
-                          <Image
-                            src={stories[0].thumbnailUrl}
-                            alt="Video Thumbnail"
-                            fill
-                            className="object-cover"
-                          />
-                        ) : (
-                          <span className="text-gray-500 dark:text-gray-400">
-                            Video Preview
-                          </span>
-                        )}
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="selected" id="selected" />
+                        <Label htmlFor="selected" className="text-sm">
+                          Apply on selected story
+                        </Label>
                       </div>
-                    )}
-                    {stories[0].mediaType === "CAROUSEL_ALBUM" && (
-                      <div className="w-full h-full relative">
-                        <Image
-                          src={stories[0].thumbnailUrl || stories[0].mediaUrl}
-                          alt={stories[0].title}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                    )}
+                    </RadioGroup>
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {applyOption === "selected" && selectStoryOpen && (
+              <div className="mt-4">
+                {isLoading ? (
+                  <div className="flex justify-center py-6">
+                    <div className="w-8 h-8 border-4 border-t-purple-500 border-b-purple-300 border-l-purple-300 border-r-purple-300 rounded-full animate-spin"></div>
                   </div>
-                  <div className="p-4">
-                    <h3 className="font-medium mb-1 truncate">
-                      {stories[0].title}
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      {new Date(stories[0].timestamp).toLocaleDateString()}
-                    </p>
-                  </div>
-                </Card>
-              </div>
-            ) : stories.length > 1 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {stories.map((item) => (
-                  <Card key={item.id} className="overflow-hidden w-full">
-                    <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative">
-                      {item.mediaType === "IMAGE" && (
-                        <div className="w-full h-full relative">
-                          <Image
-                            src={item.mediaUrl}
-                            alt={item.title}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      )}
-                      {item.mediaType === "VIDEO" && (
-                        <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center relative">
-                          {item.thumbnailUrl ? (
-                            <Image
-                              src={item.thumbnailUrl}
-                              alt="Video Thumbnail"
-                              fill
-                              className="object-cover"
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {stories.length > 0 ? (
+                      stories.map((item) => (
+                        <Card
+                          key={item.id}
+                          className={`overflow-hidden w-full border transition-transform hover:scale-[1.02] ${
+                            form.watch("storyId") === item.id
+                              ? "border-purple-500 ring-2 ring-purple-300"
+                              : "border-gray-200 dark:border-gray-700"
+                          }`}
+                        >
+                          <div className="aspect-square bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                            {item.mediaType === "IMAGE" && (
+                              <Image
+                                src={item.mediaUrl}
+                                alt="Story"
+                                width={150}
+                                height={150}
+                                className="w-full h-full object-cover"
+                              />
+                            )}
+                            {item.mediaType === "VIDEO" && (
+                              <div className="relative w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                {item.thumbnailUrl ? (
+                                  <Image
+                                    src={item.thumbnailUrl}
+                                    alt="Video Thumbnail"
+                                    width={150}
+                                    height={150}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="absolute text-gray-500 dark:text-gray-400 text-xs">
+                                    Video Preview
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <div className="p-2 flex items-center justify-between">
+                            <FormField
+                              control={form.control}
+                              name="storyId"
+                              render={({ field }) => (
+                                <FormItem className="flex items-center space-x-2 m-0">
+                                  <FormControl>
+                                    <RadioGroup
+                                      onValueChange={field.onChange}
+                                      value={field.value}
+                                    >
+                                      <div className="flex items-center space-x-2">
+                                        <RadioGroupItem
+                                          value={item.id}
+                                          id={item.id}
+                                          checked={field.value === item.id}
+                                        />
+                                        <Label
+                                          htmlFor={item.id}
+                                          className="text-xs"
+                                        >
+                                          Select
+                                        </Label>
+                                      </div>
+                                    </RadioGroup>
+                                  </FormControl>
+                                </FormItem>
+                              )}
                             />
-                          ) : (
-                            <span className="text-gray-500 dark:text-gray-400">
-                              Video Preview
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      {item.mediaType === "CAROUSEL_ALBUM" && (
-                        <div className="w-full h-full relative">
-                          <Image
-                            src={item.thumbnailUrl || item.mediaUrl}
-                            alt={item.title}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-3">
-                      <p className="text-sm font-medium truncate">
-                        {item.title}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {new Date(item.timestamp).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                No posts found for this automation
+                            {form.watch("storyId") === item.id && (
+                              <div className="text-xs text-purple-500 font-medium">
+                                Selected
+                              </div>
+                            )}
+                          </div>
+                        </Card>
+                      ))
+                    ) : (
+                      <div className="text-center w-full py-4 text-muted-foreground col-span-4">
+                        No active stories found. Please create a story on
+                        Instagram first.
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
-
           {/* Trigger/Keywords section */}
           <div className="p-6 border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
@@ -545,7 +658,9 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
                                     trimmedKeyword.toLowerCase()
                                 )
                               ) {
-                                const updatedKeywords = [...(field.value || [])];
+                                const updatedKeywords = [
+                                  ...(field.value || []),
+                                ];
                                 updatedKeywords.push(trimmedKeyword);
                                 field.onChange(updatedKeywords);
                                 setNewKeyword("");
@@ -571,7 +686,9 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
                                     trimmedKeyword.toLowerCase()
                                 )
                               ) {
-                                const updatedKeywords = [...(field.value || [])];
+                                const updatedKeywords = [
+                                  ...(field.value || []),
+                                ];
                                 updatedKeywords.push(trimmedKeyword);
                                 field.onChange(updatedKeywords);
                                 setNewKeyword("");
