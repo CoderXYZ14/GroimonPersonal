@@ -384,7 +384,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
                   </div>
                   {automation.enableCommentAutomation && (
                     <p className="mt-2 text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
-                      "{automation.commentMessage}"
+                      &quot;{automation.commentMessage}&quot;
                     </p>
                   )}
                 </div>
