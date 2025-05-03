@@ -7,6 +7,8 @@ import {
   User2,
   Zap,
   Star,
+  Globe,
+  MessageCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -77,6 +79,7 @@ interface Automation {
   isActive: boolean;
   messageType: "message" | "ButtonText" | "ButtonImage";
   buttons?: Button[];
+  respondToAll?: boolean;
 }
 
 export interface AutomationTableProps {
@@ -296,6 +299,14 @@ export function AutomationTable({ type }: AutomationTableProps) {
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                    {automation.postIds && automation.postIds.length !== 1 && (
+                      <span
+                        className="inline-flex items-center"
+                        title="Applied to all posts"
+                      >
+                        <Globe className="inline-block ml-1 h-4 w-4 text-blue-500" />
+                      </span>
+                    )}
                     {automation.name}
                   </h4>
                   <Badge
@@ -353,17 +364,27 @@ export function AutomationTable({ type }: AutomationTableProps) {
                 <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
                   Keywords
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  {automation.keywords.map((keyword) => (
-                    <Badge
-                      key={keyword}
-                      variant="outline"
-                      className="text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-900"
-                    >
-                      {keyword}
-                    </Badge>
-                  ))}
-                </div>
+                {automation.respondToAll ? (
+                  <Badge
+                    variant="outline"
+                    className="text-xs font-medium bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 border-purple-100 dark:border-purple-900 flex items-center gap-1"
+                  >
+                    <MessageCircle className="h-3 w-3" />
+                    <span>Responds to all messages</span>
+                  </Badge>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {automation.keywords.map((keyword) => (
+                      <Badge
+                        key={keyword}
+                        variant="outline"
+                        className="text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-900"
+                      >
+                        {keyword}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {type === "post" && (
@@ -438,6 +459,15 @@ export function AutomationTable({ type }: AutomationTableProps) {
                 >
                   <TableCell className="pl-6 py-4 font-medium">
                     <div className="flex items-center gap-2">
+                      {automation.postIds &&
+                        automation.postIds.length !== 1 && (
+                          <span
+                            className="inline-flex items-center"
+                            title="Applied to all posts"
+                          >
+                            <Globe className="h-4 w-4 text-blue-500" />
+                          </span>
+                        )}
                       {automation.name}
                     </div>
                   </TableCell>
@@ -451,22 +481,34 @@ export function AutomationTable({ type }: AutomationTableProps) {
                     {automation.redirectCount}
                   </TableCell>
                   <TableCell className="py-4">
-                    <div className="flex flex-wrap gap-1.5">
-                      {automation.keywords.slice(0, 3).map((keyword) => (
+                    {automation.respondToAll ? (
+                      <div className="flex items-center">
                         <Badge
-                          key={keyword}
                           variant="outline"
-                          className="text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-900"
+                          className="text-xs font-medium bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 border-purple-100 dark:border-purple-900 flex items-center gap-1"
                         >
-                          {keyword}
+                          <MessageCircle className="h-3 w-3" />
+                          <span>Responds to all messages</span>
                         </Badge>
-                      ))}
-                      {automation.keywords.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{automation.keywords.length - 3}
-                        </Badge>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {automation.keywords.slice(0, 3).map((keyword) => (
+                          <Badge
+                            key={keyword}
+                            variant="outline"
+                            className="text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-900"
+                          >
+                            {keyword}
+                          </Badge>
+                        ))}
+                        {automation.keywords.length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{automation.keywords.length - 3}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="py-4 max-w-[180px] truncate text-sm">
                     {automation.messageType === "message" ? (

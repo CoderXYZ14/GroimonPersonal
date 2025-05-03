@@ -62,14 +62,14 @@ const formSchema = z
     notFollowerMessage: z.string().optional(),
     followButtonTitle: z.string().optional(),
     followUpMessage: z.string().optional(),
-    respondToAll: z.boolean().default(false).optional(),
+    respondToAll: z.boolean().default(false),
     removeBranding: z.boolean().default(false),
   })
   .refine(
     (data) => {
       // If respondToAll is false, keywords are required
       if (
-        !data.respondToAll &&
+        data.respondToAll === false &&
         (!data.keywords || data.keywords.length === 0)
       ) {
         return false;
@@ -624,9 +624,14 @@ export function CreateAutomationForm() {
                 <FormItem className="space-y-3">
                   <FormControl>
                     <RadioGroup
-                      onValueChange={(value) =>
-                        field.onChange(value === "true")
-                      }
+                      onValueChange={(value) => {
+                        const boolValue = value === "true";
+                        field.onChange(boolValue);
+                        // If respondToAll is true, clear any validation errors on keywords
+                        if (boolValue) {
+                          form.clearErrors("keywords");
+                        }
+                      }}
                       defaultValue={field.value ? "true" : "false"}
                       className="flex flex-col space-y-1"
                     >
