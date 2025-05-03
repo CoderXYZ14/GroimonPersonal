@@ -636,12 +636,25 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                             onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
                               if (e.key === "Enter" && newKeyword.trim()) {
                                 e.preventDefault();
-                                const updatedKeywords = [
-                                  ...(field.value || []),
-                                ];
-                                updatedKeywords.push(newKeyword.trim());
-                                field.onChange(updatedKeywords);
-                                setNewKeyword("");
+                                const trimmedKeyword = newKeyword.trim();
+                                // Check if keyword already exists (case insensitive)
+                                if (
+                                  !field.value?.some(
+                                    (k) =>
+                                      k.toLowerCase() ===
+                                      trimmedKeyword.toLowerCase()
+                                  )
+                                ) {
+                                  const updatedKeywords = [
+                                    ...(field.value || []),
+                                  ];
+                                  updatedKeywords.push(trimmedKeyword);
+                                  field.onChange(updatedKeywords);
+                                  setNewKeyword("");
+                                } else {
+                                  toast.error("This keyword already exists");
+                                  setNewKeyword("");
+                                }
                               }
                             }}
                           />
@@ -651,12 +664,25 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                             className="ml-2"
                             onClick={() => {
                               if (newKeyword.trim()) {
-                                const updatedKeywords = [
-                                  ...(field.value || []),
-                                ];
-                                updatedKeywords.push(newKeyword.trim());
-                                field.onChange(updatedKeywords);
-                                setNewKeyword("");
+                                const trimmedKeyword = newKeyword.trim();
+                                // Check if keyword already exists (case insensitive)
+                                if (
+                                  !field.value?.some(
+                                    (k) =>
+                                      k.toLowerCase() ===
+                                      trimmedKeyword.toLowerCase()
+                                  )
+                                ) {
+                                  const updatedKeywords = [
+                                    ...(field.value || []),
+                                  ];
+                                  updatedKeywords.push(trimmedKeyword);
+                                  field.onChange(updatedKeywords);
+                                  setNewKeyword("");
+                                } else {
+                                  toast.error("This keyword already exists");
+                                  setNewKeyword("");
+                                }
                               }
                             }}
                           >
@@ -937,12 +963,27 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                             onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
                               if (e.key === "Enter" && newCommentMessage.trim()) {
                                 e.preventDefault();
-                                const updatedMessages = [
-                                  ...(field.value || []),
-                                ];
-                                updatedMessages.push(newCommentMessage.trim());
-                                field.onChange(updatedMessages);
-                                setNewCommentMessage("");
+                                const trimmedMessage = newCommentMessage.trim();
+                                // Check if message already exists (case insensitive)
+                                if (
+                                  !field.value?.some(
+                                    (m) =>
+                                      m.toLowerCase() ===
+                                      trimmedMessage.toLowerCase()
+                                  )
+                                ) {
+                                  const updatedMessages = [
+                                    ...(field.value || []),
+                                  ];
+                                  updatedMessages.push(trimmedMessage);
+                                  field.onChange(updatedMessages);
+                                  setNewCommentMessage("");
+                                } else {
+                                  toast.error(
+                                    "This auto-reply message already exists"
+                                  );
+                                  setNewCommentMessage("");
+                                }
                               }
                             }}
                           />
@@ -952,12 +993,27 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                             className="ml-2"
                             onClick={() => {
                               if (newCommentMessage.trim()) {
-                                const updatedMessages = [
-                                  ...(field.value || []),
-                                ];
-                                updatedMessages.push(newCommentMessage.trim());
-                                field.onChange(updatedMessages);
-                                setNewCommentMessage("");
+                                const trimmedMessage = newCommentMessage.trim();
+                                // Check if message already exists (case insensitive)
+                                if (
+                                  !field.value?.some(
+                                    (m) =>
+                                      m.toLowerCase() ===
+                                      trimmedMessage.toLowerCase()
+                                  )
+                                ) {
+                                  const updatedMessages = [
+                                    ...(field.value || []),
+                                  ];
+                                  updatedMessages.push(trimmedMessage);
+                                  field.onChange(updatedMessages);
+                                  setNewCommentMessage("");
+                                } else {
+                                  toast.error(
+                                    "This auto-reply message already exists"
+                                  );
+                                  setNewCommentMessage("");
+                                }
                               }
                             }}
                           >

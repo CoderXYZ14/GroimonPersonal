@@ -536,10 +536,23 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
                           onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
                             if (e.key === "Enter" && newKeyword.trim()) {
                               e.preventDefault();
-                              const updatedKeywords = [...(field.value || [])];
-                              updatedKeywords.push(newKeyword.trim());
-                              field.onChange(updatedKeywords);
-                              setNewKeyword("");
+                              const trimmedKeyword = newKeyword.trim();
+                              // Check if keyword already exists (case insensitive)
+                              if (
+                                !field.value?.some(
+                                  (k) =>
+                                    k.toLowerCase() ===
+                                    trimmedKeyword.toLowerCase()
+                                )
+                              ) {
+                                const updatedKeywords = [...(field.value || [])];
+                                updatedKeywords.push(trimmedKeyword);
+                                field.onChange(updatedKeywords);
+                                setNewKeyword("");
+                              } else {
+                                toast.error("This keyword already exists");
+                                setNewKeyword("");
+                              }
                             }
                           }}
                         />
@@ -549,10 +562,23 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
                           className="ml-2"
                           onClick={() => {
                             if (newKeyword.trim()) {
-                              const updatedKeywords = [...(field.value || [])];
-                              updatedKeywords.push(newKeyword.trim());
-                              field.onChange(updatedKeywords);
-                              setNewKeyword("");
+                              const trimmedKeyword = newKeyword.trim();
+                              // Check if keyword already exists (case insensitive)
+                              if (
+                                !field.value?.some(
+                                  (k) =>
+                                    k.toLowerCase() ===
+                                    trimmedKeyword.toLowerCase()
+                                )
+                              ) {
+                                const updatedKeywords = [...(field.value || [])];
+                                updatedKeywords.push(trimmedKeyword);
+                                field.onChange(updatedKeywords);
+                                setNewKeyword("");
+                              } else {
+                                toast.error("This keyword already exists");
+                                setNewKeyword("");
+                              }
                             }
                           }}
                         >
