@@ -1,34 +1,37 @@
-import { MessageCircle, Image as ImageIcon, Play } from "lucide-react";
+import { MessageCircle, Image as ImageIcon, Play, Zap } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AutomationTable } from "@/components/AutomationTable";
 import React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export type AutomationType = "post" | "story" | "dm";
 
 const AUTOMATION_TABS = [
   {
     id: "post",
-    label: "Post",
+    label: "Post Automation",
     description: "Automate responses to Instagram posts",
-    icon: <ImageIcon className="h-3.5 w-3.5" />,
+    icon: <ImageIcon className="h-4 w-4" />,
     isActive: true,
+    gradient: "from-[#1A69DD] to-[#26A5E9]",
   },
   {
     id: "story",
-    label: "Story",
+    label: "Story Automation",
     description: "Automate responses to Instagram stories",
-    icon: <Play className="h-3.5 w-3.5" />,
+    icon: <Play className="h-4 w-4" />,
     isActive: true,
+    gradient: "from-[#1A69DD] to-[#26A5E9]",
   },
   {
     id: "dm",
-    label: "DM",
+    label: "Inbox Automation",
     description: "Automate Instagram direct message responses",
-    icon: <MessageCircle className="h-3.5 w-3.5" />,
+    icon: <MessageCircle className="h-4 w-4" />,
     comingSoon: true,
-    gradient: "from-blue-600/20 to-purple-600/20",
-    iconColor: "text-blue-600 dark:text-blue-400",
+    gradient: "from-[#1A69DD]/20 to-[#26A5E9]/20",
+    iconColor: "text-[#1A69DD] dark:text-[#26A5E9]",
   },
 ];
 
@@ -47,73 +50,81 @@ export function AutomationTabs({ defaultType = "post" }: AutomationTabsProps) {
     params.set("type", value);
     router.push(`?${params.toString()}`);
   };
-  return (
-    <Tabs
-      value={currentType}
-      onValueChange={handleTabChange}
-      className="w-full"
-    >
-      <div className="sticky top-0 z-10 px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
-        <TabsList className="inline-flex p-1 rounded-lg bg-gray-100/50 dark:bg-gray-800/50">
-          {AUTOMATION_TABS.map((tab) => (
-            <TabsTrigger
-              key={tab.id}
-              value={tab.id}
-              className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all duration-200
-                data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 
-                data-[state=active]:shadow-sm data-[state=active]:scale-[0.98]
-                hover:bg-white/80 dark:hover:bg-gray-800/80"
-            >
-              {tab.icon}
-              <span className="text-xs font-medium">{tab.label}</span>
-              {tab.comingSoon && (
-                <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-purple-500 text-[8px] text-white items-center justify-center">
-                    ✨
-                  </span>
-                </span>
-              )}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </div>
-      {["post", "story"].map((tabId) => (
-        <TabsContent key={tabId} value={tabId} className="mt-0">
-          <div className="p-4">
-            <AutomationTable type={tabId} />
-          </div>
-        </TabsContent>
-      ))}
 
-      <TabsContent value="dm" className="mt-0">
-        <div className="flex items-center justify-center p-4">
-          <div className="text-center max-w-sm">
-            <div className="relative inline-block">
-              <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-600/20 to-purple-600/20 blur opacity-75" />
-              <div className="relative bg-white dark:bg-gray-800 rounded-full p-3 backdrop-blur-xl">
-                <MessageCircle className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-            <div className="mt-4 space-y-1.5">
-              <h3 className="text-base font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                DM Automation
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Automate Instagram direct message responses
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Coming soon! We&apos;re working on this feature.
-              </p>
-              <div className="inline-flex items-center gap-1.5 text-xs text-purple-600 dark:text-purple-400">
-                <span>✨</span>
-                <span>In Development</span>
-                <span>✨</span>
-              </div>
+  return (
+    <div className="w-full">
+      <Tabs value={currentType} onValueChange={handleTabChange}>
+        {/* Header with glowing background */}
+        <div className="sticky top-0 z-10 px-6 pt-6 pb-2 border-b border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
+          <div className="relative">
+            {/* Glow effect */}
+            <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-[#1A69DD]/10 to-[#26A5E9]/10 blur-xl opacity-50" />
+
+            <div className="relative flex flex-col space-y-4">
+              <TabsList className="inline-flex p-1 rounded-xl bg-gray-100/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+                {AUTOMATION_TABS.map((tab) => (
+                  <TabsTrigger
+                    key={tab.id}
+                    value={tab.id}
+                    className={`relative flex justify-start w-full text-left items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200
+    data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 
+    data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-gray-200 dark:data-[state=active]:border-gray-700
+    hover:bg-white/80 dark:hover:bg-gray-800/80`}
+                  >
+                    <div
+                      className={`p-1 rounded-md bg-gradient-to-r ${tab.gradient}`}
+                    >
+                      {React.cloneElement(tab.icon, {
+                        className: `h-4 w-4 ${tab.iconColor || "text-white"}`,
+                      })}
+                    </div>
+                    <div className="text-left">
+                      <span className="text-sm font-medium">{tab.label}</span>
+                    </div>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
             </div>
           </div>
         </div>
-      </TabsContent>
-    </Tabs>
+
+        {/* Tab contents */}
+        {["post", "story"].map((tabId) => (
+          <TabsContent key={tabId} value={tabId} className="mt-0">
+            <div className="p-6">
+              <AutomationTable type={tabId} />
+            </div>
+          </TabsContent>
+        ))}
+
+        <TabsContent value="dm" className="mt-0">
+          <div className="flex flex-col items-center justify-center p-12">
+            <div className="text-center max-w-md space-y-4">
+              <div className="relative inline-block">
+                <div className="absolute -inset-3 rounded-full bg-gradient-to-r from-[#1A69DD]/20 to-[#26A5E9]/20 blur-lg opacity-75" />
+                <div className="relative bg-white dark:bg-gray-800 rounded-full p-4 shadow-lg">
+                  <MessageCircle className="h-10 w-10 text-[#1A69DD] dark:text-[#26A5E9]" />
+                </div>
+              </div>
+              <div className="space-y-3">
+                <h3 className="text-xl font-bold bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent">
+                  Inbox Automation Coming Soon!
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  We're building powerful Inbox automation tools to help you
+                  engage with your audience.
+                </p>
+                <div className="pt-2"></div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1A69DD]/5 dark:bg-[#26A5E9]/5">
+                  <span className="text-xs text-[#1A69DD] dark:text-[#26A5E9]">
+                    ✨ In Development ✨
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

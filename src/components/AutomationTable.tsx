@@ -1,5 +1,13 @@
 "use client";
-import { MoreHorizontal, Plus, Loader2, Search, User2 } from "lucide-react";
+import {
+  MoreHorizontal,
+  Plus,
+  Loader2,
+  Search,
+  User2,
+  Zap,
+  Star,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -21,8 +29,33 @@ import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAppSelector } from "@/redux/hooks";
-
 import axios from "axios";
+
+const Badge = ({
+  children,
+  variant = "default",
+  className = "",
+}: {
+  children: React.ReactNode;
+  variant?: "default" | "secondary" | "outline";
+  className?: string;
+}) => {
+  const baseStyles =
+    "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium";
+
+  const variantStyles = {
+    default: "bg-[#1A69DD] text-white",
+    secondary: "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200",
+    outline:
+      "border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200",
+  };
+
+  return (
+    <span className={`${baseStyles} ${variantStyles[variant]} ${className}`}>
+      {children}
+    </span>
+  );
+};
 
 interface Automation {
   _id: string;
@@ -31,7 +64,7 @@ interface Automation {
   keywords: string[];
   message: string;
   enableCommentAutomation: boolean;
-  commentMessage: string;
+  commentMessage: string[];
   isFollowed: boolean;
   createdAt: string;
   redirectCount: number;
@@ -70,14 +103,14 @@ export function AutomationTable({ type }: AutomationTableProps) {
           const { data } = await axios.get(`/api/automations`, {
             params: { userId: user._id },
           });
-          // Reverse the order to show newest automations first
+
           setAutomations(data.reverse());
         }
         if (type === "story") {
           const { data } = await axios.get(`/api/automations/stories`, {
             params: { userId: user._id },
           });
-          // Reverse the order to show newest automations first
+
           setAutomations(data.reverse());
         }
       } catch (error) {
@@ -110,8 +143,10 @@ export function AutomationTable({ type }: AutomationTableProps) {
         params: { id },
       });
       setAutomations((prev) => prev.filter((auto) => auto._id !== id));
+      toast.success("Automation deleted successfully");
     } catch (error) {
       console.error("Error deleting automation:", error);
+      toast.error("Failed to delete automation");
     }
   };
 
@@ -144,17 +179,21 @@ export function AutomationTable({ type }: AutomationTableProps) {
       toast.error("Failed to update automation status");
     }
   };
+
   if (!user.isAuthenticated) {
     return (
-      <div className="flex flex-col items-center justify-center h-40 space-y-4">
-        <div className="p-4 rounded-full bg-purple-100 dark:bg-purple-900/30">
-          <User2 className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+      <div className="flex flex-col items-center justify-center h-60 space-y-4">
+        <div className="relative">
+          <div className="absolute -inset-3 rounded-full bg-gradient-to-r from-[#1A69DD]/20 to-[#26A5E9]/20 blur-lg opacity-75" />
+          <div className="relative p-4 rounded-full bg-gradient-to-r from-[#1A69DD]/10 to-[#26A5E9]/10">
+            <User2 className="w-8 h-8 text-[#1A69DD] dark:text-[#26A5E9]" />
+          </div>
         </div>
-        <div className="text-center">
-          <h3 className="text-lg font-medium text-purple-700 dark:text-purple-300">
+        <div className="text-center space-y-2">
+          <h3 className="text-xl font-bold bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent">
             Instagram Account Required
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-base text-gray-600 dark:text-gray-400 max-w-md">
             Connect your Instagram account to create automations
           </p>
         </div>
@@ -164,11 +203,14 @@ export function AutomationTable({ type }: AutomationTableProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center">
-        <div className="flex flex-col items-center gap-1.5">
-          <Loader2 className="h-6 w-6 animate-spin text-purple-500" />
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Loading automations...
+      <div className="flex items-center justify-center h-60">
+        <div className="flex flex-col items-center gap-3">
+          <div className="relative">
+            <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-[#1A69DD]/20 to-[#26A5E9]/20 blur-md animate-pulse" />
+            <Loader2 className="relative h-8 w-8 animate-spin text-[#1A69DD] dark:text-[#26A5E9]" />
+          </div>
+          <p className="text-base text-gray-600 dark:text-gray-400">
+            Loading your automations...
           </p>
         </div>
       </div>
@@ -177,287 +219,331 @@ export function AutomationTable({ type }: AutomationTableProps) {
 
   if (automations.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center  px-4">
+      <div className="flex flex-col items-center justify-center h-60 px-4 space-y-5">
         <div className="relative">
-          <div className="absolute -inset-3 rounded-full bg-gradient-to-r from-purple-600/20 to-pink-600/20 blur-lg opacity-75" />
-          <div className="relative bg-white dark:bg-gray-800 rounded-full p-3">
-            <Plus className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+          <div className="absolute -inset-3 rounded-full bg-gradient-to-r from-[#1A69DD]/20 to-[#26A5E9]/20 blur-lg opacity-75" />
+          <div className="relative bg-white dark:bg-gray-800 rounded-full p-4 shadow-lg">
+            <Zap className="h-6 w-6 text-[#1A69DD] dark:text-[#26A5E9]" />
           </div>
         </div>
-        <h3 className="mt-4 text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-          Create Your First Automation
-        </h3>
-        <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400 text-center max-w-sm">
-          Start automating your Instagram posts
-        </p>
-
+        <div className="text-center space-y-2">
+          <h3 className="text-xl font-bold bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent">
+            No Automations Yet
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Create your first automation
+          </p>
+        </div>
         <Button
-          size="sm"
           onClick={handleNewAutomation}
-          className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white"
+          className="bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] text-white shadow-lg hover:shadow-[#1A69DD]/30 group relative overflow-hidden"
         >
-          <Plus className="h-3.5 w-3.5 mr-1.5" /> Create Automation
+          <span
+            className={`
+                absolute -left-16 top-0 h-full w-16 bg-white opacity-10
+                transform -skew-x-12 transition-all duration-200 ease-out
+                group-hover:translate-x-56
+              `}
+          />
+
+          <Plus className="relative z-10 stroke-[2] h-4 w-4" />
+          <span className="relative z-10 font-semibold">Create Automation</span>
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="w-full space-y-3">
-      <div className="flex items-center justify-between gap-3 p-3">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
+    <div className="w-full space-y-6">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             placeholder="Search automations..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8 py-1.5 text-sm bg-white dark:bg-gray-800 h-8"
+            className="pl-10 py-2 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
           />
         </div>
 
         <Button
-          size="sm"
           onClick={handleNewAutomation}
-          className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white h-8"
+          className="w-full sm:w-auto bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] hover:from-[#166dbd] hover:to-[#1e99c7] text-white shadow-lg hover:shadow-[#1A69DD]/30"
         >
-          <Plus className="h-3.5 w-3.5 mr-1.5" /> New
+          <Plus className="h-4 w-4" /> New Automation
         </Button>
       </div>
 
-      <div className="px-3">
-        <div className="md:hidden space-y-3">
-          {filteredAutomations.map((automation) => (
-            <div
-              key={automation._id}
-              className="bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-800 p-3 space-y-2"
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100">
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-4">
+        {filteredAutomations.map((automation) => (
+          <div
+            key={automation._id}
+            className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-semibold text-gray-900 dark:text-gray-100">
                     {automation.name}
                   </h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {new Date(automation.createdAt).toLocaleDateString()}
-                  </p>
+                  <Badge
+                    variant={automation.isActive ? "default" : "secondary"}
+                    className="text-xs h-5"
+                  >
+                    {automation.isActive ? "Active" : "Paused"}
+                  </Badge>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[120px]">
-                    <DropdownMenuItem
-                      className="text-xs"
-                      onClick={() => handleEdit(automation._id)}
-                    >
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-xs text-red-600"
-                      onClick={() => handleDelete(automation._id)}
-                    >
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Created {new Date(automation.createdAt).toLocaleDateString()}
+                </p>
               </div>
-              redirectCount
-              <div className="space-y-2">
-                <div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[140px]">
+                  <DropdownMenuItem onClick={() => handleEdit(automation._id)}>
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-red-600 focus:text-red-600 dark:text-red-400"
+                    onClick={() => handleDelete(automation._id)}
+                  >
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                    DM Counts
+                    DM Count
                   </p>
-                  <div className="flex flex-wrap gap-1">
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">
                     {automation.hitCount}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                    Redirect Counts
                   </p>
-                  <div className="flex flex-wrap gap-1">
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    Link Clicks
+                  </p>
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">
                     {automation.redirectCount}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                    Keywords
                   </p>
-                  <div className="flex flex-wrap gap-1">
-                    {automation.keywords.map((keyword) => (
-                      <span
-                        key={keyword}
-                        className="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                      >
-                        {keyword}
-                      </span>
-                    ))}
-                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                    Comment Automation
-                  </p>
-                  <div className="flex flex-col gap-1">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center w-fit ${
-                        automation.enableCommentAutomation
-                          ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
-                          : "bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300"
-                      }`}
+              </div>
+
+              <div>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  Keywords
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {automation.keywords.map((keyword) => (
+                    <Badge
+                      key={keyword}
+                      variant="outline"
+                      className="text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-900"
                     >
-                      {automation.enableCommentAutomation
-                        ? "Comments On"
-                        : "Comments Off"}
-                    </span>
-                    {automation.enableCommentAutomation &&
-                      automation.commentMessage && (
-                        <p className="text-xs text-gray-600 dark:text-gray-300">
-                          Comment: {automation.commentMessage}
-                        </p>
-                      )}
-                  </div>
+                      {keyword}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* <div>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  Auto Reply
+                </p>
+                <div className="flex items-center gap-3">
+                  <Switch
+                    checked={automation.enableCommentAutomation}
+                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200"
+                  />
+                  <span className="text-sm">
+                    {automation.enableCommentAutomation ? "Enabled" : "Disabled"}
+                  </span>
+                </div>
+                {automation.enableCommentAutomation && (
+                  <p className="mt-2 text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
+                    "{automation.commentMessage}"
+                  </p>
+                )}
+              </div> */}
+
+              <div className="pt-2 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    Status
+                  </span>
+                  <Switch
+                    checked={automation.isActive}
+                    onCheckedChange={() =>
+                      toggleActive(automation._id, automation.isActive)
+                    }
+                    className="data-[state=checked]:bg-[#1A69DD] data-[state=unchecked]:bg-gray-200"
+                  />
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
+      </div>
 
-        {/* Desktop Table View */}
-        <div className="hidden md:block">
-          <div className="rounded-lg border border-gray-100 dark:border-gray-800 overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50/50 dark:bg-gray-800/50">
-                  <TableHead className="font-medium text-xs py-3">
-                    Name
-                  </TableHead>
-                  <TableHead className="font-medium text-xs py-3">
-                    Created
-                  </TableHead>
-
-                  <TableHead className="font-medium text-xs py-3">
-                    DM Counts
-                  </TableHead>
-                  <TableHead className="font-medium text-xs py-3">
-                    Redirect Counts
-                  </TableHead>
-                  <TableHead className="font-medium text-xs py-3">
-                    Keywords
-                  </TableHead>
-                  <TableHead className="font-medium text-xs py-3">
-                    Message
-                  </TableHead>
-                  <TableHead className="font-medium text-xs py-3">
-                    Comment
-                  </TableHead>
-                  <TableHead className="font-medium text-xs py-3">
-                    Status
-                  </TableHead>
-                  <TableHead className="w-[40px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredAutomations.map((automation) => (
-                  <TableRow
-                    key={automation._id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                  >
-                    <TableCell className="py-2 text-sm">
+      {/* Desktop Table */}
+      <div className="hidden md:block">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+          <Table>
+            <TableHeader className="bg-gray-50/50 dark:bg-gray-700/50">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="font-medium py-4 pl-6">Name</TableHead>
+                <TableHead className="font-medium py-4">Created</TableHead>
+                <TableHead className="font-medium py-4">DM Count</TableHead>
+                <TableHead className="font-medium py-4">Link Clicks</TableHead>
+                <TableHead className="font-medium py-4">Keywords</TableHead>
+                <TableHead className="font-medium py-4">DM Message</TableHead>
+                <TableHead className="font-medium py-4">
+                  Comment Reply
+                </TableHead>
+                <TableHead className="font-medium py-4">Status</TableHead>
+                <TableHead className="font-medium py-4 pr-6 text-right">
+                  Actions
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredAutomations.map((automation) => (
+                <TableRow
+                  key={automation._id}
+                  className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 border-t border-gray-100 dark:border-gray-700"
+                >
+                  <TableCell className="pl-6 py-4 font-medium">
+                    <div className="flex items-center gap-2">
                       {automation.name}
-                    </TableCell>
-                    <TableCell className="py-2 text-xs text-gray-600 dark:text-gray-300">
-                      {new Date(automation.createdAt).toLocaleDateString()}
-                    </TableCell>
-
-                    <TableCell className="py-2">
-                      <div className="flex flex-wrap gap-1">
-                        {automation.hitCount}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-2">
-                      <div className="flex flex-wrap gap-1">
-                        {automation.redirectCount}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-2">
-                      <div className="flex flex-wrap gap-1">
-                        {automation.keywords.map((keyword) => (
-                          <span
-                            key={keyword}
-                            className="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                          >
-                            {keyword}
-                          </span>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-2 max-w-[150px] truncate text-xs">
-                      {automation.message}
-                    </TableCell>
-                    <TableCell className="py-2">
-                      <div className="flex flex-col gap-1">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center w-fit ${
-                            automation.enableCommentAutomation
-                              ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
-                              : "bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300"
-                          }`}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-4 text-sm text-gray-600 dark:text-gray-400">
+                    {new Date(automation.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="py-4 font-medium">
+                    {automation.hitCount}
+                  </TableCell>
+                  <TableCell className="py-4 font-medium">
+                    {automation.redirectCount}
+                  </TableCell>
+                  <TableCell className="py-4">
+                    <div className="flex flex-wrap gap-1.5">
+                      {automation.keywords.slice(0, 2).map((keyword) => (
+                        <Badge
+                          key={keyword}
+                          variant="outline"
+                          className="text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-900"
                         >
-                          {automation.enableCommentAutomation
-                            ? "Comments On"
-                            : "Comments Off"}
-                        </span>
+                          {keyword}
+                        </Badge>
+                      ))}
+                      {automation.keywords.length > 3 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{automation.keywords.length - 3}
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-4 max-w-[180px] truncate text-sm">
+                    {automation.message}
+                  </TableCell>
+                  <TableCell className="py-4">
+                    <div className="flex flex-col gap-1.5">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center w-fit ${
+                          automation.enableCommentAutomation
+                            ? "bg-[#1A69DD] text-white"
+                            : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                        }`}
+                      >
+                        {automation.enableCommentAutomation
+                          ? "Reply On"
+                          : "Reply Off"}
+                      </span>
+
+                      <div className="flex flex-wrap gap-1.5">
                         {automation.enableCommentAutomation &&
-                          automation.commentMessage && (
-                            <span className="text-xs text-gray-600 dark:text-gray-300 truncate max-w-[150px]">
-                              {automation.commentMessage}
-                            </span>
-                          )}
+                          automation.commentMessage
+                            .slice(0, 2)
+                            .map((comment) => (
+                              <Badge
+                                key={comment}
+                                variant="outline"
+                                className="text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-900"
+                              >
+                                {comment}
+                              </Badge>
+                            ))}
+                        {automation.commentMessage.length > 2 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{automation.commentMessage.length - 2}
+                          </Badge>
+                        )}
                       </div>
-                    </TableCell>
-                    <TableCell className="py-2">
-                      <div className="flex items-center justify-center">
-                        <Switch
-                          checked={automation.isActive}
-                          onCheckedChange={() =>
-                            toggleActive(automation._id, automation.isActive)
-                          }
-                          className="data-[state=checked]:bg-green-500"
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-2">
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-4">
+                    <div className="flex items-center justify-center">
+                      <Switch
+                        checked={automation.isActive}
+                        onCheckedChange={() =>
+                          toggleActive(automation._id, automation.isActive)
+                        }
+                        className="data-[state=checked]:bg-green-500"
+                      />
+                    </div>
+                  </TableCell>
+                  <TableCell className="pr-6 py-4">
+                    <div className="flex justify-end gap-2">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-7 w-7">
-                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          <Button variant="ghost" size="sm" className="h-9 w-9">
+                            <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-[120px]">
+                        <DropdownMenuContent align="end" className="w-[140px]">
                           <DropdownMenuItem
-                            className="text-xs"
                             onClick={() => handleEdit(automation._id)}
                           >
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            className="text-xs text-red-600"
+                            className="text-red-600 focus:text-red-600 dark:text-red-400"
                             onClick={() => handleDelete(automation._id)}
                           >
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       </div>
+
+      {filteredAutomations.length === 0 && searchTerm && (
+        <div className="flex flex-col items-center justify-center py-12">
+          <Search className="h-8 w-8 text-gray-400 mb-3" />
+          <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+            No automations found
+          </h4>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Try adjusting your search or create a new automation
+          </p>
+        </div>
+      )}
     </div>
   );
 }

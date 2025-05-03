@@ -121,8 +121,7 @@ export default function YourInstaToken() {
             Securely connecting to Instagram
           </h3>
           <p className="text-sm text-muted-foreground text-center max-w-xs">
-            We&apos;re verifying your credentials with Instagram&apos;s secure
-            API
+            Establishing a secure connection through Instagram’s official API
           </p>
         </div>
 
@@ -148,18 +147,6 @@ export default function YourInstaToken() {
               </p>
               <p className="text-xs text-muted-foreground">
                 Using secure OAuth 2.0
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="h-5 w-5 text-[#1A69DD]" />
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                Read-only access
-              </p>
-              <p className="text-xs text-muted-foreground">
-                We never post on your behalf
               </p>
             </div>
           </div>
