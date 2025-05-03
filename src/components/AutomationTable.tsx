@@ -6,6 +6,7 @@ import {
   Search,
   User2,
   Zap,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -46,15 +47,20 @@ const Badge = ({
     default: "bg-[#1A69DD] text-white",
     secondary: "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200",
     outline:
-      "border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200",
+      "border border-gray-200 dark:border-gray-700  bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-900",
   };
 
   return (
-    <span className={`${baseStyles} ${variantStyles[variant]} ${className}`}>
+    <span className={`${baseStyles} ${className} ${variantStyles[variant]} `}>
       {children}
     </span>
   );
 };
+interface Button {
+  title: string;
+  url: string;
+  buttonText: string;
+}
 
 interface Automation {
   _id: string;
@@ -69,6 +75,8 @@ interface Automation {
   redirectCount: number;
   hitCount: number;
   isActive: boolean;
+  messageType: "message" | "ButtonText" | "ButtonImage";
+  buttons?: Button[];
 }
 
 export interface AutomationTableProps {
@@ -319,7 +327,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
 
             <div className="mt-4 space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                <div className="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg">
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                     DM Count
                   </p>
@@ -327,7 +335,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
                     {automation.hitCount}
                   </p>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                <div className="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg">
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                     Link Clicks
                   </p>
@@ -346,7 +354,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
                     <Badge
                       key={keyword}
                       variant="outline"
-                      className="text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-900"
+                      className="text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-900"
                     >
                       {keyword}
                     </Badge>
@@ -436,11 +444,11 @@ export function AutomationTable({ type }: AutomationTableProps) {
                   </TableCell>
                   <TableCell className="py-4">
                     <div className="flex flex-wrap gap-1.5">
-                      {automation.keywords.slice(0, 2).map((keyword) => (
+                      {automation.keywords.slice(0, 3).map((keyword) => (
                         <Badge
                           key={keyword}
                           variant="outline"
-                          className="text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-900"
+                          className="text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-900"
                         >
                           {keyword}
                         </Badge>
@@ -453,22 +461,55 @@ export function AutomationTable({ type }: AutomationTableProps) {
                     </div>
                   </TableCell>
                   <TableCell className="py-4 max-w-[180px] truncate text-sm">
-                    {automation.message}
+                    {automation.messageType === "message" ? (
+                      automation.message
+                    ) : automation.messageType === "ButtonText" ? (
+                      automation.buttons && automation.buttons.length > 0 ? (
+                        <div className="flex items-center">
+                          <div className="flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/30 rounded-md border border-blue-200 dark:border-blue-800">
+                            <Star className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                            <span className="text-blue-600 dark:text-blue-400 font-medium text-xs">
+                              {automation.buttons[0].title}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 dark:text-gray-500 italic text-xs">
+                          No button content
+                        </span>
+                      )
+                    ) : automation.messageType === "ButtonImage" ? (
+                      automation.buttons && automation.buttons.length > 0 ? (
+                        <div className="flex items-center">
+                          <div className="flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-purple-50 to-indigo-100 dark:from-purple-900/20 dark:to-indigo-800/30 rounded-md border border-purple-200 dark:border-indigo-800">
+                            <div className="h-3 w-3 rounded-sm bg-gradient-to-br from-purple-400 to-indigo-500"></div>
+                            <span className="text-indigo-600 dark:text-indigo-400 font-medium text-xs">
+                              Image: {automation.buttons[0].title}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 dark:text-gray-500 italic text-xs">
+                          No image button content
+                        </span>
+                      )
+                    ) : (
+                      automation.message
+                    )}
                   </TableCell>
                   <TableCell className="py-4">
                     <div className="flex flex-col gap-1.5">
                       <span
                         className={`px-2 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center w-fit ${
                           automation.enableCommentAutomation
-                            ? "bg-[#1A69DD] text-white"
-                            : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                            ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                            : "bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300"
                         }`}
                       >
                         {automation.enableCommentAutomation
                           ? "Reply On"
                           : "Reply Off"}
                       </span>
-
                       <div className="flex flex-wrap gap-1.5">
                         {automation.enableCommentAutomation &&
                           automation.commentMessage
@@ -477,7 +518,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
                               <Badge
                                 key={comment}
                                 variant="outline"
-                                className="text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-900"
+                                className="text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-900"
                               >
                                 {comment}
                               </Badge>
