@@ -22,7 +22,7 @@ import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Switch } from "@/components/ui/switch";
 import axios from "axios";
@@ -434,8 +434,16 @@ export function CreateAutomationForm() {
               <Button
                 type="submit"
                 className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white"
+                disabled={isLoading}
               >
-                Publish
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  "Publish"
+                )}
               </Button>
             </div>
           </div>
@@ -988,9 +996,14 @@ export function CreateAutomationForm() {
                             placeholder="Add comment message"
                             className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-md"
                             value={newCommentMessage}
-                            onChange={(e) => setNewCommentMessage(e.target.value)}
+                            onChange={(e) =>
+                              setNewCommentMessage(e.target.value)
+                            }
                             onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-                              if (e.key === "Enter" && newCommentMessage.trim()) {
+                              if (
+                                e.key === "Enter" &&
+                                newCommentMessage.trim()
+                              ) {
                                 e.preventDefault();
                                 const updatedMessages = [
                                   ...(field.value || []),

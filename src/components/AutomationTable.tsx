@@ -413,9 +413,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
                 <TableHead className="font-medium py-4">Link Clicks</TableHead>
                 <TableHead className="font-medium py-4">Keywords</TableHead>
                 <TableHead className="font-medium py-4">DM Message</TableHead>
-                <TableHead className="font-medium py-4">
-                  Comment Reply
-                </TableHead>
+                <TableHead className="font-medium py-4">Auto Reply</TableHead>
                 <TableHead className="font-medium py-4">Status</TableHead>
                 <TableHead className="font-medium py-4 pr-6 text-right">
                   Actions
@@ -507,8 +505,8 @@ export function AutomationTable({ type }: AutomationTableProps) {
                         }`}
                       >
                         {automation.enableCommentAutomation
-                          ? "Reply On"
-                          : "Reply Off"}
+                          ? "Enabled"
+                          : "Disabled"}
                       </span>
                       <div className="flex flex-wrap gap-1.5">
                         {automation.enableCommentAutomation &&
@@ -538,7 +536,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
                         onCheckedChange={() =>
                           toggleActive(automation._id, automation.isActive)
                         }
-                        className="data-[state=checked]:bg-green-500"
+                        className="data-[state=checked]:bg-[#1A69DD] data-[state=unchecked]:bg-gray-200"
                       />
                     </div>
                   </TableCell>

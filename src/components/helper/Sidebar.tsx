@@ -86,10 +86,6 @@ export function AppSidebar() {
         "fixed"
       )}
     >
-      {/* Updated gradient background */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-400/10 via-cyan-300/5 to-transparent dark:from-blue-900/20 dark:via-cyan-900/10 dark:to-transparent"></div>
-
-      {/* Collapse button with new design */}
       <button
         onClick={toggleSidebar}
         className={cn(
@@ -100,6 +96,8 @@ export function AppSidebar() {
         )}
         aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-400/10 via-cyan-300/5 to-transparent dark:from-blue-900/20 dark:via-cyan-900/10 dark:to-transparent"></div>
+
         {isCollapsed ? (
           <ChevronRight className="h-3.5 w-3.5" />
         ) : (
