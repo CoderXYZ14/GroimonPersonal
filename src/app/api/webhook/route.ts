@@ -405,14 +405,22 @@ async function handleAutomationResponse(
     }
 
     // Handle comment automation with reply limit
-    if (automation.enableCommentAutomation && automation.commentMessage && automation.commentMessage.length > 0) {
+    if (
+      automation.enableCommentAutomation &&
+      automation.commentMessage &&
+      automation.commentMessage.length > 0
+    ) {
       const autoReplyLimitLeft = automation.autoReplyLimitLeft ?? -1;
-      
+
       // Select a random message from the array to reduce spamming
-      const randomIndex = Math.floor(Math.random() * automation.commentMessage.length);
+      const randomIndex = Math.floor(
+        Math.random() * automation.commentMessage.length
+      );
       const selectedMessage = automation.commentMessage[randomIndex];
-      
-      console.log(`Selected random comment message (index ${randomIndex}) from ${automation.commentMessage.length} available messages`);
+
+      console.log(
+        `Selected random comment message (index ${randomIndex}) from ${automation.commentMessage.length} available messages`
+      );
 
       // Send comment if: unlimited (-1) OR has replies left (> 0)
       if (autoReplyLimitLeft === -1 || autoReplyLimitLeft > 0) {
@@ -544,7 +552,9 @@ export async function sendStoryDM(
 
       if (isFirstTime) {
         // For first-time commenters, ONLY send the follow request message
-        console.log(`First-time commenter ${comment.from.id} - sending follow request ONLY`);
+        console.log(
+          `First-time commenter ${comment.from.id} - sending follow request ONLY`
+        );
         const followRequestBody = {
           recipient: {
             id: comment.from.id,
@@ -581,18 +591,24 @@ export async function sendStoryDM(
         };
 
         await axios.post(url, followRequestBody, { headers });
-        console.log(`Follow confirmation request sent to user ${comment.from.id}`);
+        console.log(
+          `Follow confirmation request sent to user ${comment.from.id}`
+        );
         return;
       } else {
         // If it's not the first time, check if they're following now
-        console.log(`Returning commenter ${comment.from.id} - checking if they're following now`);
+        console.log(
+          `Returning commenter ${comment.from.id} - checking if they're following now`
+        );
         const isFollowing = await checkIfUserFollowsBusiness(
           comment.from.id,
           accessToken
         );
 
         if (isFollowing) {
-          console.log(`User ${comment.from.id} is now following - sending direct message`);
+          console.log(
+            `User ${comment.from.id} is now following - sending direct message`
+          );
           // Send the original message directly
           const messageBody = {
             recipient: {
@@ -606,7 +622,9 @@ export async function sendStoryDM(
           await axios.post(url, messageBody, { headers });
           return;
         } else {
-          console.log(`User ${comment.from.id} has commented before but still not following - sending notFollowerMessage ONLY`);
+          console.log(
+            `User ${comment.from.id} has commented before but still not following - sending notFollowerMessage ONLY`
+          );
           // Send the notFollowerMessage with follow button
           const followRequestBody = {
             recipient: {
@@ -617,7 +635,8 @@ export async function sendStoryDM(
                 type: "template",
                 payload: {
                   template_type: "button",
-                  text: story.notFollowerMessage || 
+                  text:
+                    story.notFollowerMessage ||
                     "We noticed you still haven't followed us. Please follow our account to continue.",
                   buttons: [
                     {
@@ -730,9 +749,11 @@ async function sendDM(
 
     // Store the original message for later use after follow check
     const originalMessage = message;
-    
+
     // Check if this is a button type automation
-    const isButtonType = automation.messageType === "ButtonText" || automation.messageType === "ButtonImage";
+    const isButtonType =
+      automation.messageType === "ButtonText" ||
+      automation.messageType === "ButtonImage";
 
     if (!automation) {
       console.error(`Automation with ID ${automationId} not found`);
@@ -776,8 +797,12 @@ async function sendDM(
 
     // For button types, don't include the message
     const messageWithBranding = isButtonType
-      ? (automation.removeBranding ? "" : "This automation is sent by Groimon.")
-      : (automation.removeBranding ? originalMessage : `${originalMessage}\n\nThis automation is sent by Groimon.`);
+      ? automation.removeBranding
+        ? ""
+        : "This automation is sent by Groimon."
+      : automation.removeBranding
+      ? originalMessage
+      : `${originalMessage}\n\nThis automation is sent by Groimon.`;
 
     let body;
 
@@ -787,17 +812,19 @@ async function sendDM(
     // Skip follow check for backtracked comments to avoid API errors with old comments
     // For backtracked comments, we'll assume the user is following
     let skipNormalMessage = false;
-    
+
     if (!isBacktrack && automation.isFollowed) {
       // Check if this commenter has commented before
       const { isFirstTime } = await storeAndCheckCommenter(
         automation.user._id.toString(),
         comment.from.id
       );
-      
+
       if (isFirstTime) {
         // For first-time commenters, ONLY send the follow request message
-        console.log(`First-time commenter ${comment.from.id} - sending follow request ONLY`);
+        console.log(
+          `First-time commenter ${comment.from.id} - sending follow request ONLY`
+        );
         body = {
           recipient,
           message: {
@@ -834,18 +861,24 @@ async function sendDM(
         skipNormalMessage = true;
       } else {
         // If it's not the first time, check if they're following now
-        console.log(`Returning commenter ${comment.from.id} - checking if they're following now`);
+        console.log(
+          `Returning commenter ${comment.from.id} - checking if they're following now`
+        );
         const isFollowing = await checkIfUserFollowsBusiness(
           comment.from.id,
           user.instagramAccessToken
         );
 
         if (isFollowing) {
-          console.log(`User ${comment.from.id} is now following - will send direct message`);
+          console.log(
+            `User ${comment.from.id} is now following - will send direct message`
+          );
           // Skip setting body here, it will be handled in the next section
           // This allows the normal message flow to continue
         } else {
-          console.log(`User ${comment.from.id} has commented before but still not following - sending notFollowerMessage ONLY`);
+          console.log(
+            `User ${comment.from.id} has commented before but still not following - sending notFollowerMessage ONLY`
+          );
           // Send the notFollowerMessage with follow button
           body = {
             recipient,
@@ -854,12 +887,14 @@ async function sendDM(
                 type: "template",
                 payload: {
                   template_type: "button",
-                  text: automation.notFollowerMessage || 
+                  text:
+                    automation.notFollowerMessage ||
                     "We noticed you still haven't followed us. Please follow our account to continue.",
                   buttons: [
                     {
                       type: "postback",
-                      title: automation.followButtonTitle || "I'm following now",
+                      title:
+                        automation.followButtonTitle || "I'm following now",
                       payload: JSON.stringify({
                         action: "followConfirmed",
                         automationId,
@@ -903,7 +938,9 @@ async function sendDM(
                   template_type: "generic",
                   elements: [
                     {
-                      title: automation.buttons[0]?.title || "Click the button below",
+                      title:
+                        automation.buttons[0]?.title ||
+                        "Click the button below",
                       image_url: automation.imageUrl,
                       buttons: automation.buttons.map((button) => ({
                         type: "web_url",
@@ -933,7 +970,9 @@ async function sendDM(
                   template_type: "generic",
                   elements: [
                     {
-                      title: automation.buttons[0]?.title || "Click the button below",
+                      title:
+                        automation.buttons[0]?.title ||
+                        "Click the button below",
                       buttons: automation.buttons.map((button) => ({
                         type: "web_url",
                         url:
@@ -1057,26 +1096,26 @@ async function storeAndCheckCommenter(userId: string, commenterId: string) {
   try {
     // Find the user's commenter record
     let commenterRecord = await CommenterModel.findOne({ user: userId });
-    
+
     // If no record exists, create one
     if (!commenterRecord) {
       commenterRecord = new CommenterModel({
         user: userId,
-        commenterIds: [commenterId]
+        commenterIds: [commenterId],
       });
       await commenterRecord.save();
       return { isFirstTime: true, commenterRecord };
     }
-    
+
     // Check if this commenter ID is already in the array
     const isFirstTime = !commenterRecord.commenterIds.includes(commenterId);
-    
+
     // If it's the first time, add the commenter ID to the array
     if (isFirstTime) {
       commenterRecord.commenterIds.push(commenterId);
       await commenterRecord.save();
     }
-    
+
     return { isFirstTime, commenterRecord };
   } catch (error) {
     console.error("Error storing/checking commenter ID:", error);
@@ -1144,10 +1183,7 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                   }
 
                   // Store the commenter ID in our database regardless of follow status
-                  await storeAndCheckCommenter(
-                    user._id.toString(),
-                    senderId
-                  );
+                  await storeAndCheckCommenter(user._id.toString(), senderId);
 
                   // Check if the user is actually following the business
                   const isNowFollowing = await checkIfUserFollowsBusiness(
@@ -1226,20 +1262,26 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                           attachment: {
                             type: "template",
                             payload: {
-                              template_type: "button",
-                              text: messageWithBranding,
-                              buttons: automation.buttons.map((button) => ({
-                                type: "web_url",
-                                url: `${
-                                  process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
-                                  "https://www.groimon.com"
-                                }/redirect?url=${encodeURIComponent(
-                                  button.url
-                                )}&type=automation&id=${
-                                  postbackData.automationId
-                                }`,
-                                title: button.buttonText,
-                              })),
+                              template_type: "generic",
+                              elements: [
+                                {
+                                  title:
+                                    automation.buttons[0]?.title ||
+                                    "Click the button below",
+                                  buttons: automation.buttons.map((button) => ({
+                                    type: "web_url",
+                                    url: `${
+                                      process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
+                                      "https://www.groimon.com"
+                                    }/redirect?url=${encodeURIComponent(
+                                      button.url
+                                    )}&type=automation&id=${
+                                      postbackData.automationId
+                                    }`,
+                                    title: button.buttonText,
+                                  })),
+                                },
+                              ],
                             },
                           },
                         },
