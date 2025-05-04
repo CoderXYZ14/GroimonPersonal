@@ -119,6 +119,13 @@ interface MediaItem {
 
 interface InstagramMediaResponse {
   data: InstagramMediaItem[];
+  paging?: {
+    cursors: {
+      before?: string;
+      after?: string;
+    };
+    next?: string;
+  };
 }
 
 export function CreateAutomationForm() {
@@ -128,6 +135,7 @@ export function CreateAutomationForm() {
   const [dmTypeOpen, setDmTypeOpen] = useState(true);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPaginating, setIsPaginating] = useState(false);
   const [commentAutomationOpen, setCommentAutomationOpen] = useState(false);
   const [isFollowedOpen, setIsFollowedOpen] = useState(false);
   const [buttons, setButtons] = useState<
@@ -135,6 +143,9 @@ export function CreateAutomationForm() {
   >([]);
   const [newKeyword, setNewKeyword] = useState("");
   const [newCommentMessage, setNewCommentMessage] = useState("");
+  const [afterCursor, setAfterCursor] = useState<string | null>(null);
+  const [beforeCursor, setBeforeCursor] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
 
   const toggleSelectPost = () => {
     setSelectPostOpen(!selectPostOpen);
@@ -230,56 +241,165 @@ export function CreateAutomationForm() {
     }
   }, [form, messageType]);
 
-  useEffect(() => {
-    const fetchMedia = async () => {
+  const fetchMedia = async (
+    direction: "initial" | "next" | "previous" = "initial"
+  ) => {
+    if (direction === "initial") {
       setIsLoading(true);
+    } else {
+      setIsPaginating(true);
+    }
+
+    const instagramId = user.instagramId;
+    const instagramAccessToken = user.instagramAccessToken;
+
+    if (!instagramId || !instagramAccessToken) {
+      console.error(
+        "Instagram user ID or access token not found in localStorage"
+      );
+      toast.error("Instagram user ID or access token not found");
+      setIsLoading(false);
+      setIsPaginating(false);
+      return;
+    }
+
+    try {
+      // Build the URL with the appropriate cursor if needed
+      let url = `https://graph.instagram.com/v22.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&limit=25&access_token=${instagramAccessToken}`;
+
+      // Determine which cursor to use based on navigation direction
+      if (direction === "next" && afterCursor) {
+        url += `&after=${afterCursor}`;
+        setCurrentPage((prev) => prev + 1);
+      } else if (direction === "previous" && beforeCursor) {
+        url += `&before=${beforeCursor}`;
+        setCurrentPage((prev) => Math.max(0, prev - 1));
+      }
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch media: ${response.statusText}`);
+      }
+
+      const data: InstagramMediaResponse = await response.json();
+
+      // Check if there are any media items
+      if (!data.data || data.data.length === 0) {
+        // If there's no data, just return without updating
+        setIsLoading(false);
+        setIsPaginating(false);
+        // If we're trying to go 'next' but there's no data, that means we're at the end
+        // So we should clear the afterCursor
+        if (direction === "next") {
+          setAfterCursor(null);
+        }
+        return;
+      }
+
+      // Only show pagination if there are more than 25 posts total
+      // or if we already navigated to a page (currentPage > 0)
+
+      const newMediaItems = data.data.map((item: InstagramMediaItem) => ({
+        id: item.id,
+        title: item.caption || `Post ${item.id}`,
+        mediaUrl: item.media_url,
+        mediaType: item.media_type,
+        thumbnailUrl: item.thumbnail_url,
+        timestamp: item.timestamp,
+      }));
+
+      // Always replace the media with the new batch
+      setMedia(newMediaItems);
+
+      // Update cursors for pagination
+      if (data.paging?.cursors) {
+        if (data.paging.cursors.after) {
+          setAfterCursor(data.paging.cursors.after);
+        } else {
+          setAfterCursor(null);
+        }
+
+        if (data.paging.cursors.before) {
+          setBeforeCursor(data.paging.cursors.before);
+        } else {
+          setBeforeCursor(null);
+        }
+      } else {
+        // If no paging object at all, clear both cursors
+        setAfterCursor(null);
+        setBeforeCursor(null);
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error fetching media:", error.message);
+        toast.error(`Failed to fetch media: ${error.message}`);
+      } else {
+        console.error("Unknown error fetching media:", error);
+        toast.error("Failed to fetch media");
+      }
+    } finally {
+      setIsLoading(false);
+      setIsPaginating(false);
+    }
+  };
+
+  // Initial fetch of media
+  useEffect(() => {
+    const initialFetch = async () => {
       const instagramId = user.instagramId;
       const instagramAccessToken = user.instagramAccessToken;
 
       if (!instagramId || !instagramAccessToken) {
-        console.error(
-          "Instagram user ID or access token not found in localStorage"
-        );
+        console.error("Instagram user ID or access token not found");
         toast.error("Instagram user ID or access token not found");
-        setIsLoading(false);
         return;
       }
 
+      setIsLoading(true);
+
       try {
-        const response = await fetch(
-          `https://graph.instagram.com/v22.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&access_token=${instagramAccessToken}`
-        );
+        // Initial fetch to get the first 25 posts
+        const url = `https://graph.instagram.com/v22.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&limit=25&access_token=${instagramAccessToken}`;
+
+        const response = await fetch(url);
 
         if (!response.ok) {
           throw new Error(`Failed to fetch media: ${response.statusText}`);
         }
 
         const data: InstagramMediaResponse = await response.json();
-        setMedia(
-          data.data.map((item: InstagramMediaItem) => ({
-            id: item.id,
-            title: item.caption || `Post ${item.id}`,
-            mediaUrl: item.media_url,
-            mediaType: item.media_type,
-            thumbnailUrl: item.thumbnail_url,
-            timestamp: item.timestamp,
-          }))
-        );
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          console.error("Error fetching media:", error.message);
-          toast.error(`Failed to fetch media: ${error.message}`);
+
+        // Map the items
+        const mediaItems = data.data.map((item: InstagramMediaItem) => ({
+          id: item.id,
+          title: item.caption || `Post ${item.id}`,
+          mediaUrl: item.media_url,
+          mediaType: item.media_type,
+          thumbnailUrl: item.thumbnail_url,
+          timestamp: item.timestamp,
+        }));
+
+        setMedia(mediaItems);
+
+        // Set the cursor for pagination only if there might be more posts
+        // If there are fewer than 25 posts, we don't need the next cursor
+        if (data.data.length === 25 && data.paging?.cursors?.after) {
+          setAfterCursor(data.paging.cursors.after);
         } else {
-          console.error("Unknown error fetching media:", error);
-          toast.error("Failed to fetch media");
+          // If we got fewer than 25 posts, there's no need for a next button
+          setAfterCursor(null);
         }
+      } catch (error) {
+        console.error("Error in initial media fetch:", error);
+        toast.error("Failed to load posts");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchMedia();
-  }, [user.instagramId, user.instagramAccessToken, form]);
+    initialFetch();
+  }, [user.instagramId, user.instagramAccessToken]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -505,96 +625,135 @@ export function CreateAutomationForm() {
                     <div className="w-8 h-8 border-4 border-t-purple-500 border-b-purple-300 border-l-purple-300 border-r-purple-300 rounded-full animate-spin"></div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {media.length > 0 ? (
-                      media.map((item) => (
-                        <Card
-                          key={item.id}
-                          className="overflow-hidden w-full border border-gray-200 dark:border-gray-700 transition-transform hover:scale-[1.02]"
-                        >
-                          <div className="aspect-square bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                            {item.mediaType === "IMAGE" && (
-                              <Image
-                                src={item.mediaUrl}
-                                alt={item.title}
-                                width={150}
-                                height={150}
-                                className="w-full h-full object-cover"
-                                unoptimized={true}
-                                loading="lazy"
-                              />
-                            )}
-                            {item.mediaType === "VIDEO" && (
-                              <div className="relative w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                                {item.thumbnailUrl ? (
-                                  <Image
-                                    src={item.thumbnailUrl}
-                                    alt={item.title}
-                                    width={150}
-                                    height={150}
-                                    className="w-full h-full object-cover"
-                                    unoptimized={true}
-                                    loading="lazy"
-                                  />
-                                ) : (
-                                  <span className="absolute text-gray-500 dark:text-gray-400 text-xs">
-                                    Video Preview
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                            {item.mediaType === "CAROUSEL_ALBUM" && (
-                              <Image
-                                src={
-                                  item.thumbnailUrl ||
-                                  "/api/placeholder/150/150"
-                                }
-                                alt={item.title}
-                                width={150}
-                                height={150}
-                                className="w-full h-full object-cover"
-                                unoptimized={true}
-                                loading="lazy"
-                              />
-                            )}
-                          </div>
-                          <div className="p-2 flex items-center justify-between">
-                            <FormField
-                              control={form.control}
-                              name="postId"
-                              render={({ field }) => (
-                                <FormItem className="flex items-center space-x-2 m-0">
-                                  <FormControl>
-                                    <RadioGroup
-                                      onValueChange={field.onChange}
-                                      value={field.value} // Use value instead of defaultValue
-                                    >
-                                      <div className="flex items-center space-x-2">
-                                        <RadioGroupItem
-                                          value={item.id}
-                                          id={item.id}
-                                          checked={field.value === item.id} // Explicitly check if this item is selected
-                                        />
-                                        <Label
-                                          htmlFor={item.id}
-                                          className="text-xs"
-                                        >
-                                          Select
-                                        </Label>
-                                      </div>
-                                    </RadioGroup>
-                                  </FormControl>
-                                </FormItem>
+                  <div className="flex flex-col w-full">
+                    {/* Grid of media items */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {media.length > 0 ? (
+                        media.map((item) => (
+                          <Card
+                            key={item.id}
+                            className="overflow-hidden w-full border border-gray-200 dark:border-gray-700 transition-transform hover:scale-[1.02]"
+                          >
+                            <div className="aspect-square bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                              {item.mediaType === "IMAGE" && (
+                                <Image
+                                  src={item.mediaUrl}
+                                  alt={item.title}
+                                  width={150}
+                                  height={150}
+                                  className="w-full h-full object-cover"
+                                  unoptimized={true}
+                                  loading="lazy"
+                                />
                               )}
-                            />
-                          </div>
-                        </Card>
-                      ))
-                    ) : (
-                      <div className="text-center w-full py-4 text-muted-foreground">
-                        No media found
+                              {item.mediaType === "VIDEO" && (
+                                <div className="relative w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                  {item.thumbnailUrl ? (
+                                    <Image
+                                      src={item.thumbnailUrl}
+                                      alt={item.title}
+                                      width={150}
+                                      height={150}
+                                      className="w-full h-full object-cover"
+                                      unoptimized={true}
+                                      loading="lazy"
+                                    />
+                                  ) : (
+                                    <span className="absolute text-gray-500 dark:text-gray-400 text-xs">
+                                      Video Preview
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              {item.mediaType === "CAROUSEL_ALBUM" && (
+                                <Image
+                                  src={
+                                    item.thumbnailUrl ||
+                                    "/api/placeholder/150/150"
+                                  }
+                                  alt={item.title}
+                                  width={150}
+                                  height={150}
+                                  className="w-full h-full object-cover"
+                                  unoptimized={true}
+                                  loading="lazy"
+                                />
+                              )}
+                            </div>
+                            <div className="p-2 flex items-center justify-between">
+                              <FormField
+                                control={form.control}
+                                name="postId"
+                                render={({ field }) => (
+                                  <FormItem className="flex items-center space-x-2 m-0">
+                                    <FormControl>
+                                      <RadioGroup
+                                        onValueChange={field.onChange}
+                                        value={field.value}
+                                      >
+                                        <div className="flex items-center space-x-2">
+                                          <RadioGroupItem
+                                            value={item.id}
+                                            id={item.id}
+                                            checked={field.value === item.id}
+                                          />
+                                          <Label
+                                            htmlFor={item.id}
+                                            className="text-xs"
+                                          >
+                                            Select
+                                          </Label>
+                                        </div>
+                                      </RadioGroup>
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </Card>
+                        ))
+                      ) : (
+                        <div className="text-center w-full py-4 text-muted-foreground col-span-full">
+                          No media found
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Only show pagination when needed */}
+                    {currentPage > 0 || afterCursor ? (
+                      <div className="flex justify-center gap-4 mt-6 w-full">
+                        {currentPage > 0 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => fetchMedia("previous")}
+                            disabled={isPaginating || isLoading}
+                            className="px-6"
+                          >
+                            {isPaginating ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              "← Previous"
+                            )}
+                          </Button>
+                        )}
+                        {afterCursor && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => fetchMedia("next")}
+                            disabled={isPaginating || isLoading}
+                            className="px-6"
+                          >
+                            {isPaginating ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              "Next →"
+                            )}
+                          </Button>
+                        )}
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 )}
               </div>
