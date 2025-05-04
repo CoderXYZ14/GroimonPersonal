@@ -1,41 +1,39 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
-  const url = request.nextUrl;
-  const hostname = request.headers.get("host") || "";
-  const isProduction = hostname === "groimon.com";
-
-  if (isProduction && url.pathname === "/redirect") {
-    return NextResponse.redirect(
-      new URL("https://redirect.groimon.com", request.url)
-    );
-  }
-
-  if (isProduction && url.pathname.startsWith("/dashboard")) {
-    return NextResponse.redirect(
-      new URL(`https://app.groimon.com${url.pathname}`, request.url)
-    );
-  }
-
-  if (url.pathname.startsWith("/dashboard")) {
-    const userDetails = request.cookies.get("user_details")?.value;
-    if (!userDetails) {
-      return NextResponse.redirect(new URL("/signin", request.url));
+// This function runs before the route is processed
+export function middleware(request: NextRequest) {
+  // Get the pathname of the request (e.g. /dashboard, /dashboard/settings)
+  const path = request.nextUrl.pathname;
+  
+  // Define protected routes that require authentication
+  const protectedRoutes = ["/dashboard", "/dashboard/automation"];
+  
+  // Check if the current path starts with any of the protected routes
+  const isProtectedRoute = protectedRoutes.some(route => 
+    path === route || path.startsWith(`${route}/`)
+  );
+  
+  // If it's a protected route, check for authentication
+  if (isProtectedRoute) {
+    // Get the user_details cookie
+    const userCookie = request.cookies.get("user_details");
+    
+    // If the cookie doesn't exist or is empty, redirect to signin
+    if (!userCookie || !userCookie.value) {
+      // Create the URL to redirect to
+      const signinUrl = new URL("/signin", request.url);
+      
+      // Return the redirect response
+      return NextResponse.redirect(signinUrl);
     }
   }
-
+  
+  // If the user is authenticated or it's not a protected route, continue
   return NextResponse.next();
 }
 
+// Configure the middleware to run only on specific paths
 export const config = {
-  matcher: [
-    "/signin",
-    "/signup",
-    "/",
-    "/dashboard/:path*",
-    "/verify/:path*",
-    "/your_insta_token",
-    "/redirectpage",
-  ],
+  matcher: ["/dashboard", "/dashboard/:path*"]
 };

@@ -1,6 +1,9 @@
+"use client";
+
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/helper/Sidebar";
 import { Navbar } from "@/components/Navbar";
+import { AuthCheck } from "@/components/auth/AuthCheck";
 
 export default function RootLayout({
   children,
@@ -8,14 +11,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="relative flex min-h-screen w-full">
-        <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <Navbar />
-          <main className="flex-1 p-1 sm:px-2 lg:px-2 w-full">{children}</main>
+    <AuthCheck>
+      <SidebarProvider defaultOpen={true}>
+        <div className="relative flex min-h-screen w-full">
+          <AppSidebar />
+          <div className="flex-1 flex flex-col min-w-0">
+            <Navbar />
+            <main className="flex-1 p-1 sm:px-2 lg:px-2 w-full">{children}</main>
+          </div>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </AuthCheck>
   );
 }
