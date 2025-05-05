@@ -551,10 +551,6 @@ export async function sendStoryDM(
       };
 
       if (isFirstTime) {
-        // For first-time commenters, ONLY send the follow request message
-        console.log(
-          `First-time commenter ${comment.from.id} - sending follow request ONLY`
-        );
         const followRequestBody = {
           recipient: {
             id: comment.from.id,
@@ -565,8 +561,8 @@ export async function sendStoryDM(
               payload: {
                 template_type: "button",
                 text:
-                  story.followUpMessage ||
-                  "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
+                  story.notFollowerMessage ||
+                  "It seems you haven't followed us. Please follow our account and click the button below when you're done.",
                 buttons: [
                   {
                     type: "postback",
@@ -833,8 +829,8 @@ async function sendDM(
               payload: {
                 template_type: "button",
                 text:
-                  automation.followUpMessage ||
-                  "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
+                  automation.notFollowerMessage ||
+                  "It seems you haven't followed us. Please follow our account and click the button below when you're done.",
                 buttons: [
                   {
                     type: "postback",
@@ -1144,8 +1140,8 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                 if (postbackData.action === "followConfirmed") {
                   // Check if this is a story or automation follow request
                   let user: IUser | null = null;
-                  let messageContent = postbackData.originalMessage;
                   let isStory = false;
+                  let followUpMessage = "";
 
                   if (postbackData.automationId) {
                     // Handle automation follow request
@@ -1158,8 +1154,7 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                     }
 
                     user = automation.user as IUser;
-                    messageContent =
-                      automation.message || postbackData.originalMessage;
+                    followUpMessage = automation.followUpMessage || "Thank you for following us!";
                   } else if (postbackData.storyId) {
                     // Handle story follow request
                     isStory = true;
@@ -1172,8 +1167,7 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                     }
 
                     user = story.user as IUser;
-                    messageContent =
-                      story.message || postbackData.originalMessage;
+                    followUpMessage = story.followUpMessage || "Thank you for following us!";
                   } else {
                     continue;
                   }
@@ -1200,28 +1194,28 @@ async function handlePostback(payload: InstagramWebhookPayload) {
 
                   console.log("isNowFollowing", isNowFollowing);
                   if (isNowFollowing) {
-                    // When user is actually following, send the actual message
+                    // When user is actually following, send the followUpMessage
                     console.log(
-                      `User ${senderId} is confirmed to be following. Sending actual message.`
+                      `User ${senderId} is confirmed to be following. Sending followUpMessage.`
                     );
-                    const actualMessage = messageContent;
-
+                    
                     // Add branding based on the type (story or automation)
                     const messageWithBranding = isStory
                       ? (await StoryModel.findById(postbackData.storyId))
                           ?.removeBranding
-                        ? actualMessage
-                        : `${actualMessage}\n\nPowered by Groimon`
+                        ? followUpMessage
+                        : `${followUpMessage}\n\nPowered by Groimon`
                       : (
                           await AutomationModel.findById(
                             postbackData.automationId
                           )
                         )?.removeBranding
-                      ? actualMessage
-                      : `${actualMessage}\n\nThis automation is sent by Groimon`;
+                      ? followUpMessage
+                      : `${followUpMessage}\n\nThis automation is sent by Groimon`;
 
+                    // Get the full automation or story object
                     let messageBody;
-
+                    
                     if (isStory) {
                       // For story, we just send a simple text message
                       messageBody = {
@@ -1232,69 +1226,86 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                           text: messageWithBranding,
                         },
                       };
-                    } else if (
-                      // For automation, check if it has buttons
-                      postbackData.automationId &&
-                      (
-                        await AutomationModel.findById(
-                          postbackData.automationId
-                        )
-                      )?.messageType === "ButtonText" &&
-                      (
-                        await AutomationModel.findById(
-                          postbackData.automationId
-                        )
-                      )?.buttons &&
-                      (
-                        await AutomationModel.findById(
-                          postbackData.automationId
-                        )
-                      )?.buttons.length > 0
-                    ) {
-                      const automation = await AutomationModel.findById(
-                        postbackData.automationId
-                      );
-                      messageBody = {
-                        recipient: {
-                          id: senderId,
-                        },
-                        message: {
-                          attachment: {
-                            type: "template",
-                            payload: {
-                              template_type: "generic",
-                              elements: [
-                                {
-                                  title:
-                                    automation.buttons[0]?.title ||
-                                    "Click the button below",
-                                  buttons: automation.buttons.map((button) => ({
-                                    type: "web_url",
-                                    url: `${
-                                      process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
-                                      "https://www.groimon.com"
-                                    }/redirect?url=${encodeURIComponent(
-                                      button.url
-                                    )}&type=automation&id=${
-                                      postbackData.automationId
-                                    }`,
-                                    title: button.buttonText,
-                                  })),
-                                },
-                              ],
+                    } else {
+                      // Handle automation - first retrieve full automation object
+                      const automation = await AutomationModel.findById(postbackData.automationId);
+                      
+                      if (automation?.messageType === "ButtonText" && automation?.buttons && automation?.buttons.length > 0) {
+                        // Handle ButtonText type with followUpMessage
+                        messageBody = {
+                          recipient: {
+                            id: senderId,
+                          },
+                          message: {
+                            attachment: {
+                              type: "template",
+                              payload: {
+                                template_type: "generic",
+                                elements: [
+                                  {
+                                    title: automation.buttons[0]?.title || "Click the button below",
+                                    buttons: automation.buttons.map((button) => ({
+                                      type: "web_url",
+                                      url: `${
+                                        process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
+                                        "https://www.groimon.com"
+                                      }/redirect?url=${encodeURIComponent(
+                                        button.url
+                                      )}&type=automation&id=${
+                                        postbackData.automationId
+                                      }`,
+                                      title: button.buttonText,
+                                    })),
+                                  },
+                                ],
+                              },
                             },
                           },
-                        },
-                      };
-                    } else {
-                      messageBody = {
-                        recipient: {
-                          id: senderId,
-                        },
-                        message: {
-                          text: messageWithBranding,
-                        },
-                      };
+                        };
+                      } else if (automation?.messageType === "ButtonImage" && automation?.buttons && automation?.buttons.length > 0 && automation?.imageUrl) {
+                        // Handle ButtonImage type with followUpMessage
+                        messageBody = {
+                          recipient: {
+                            id: senderId,
+                          },
+                          message: {
+                            attachment: {
+                              type: "template",
+                              payload: {
+                                template_type: "generic",
+                                elements: [
+                                  {
+                                    title: automation.buttons[0]?.title || "Click the button below",
+                                    image_url: automation.imageUrl,
+                                    buttons: automation.buttons.map((button) => ({
+                                      type: "web_url",
+                                      url: `${
+                                        process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
+                                        "https://www.groimon.com"
+                                      }/redirect?url=${encodeURIComponent(
+                                        button.url
+                                      )}&type=automation&id=${
+                                        postbackData.automationId
+                                      }`,
+                                      title: button.buttonText,
+                                    })),
+                                  },
+                                ],
+                              },
+                            },
+                          },
+                        };
+                      } else {
+                        // Regular text message
+                        messageBody = {
+                          recipient: {
+                            id: senderId,
+                          },
+                          message: {
+                            text: messageWithBranding,
+                          },
+                        };
+                      }
                     }
 
                     await axios.post(url, messageBody, { headers });
