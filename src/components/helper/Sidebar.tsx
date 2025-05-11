@@ -86,24 +86,29 @@ export function AppSidebar() {
         "fixed"
       )}
     >
-      <button
-        onClick={toggleSidebar}
-        className={cn(
-          "absolute -right-3 top-20 bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] text-white rounded-full p-1.5 z-10",
-          "shadow-lg hover:shadow-blue-500/25 dark:hover:shadow-blue-400/20",
-          "transition-all duration-300 hover:scale-110 active:scale-95",
-          "ring-2 ring-background"
-        )}
-        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-400/10 via-cyan-300/5 to-transparent dark:from-blue-900/20 dark:via-cyan-900/10 dark:to-transparent"></div>
+      <div className="absolute -right-3 top-20 z-50">
+        <button
+          onClick={toggleSidebar}
+          className={cn(
+            "bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] text-white rounded-full p-1.5",
+            "shadow-lg hover:shadow-blue-500/25 dark:hover:shadow-blue-400/20",
+            "transition-all duration-300 hover:scale-110 active:scale-95",
+            "ring-2 ring-background",
+            "cursor-pointer",
+            "relative",
+            "w-7 h-7 flex items-center justify-center"
+          )}
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-400/10 via-cyan-300/5 to-transparent dark:from-blue-900/20 dark:via-cyan-900/10 dark:to-transparent rounded-full"></div>
 
-        {isCollapsed ? (
-          <ChevronRight className="h-3.5 w-3.5" />
-        ) : (
-          <ChevronLeft className="h-3.5 w-3.5" />
-        )}
-      </button>
+          {isCollapsed ? (
+            <ChevronRight className="h-3.5 w-3.5 pointer-events-none" />
+          ) : (
+            <ChevronLeft className="h-3.5 w-3.5 pointer-events-none" />
+          )}
+        </button>
+      </div>
 
       <SidebarHeader className="relative z-10">
         <div
