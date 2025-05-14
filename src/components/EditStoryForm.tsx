@@ -898,9 +898,15 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
                       type="button"
                       variant="outline"
                       onClick={() => {
+                        // Limit to maximum 3 buttons
+                        if (buttons.length >= 3) {
+                          toast.error("Maximum 3 buttons are allowed");
+                          return;
+                        }
                         setButtons([...buttons, { url: "", buttonText: "" }]);
                       }}
                       className="w-full mt-4"
+                      disabled={buttons.length >= 3}
                     >
                       Add Button
                     </Button>

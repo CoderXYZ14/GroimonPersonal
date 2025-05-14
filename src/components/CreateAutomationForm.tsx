@@ -1119,6 +1119,11 @@ export function CreateAutomationForm() {
                       variant="outline"
                       onClick={() => {
                         // Include title field with current buttonTitle value when adding a new button
+                        // Limit to maximum 3 buttons
+                        if (buttons.length >= 3) {
+                          toast.error("Maximum 3 buttons are allowed");
+                          return;
+                        }
 
                         setButtons([
                           ...buttons,
@@ -1129,6 +1134,7 @@ export function CreateAutomationForm() {
                         ]);
                       }}
                       className="w-full mt-4"
+                      disabled={buttons.length >= 3}
                     >
                       Add Button
                     </Button>
