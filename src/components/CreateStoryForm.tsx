@@ -12,6 +12,7 @@ import {
   FormDescription,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,6 @@ import { Switch } from "@/components/ui/switch";
 import axios from "axios";
 
 const buttonSchema = z.object({
-  title: z.string().min(1, "Title is required"),
   url: z.string().min(1, "URL is required"),
   buttonText: z.string().min(1, "Button text is required"),
 });
@@ -48,6 +48,7 @@ const formSchema = z
       z.literal("").optional(),
       z.undefined(),
     ]),
+    buttonTitle: z.string().optional(),
     buttons: z.array(buttonSchema).optional(),
     isFollowed: z.boolean().default(false),
     notFollowerMessage: z.string().optional(),
@@ -119,7 +120,7 @@ export function CreateStoryAutomationForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFollowedOpen, setIsFollowedOpen] = useState(false);
   const [buttons, setButtons] = useState<
-    Array<{ title: string; url: string; buttonText: string }>
+    Array<{ url: string; buttonText: string }>
   >([]);
   const [newKeyword, setNewKeyword] = useState("");
 
@@ -148,6 +149,7 @@ export function CreateStoryAutomationForm() {
       messageType: "message",
       message: "",
       imageUrl: "",
+      buttonTitle: "Default Button",
       isFollowed: false,
       notFollowerMessage:
         "Please follow our account to receive the information you requested. Once you've followed, click the button below.",
@@ -180,7 +182,6 @@ export function CreateStoryAutomationForm() {
     ) {
       setButtons([
         {
-          title: "Default Button",
           url: "https://example.com",
           buttonText: "Click Here",
         },
@@ -215,7 +216,7 @@ export function CreateStoryAutomationForm() {
       try {
         // The Instagram Graph API endpoint for stories
         const response = await fetch(
-          `https://graph.instagram.com/v22.0/${instagramId}/stories?fields=id,media_type,media_url,thumbnail_url,timestamp&access_token=${instagramAccessToken}`
+          `https://graph.instagram.com/v18.0/${instagramId}/stories?fields=id,media_type,media_url,thumbnail_url,timestamp&access_token=${instagramAccessToken}`
         );
 
         if (!response.ok) {
@@ -254,7 +255,7 @@ export function CreateStoryAutomationForm() {
       (messageType === "ButtonText" || messageType === "ButtonImage") &&
       buttons.length === 0
     ) {
-      setButtons([{ title: "", url: "", buttonText: "" }]);
+      setButtons([{ url: "", buttonText: "" }]);
     }
   }, [buttons.length, form]);
 
@@ -296,6 +297,12 @@ export function CreateStoryAutomationForm() {
         imageUrl: finalImageUrl,
         // Only include message field if messageType is 'message'
         message: values.messageType === "message" ? values.message : undefined,
+        // Include buttonTitle at the main level
+        buttonTitle:
+          values.messageType === "ButtonText" ||
+          values.messageType === "ButtonImage"
+            ? values.buttonTitle
+            : undefined,
         notFollowerMessage: values.isFollowed
           ? values.notFollowerMessage
           : undefined,
@@ -777,22 +784,27 @@ export function CreateStoryAutomationForm() {
                 {(form.watch("messageType") === "ButtonText" ||
                   form.watch("messageType") === "ButtonImage") && (
                   <div className="space-y-4">
+                    {/* Button Title at the form level */}
+                    <FormField
+                      control={form.control}
+                      name="buttonTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Button Title</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter a title for all buttons"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
                     {buttons.map((button, index) => (
                       <Card key={index} className="p-4">
                         <div className="space-y-4">
-                          <div>
-                            <Label>Button Title</Label>
-                            <Input
-                              value={button.title}
-                              onChange={(e) => {
-                                const newButtons = [...buttons];
-                                newButtons[index].title = e.target.value;
-                                setButtons(newButtons);
-                              }}
-                              placeholder="Enter Title"
-                              className="mt-1"
-                            />
-                          </div>
                           <div>
                             <Label>URL</Label>
                             <Input
@@ -839,10 +851,7 @@ export function CreateStoryAutomationForm() {
                       type="button"
                       variant="outline"
                       onClick={() => {
-                        setButtons([
-                          ...buttons,
-                          { title: "", url: "", buttonText: "" },
-                        ]);
+                        setButtons([...buttons, { url: "", buttonText: "" }]);
                       }}
                       className="w-full mt-4"
                     >

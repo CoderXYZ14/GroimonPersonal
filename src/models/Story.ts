@@ -2,7 +2,6 @@ import mongoose, { Schema, Document } from "mongoose";
 import { IUser } from "./User";
 
 export interface Button {
-  title: string;
   url: string;
   buttonText: string;
 }
@@ -14,6 +13,7 @@ export interface IStory extends Document {
   messageType: "message" | "ButtonText" | "ButtonImage";
   message?: string;
   imageUrl?: string;
+  buttonTitle?: string;
   buttons?: Button[];
   isFollowed: boolean;
   notFollowerMessage?: string;
@@ -29,7 +29,6 @@ export interface IStory extends Document {
 
 const ButtonSchema = new Schema<Button>(
   {
-    title: { type: String, required: true },
     url: { type: String, required: true },
     buttonText: { type: String, required: true },
   },
@@ -47,8 +46,14 @@ const StorySchema: Schema<IStory> = new Schema(
       default: "message",
       required: true,
     },
-    message: { type: String, required: function() { return this.messageType === 'message'; } },
+    message: {
+      type: String,
+      required: function () {
+        return this.messageType === "message";
+      },
+    },
     imageUrl: { type: String },
+    buttonTitle: { type: String },
     buttons: { type: [ButtonSchema], default: [] },
     isFollowed: { type: Boolean, default: false },
     notFollowerMessage: { type: String },

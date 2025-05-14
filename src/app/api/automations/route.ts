@@ -18,6 +18,7 @@ export async function POST(request: Request) {
       messageType,
       message,
       imageUrl,
+      buttonTitle,
       buttons,
       user,
       enableCommentAutomation,
@@ -32,19 +33,21 @@ export async function POST(request: Request) {
       respondToAll,
     } = body;
 
-    // Validation checks
     if (
       !name ||
       (!respondToAll && (!keywords || keywords.length === 0)) ||
       !messageType ||
       (messageType === "message" && !message) ||
       !user ||
-      (enableCommentAutomation && (!commentMessage || commentMessage.length === 0)) ||
+      (enableCommentAutomation &&
+        (!commentMessage || commentMessage.length === 0)) ||
       (enableCommentAutomation && autoReplyLimit === undefined) ||
       (enableCommentAutomation && autoReplyLimitLeft === undefined) ||
       (messageType === "ButtonImage" && !imageUrl) ||
       ((messageType === "ButtonText" || messageType === "ButtonImage") &&
-        (!buttons || buttons.length === 0))
+        (!buttons || buttons.length === 0)) ||
+      ((messageType === "ButtonText" || messageType === "ButtonImage") &&
+        !buttonTitle)
     ) {
       console.log("Validation failed. Missing required fields.");
       return NextResponse.json(
@@ -67,6 +70,8 @@ export async function POST(request: Request) {
 
     // Log the respondToAll value from the request
     console.log("Request respondToAll value:", respondToAll);
+    console.log("Request buttons value:", buttons);
+    console.log("Request buttonTitle value:", buttonTitle);
 
     // Create automation object explicitly setting all fields
     const automation = new AutomationModel({
@@ -76,6 +81,11 @@ export async function POST(request: Request) {
       messageType,
       message,
       imageUrl: messageType === "ButtonImage" ? imageUrl : undefined,
+      buttonTitle:
+        messageType === "ButtonText" || messageType === "ButtonImage"
+          ? buttonTitle
+          : undefined,
+      // Pass buttons without title field
       buttons:
         messageType === "ButtonText" || messageType === "ButtonImage"
           ? buttons
@@ -125,8 +135,23 @@ export async function POST(request: Request) {
     return NextResponse.json(automation, { status: 201 });
   } catch (error) {
     console.error("Error creating automation:", error);
+
+    // Log detailed error information
+    if (error instanceof Error) {
+      console.error("Error details:", error.message);
+      if ("errors" in error) {
+        console.error(
+          "Validation errors:",
+          JSON.stringify(error.errors, null, 2)
+        );
+      }
+    }
+
     return NextResponse.json(
-      { message: "Failed to create automation", error: error.message },
+      {
+        message: "Failed to create automation",
+        error: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
@@ -283,8 +308,12 @@ export async function PUT(request: Request) {
     }
 
     // Regular update with validation
-    if (!body.name || !body.keywords || !body.messageType || 
-        (body.messageType === "message" && !body.message)) {
+    if (
+      !body.name ||
+      !body.keywords ||
+      !body.messageType ||
+      (body.messageType === "message" && !body.message)
+    ) {
       return NextResponse.json(
         { message: "Missing required fields" },
         { status: 400 }
@@ -344,6 +373,7 @@ export async function PUT(request: Request) {
     console.log("respondToAll value in update:", body.respondToAll);
 
     // Create update object with explicit handling of respondToAll
+    // Also ensure all buttons have the same title if messageType is ButtonText or ButtonImage
     const updateData = {
       ...body,
       keywords,
@@ -352,6 +382,14 @@ export async function PUT(request: Request) {
       postIds: body.postIds || automation.postIds,
       // Explicitly set respondToAll as a boolean
       respondToAll: body.respondToAll === true,
+      // Set the same title for all buttons if messageType is ButtonText or ButtonImage
+      // Pass buttons without title field
+      buttons:
+        (body.messageType === "ButtonText" ||
+          body.messageType === "ButtonImage") &&
+        body.buttons
+          ? body.buttons
+          : body.buttons,
     };
 
     console.log("Update data being sent to MongoDB:", updateData);

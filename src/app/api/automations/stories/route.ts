@@ -16,6 +16,7 @@ export async function POST(request: Request) {
       messageType,
       message,
       imageUrl,
+      buttonTitle,
       buttons,
       user,
       isFollowed,
@@ -62,6 +63,10 @@ export async function POST(request: Request) {
       messageType,
       message,
       imageUrl: messageType === "ButtonImage" ? imageUrl : undefined,
+      buttonTitle:
+        messageType === "ButtonText" || messageType === "ButtonImage"
+          ? buttonTitle
+          : undefined,
       buttons:
         messageType === "ButtonText" || messageType === "ButtonImage"
           ? buttons

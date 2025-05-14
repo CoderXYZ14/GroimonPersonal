@@ -12,6 +12,7 @@ import {
   FormDescription,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,6 @@ import { Switch } from "@/components/ui/switch";
 import axios from "axios";
 
 const buttonSchema = z.object({
-  title: z.string().min(1, "Title is required"),
   url: z.string().min(1, "URL is required"),
   buttonText: z.string().min(1, "Button text is required"),
 });
@@ -48,6 +48,7 @@ const formSchema = z
       z.literal("").optional(),
       z.undefined(),
     ]),
+    buttonTitle: z.string().optional(),
     buttons: z.array(buttonSchema).optional(),
     enableCommentAutomation: z.boolean(),
     commentMessage: z.array(z.string()).optional().default([]),
@@ -138,9 +139,9 @@ export function CreateAutomationForm() {
   const [isPaginating, setIsPaginating] = useState(false);
   const [commentAutomationOpen, setCommentAutomationOpen] = useState(false);
   const [isFollowedOpen, setIsFollowedOpen] = useState(false);
-  const [buttons, setButtons] = useState<
-    Array<{ title: string; url: string; buttonText: string }>
-  >([]);
+  const [buttons, setButtons] = useState<{ url: string; buttonText: string }[]>(
+    []
+  );
   const [newKeyword, setNewKeyword] = useState("");
   const [newCommentMessage, setNewCommentMessage] = useState("");
   const [afterCursor, setAfterCursor] = useState<string | null>(null);
@@ -223,15 +224,20 @@ export function CreateAutomationForm() {
       (messageType === "ButtonText" || messageType === "ButtonImage") &&
       buttons.length === 0
     ) {
+      // Set default button title in the form
+      form.setValue("buttonTitle", "Default Button");
+
+      // Add a default button with title matching the form level buttonTitle
+      const defaultButtonTitle =
+        form.getValues("buttonTitle") || "Default Button";
       setButtons([
         {
-          title: "Default Button",
-          url: "https://example.com",
+          url: "",
           buttonText: "Click Here",
         },
       ]);
     }
-  }, [messageType, buttons.length]);
+  }, [messageType, buttons.length, form]);
 
   useEffect(() => {
     if (messageType === "ButtonImage") {
@@ -240,6 +246,18 @@ export function CreateAutomationForm() {
       }
     }
   }, [form, messageType]);
+
+  useEffect(() => {
+    if (
+      messageType !== "ButtonText" &&
+      messageType !== "ButtonImage" &&
+      buttons.length > 0
+    ) {
+      form.setValue("buttonTitle", "");
+
+      setButtons([{ url: "", buttonText: "" }]);
+    }
+  }, [buttons.length, form, messageType]);
 
   const fetchMedia = async (
     direction: "initial" | "next" | "previous" = "initial"
@@ -265,7 +283,7 @@ export function CreateAutomationForm() {
 
     try {
       // Build the URL with the appropriate cursor if needed
-      let url = `https://graph.instagram.com/v22.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&limit=25&access_token=${instagramAccessToken}`;
+      let url = `https://graph.instagram.com/v18.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&limit=25&access_token=${instagramAccessToken}`;
 
       // Determine which cursor to use based on navigation direction
       if (direction === "next" && afterCursor) {
@@ -360,7 +378,7 @@ export function CreateAutomationForm() {
 
       try {
         // Initial fetch to get the first 25 posts
-        const url = `https://graph.instagram.com/v22.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&limit=25&access_token=${instagramAccessToken}`;
+        const url = `https://graph.instagram.com/v18.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&limit=25&access_token=${instagramAccessToken}`;
 
         const response = await fetch(url);
 
@@ -382,12 +400,9 @@ export function CreateAutomationForm() {
 
         setMedia(mediaItems);
 
-        // Set the cursor for pagination only if there might be more posts
-        // If there are fewer than 25 posts, we don't need the next cursor
         if (data.data.length === 25 && data.paging?.cursors?.after) {
           setAfterCursor(data.paging.cursors.after);
         } else {
-          // If we got fewer than 25 posts, there's no need for a next button
           setAfterCursor(null);
         }
       } catch (error) {
@@ -430,6 +445,13 @@ export function CreateAutomationForm() {
       const { ...valuesWithoutMessage } = values;
 
       // In the onSubmit function, modify the axios POST request:
+      // Ensure buttons have title field set to match the buttonTitle
+      // This is needed because the MongoDB schema still validates title as required
+      const buttonsList = buttons.map(({ url, buttonText }) => ({
+        url,
+        buttonText,
+      }));
+
       const response = await axios.post("/api/automations", {
         ...(values.messageType === "message" ? values : valuesWithoutMessage),
         postIds,
@@ -438,6 +460,18 @@ export function CreateAutomationForm() {
         imageUrl: finalImageUrl,
         // Only include message field if messageType is 'message'
         message: values.messageType === "message" ? values.message : undefined,
+
+        buttonTitle:
+          values.messageType === "ButtonText" ||
+          values.messageType === "ButtonImage"
+            ? values.buttonTitle
+            : undefined,
+
+        buttons:
+          values.messageType === "ButtonText" ||
+          values.messageType === "ButtonImage"
+            ? buttonsList
+            : undefined,
         autoReplyLimitLeft: values.autoReplyLimit || 100,
         notFollowerMessage: values.isFollowed
           ? values.notFollowerMessage
@@ -446,11 +480,6 @@ export function CreateAutomationForm() {
           ? values.followButtonTitle
           : undefined,
         followUpMessage: values.isFollowed ? values.followUpMessage : undefined,
-        buttons:
-          values.messageType === "ButtonText" ||
-          values.messageType === "ButtonImage"
-            ? buttons
-            : undefined,
         respondToAll: Boolean(values.respondToAll),
       });
       toast.success("Automation created successfully!");
@@ -507,15 +536,6 @@ export function CreateAutomationForm() {
       setIsLoading(false);
     }
   }
-  useEffect(() => {
-    const messageType = form.watch("messageType");
-    if (
-      (messageType === "ButtonText" || messageType === "ButtonImage") &&
-      buttons.length === 0
-    ) {
-      setButtons([{ title: "", url: "", buttonText: "" }]);
-    }
-  }, [buttons.length, form]);
 
   const keywordsCount = form.watch("keywords")
     ? form.watch("keywords").length
@@ -1030,22 +1050,27 @@ export function CreateAutomationForm() {
                 {(form.watch("messageType") === "ButtonText" ||
                   form.watch("messageType") === "ButtonImage") && (
                   <div className="space-y-4">
+                    {/* Button Title moved to form level */}
+                    <FormField
+                      control={form.control}
+                      name="buttonTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Button Title</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter Title" {...field} />
+                          </FormControl>
+                          <FormDescription className="text-xs text-gray-500 mt-1">
+                            This title will be used for all buttons
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     {buttons.map((button, index) => (
                       <Card key={index} className="p-4">
                         <div className="space-y-4">
-                          <div>
-                            <Label>Button Title</Label>
-                            <Input
-                              value={button.title}
-                              onChange={(e) => {
-                                const newButtons = [...buttons];
-                                newButtons[index].title = e.target.value;
-                                setButtons(newButtons);
-                              }}
-                              placeholder="Enter Title"
-                              className="mt-1"
-                            />
-                          </div>
                           <div>
                             <Label>URL</Label>
                             <Input
@@ -1092,9 +1117,14 @@ export function CreateAutomationForm() {
                       type="button"
                       variant="outline"
                       onClick={() => {
+                        // Include title field with current buttonTitle value when adding a new button
+
                         setButtons([
                           ...buttons,
-                          { title: "", url: "", buttonText: "" },
+                          {
+                            url: "",
+                            buttonText: "",
+                          },
                         ]);
                       }}
                       className="w-full mt-4"

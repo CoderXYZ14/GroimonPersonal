@@ -12,6 +12,7 @@ import {
   FormDescription,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -48,7 +49,6 @@ interface InstagramStoriesResponse {
 }
 
 const buttonSchema = z.object({
-  title: z.string().min(1, "Title is required"),
   url: z.string().min(1, "URL is required"),
   buttonText: z.string().min(1, "Button text is required"),
 });
@@ -68,6 +68,7 @@ const formSchema = z
       z.literal("").optional(),
       z.undefined(),
     ]),
+    buttonTitle: z.string().optional(),
     buttons: z.array(buttonSchema).optional(),
     isFollowed: z.boolean().default(false),
     notFollowerMessage: z.string().optional(),
@@ -104,7 +105,8 @@ interface EditStoryFormProps {
     messageType: "message" | "ButtonText" | "ButtonImage";
     message: string;
     imageUrl?: string;
-    buttons?: Array<{ title: string; url: string; buttonText: string }>;
+    buttonTitle?: string;
+    buttons?: Array<{ url: string; buttonText: string }>;
     isFollowed: boolean;
     notFollowerMessage?: string;
     followButtonTitle?: string;
@@ -124,8 +126,13 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
   const [isFollowedOpen, setIsFollowedOpen] = useState(false);
   const [storyLoaded, setStoryLoaded] = useState(false);
   const [buttons, setButtons] = useState<
-    Array<{ title: string; url: string; buttonText: string }>
-  >(story.buttons || []);
+    Array<{ url: string; buttonText: string }>
+  >(
+    story.buttons?.map((button) => ({
+      url: button.url,
+      buttonText: button.buttonText,
+    })) || []
+  );
   const [newKeyword, setNewKeyword] = useState("");
   const [selectStoryOpen, setSelectStoryOpen] = useState(true);
 
@@ -162,6 +169,7 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
       messageType: story.messageType,
       message: story.message,
       imageUrl: story.imageUrl,
+      buttonTitle: story.buttonTitle || "Button Title",
       isFollowed: story.isFollowed,
       notFollowerMessage:
         story.notFollowerMessage ||
@@ -216,7 +224,6 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
     ) {
       setButtons([
         {
-          title: "Default Button",
           url: "https://example.com",
           buttonText: "Click Here",
         },
@@ -240,7 +247,7 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
 
     try {
       const response = await fetch(
-        `https://graph.instagram.com/v22.0/${instagramId}/stories?fields=id,media_type,media_url,thumbnail_url,timestamp&access_token=${instagramAccessToken}`
+        `https://graph.instagram.com/v18.0/${instagramId}/stories?fields=id,media_type,media_url,thumbnail_url,timestamp&access_token=${instagramAccessToken}`
       );
 
       if (!response.ok) {
@@ -821,22 +828,27 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
                 {(messageType === "ButtonText" ||
                   messageType === "ButtonImage") && (
                   <div className="space-y-4">
+                    {/* Button Title at the form level */}
+                    <FormField
+                      control={form.control}
+                      name="buttonTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Button Title</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter a title for all buttons"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     {buttons.map((button, index) => (
                       <Card key={index} className="p-4">
                         <div className="space-y-4">
-                          <div>
-                            <Label>Button Title</Label>
-                            <Input
-                              value={button.title}
-                              onChange={(e) => {
-                                const newButtons = [...buttons];
-                                newButtons[index].title = e.target.value;
-                                setButtons(newButtons);
-                              }}
-                              placeholder="Enter Title"
-                              className="mt-1"
-                            />
-                          </div>
                           <div>
                             <Label>URL</Label>
                             <Input
@@ -883,10 +895,7 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
                       type="button"
                       variant="outline"
                       onClick={() => {
-                        setButtons([
-                          ...buttons,
-                          { title: "", url: "", buttonText: "" },
-                        ]);
+                        setButtons([...buttons, { url: "", buttonText: "" }]);
                       }}
                       className="w-full mt-4"
                     >

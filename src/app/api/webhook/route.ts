@@ -522,6 +522,8 @@ export async function sendStoryDM(
     console.log(
       `Sending Story DM to user ${comment.from.id} for story ${storyName}`
     );
+
+    await dbConnect();
     const story = await StoryModel.findById(storyId).populate<{
       user: IUser;
     }>("user");
@@ -542,8 +544,8 @@ export async function sendStoryDM(
         comment.from.id
       );
 
-      // Construct the URL for the Instagram Graph API
-      const url = `https://graph.facebook.com/v22.0/me/messages`;
+      // For story replies, we need to use this URL format
+      const url = `https://graph.instagram.com/v18.0/${story.user.instagramId}/messages`;
 
       const headers = {
         Authorization: `Bearer ${accessToken}`,
@@ -605,18 +607,143 @@ export async function sendStoryDM(
           console.log(
             `User ${comment.from.id} is now following - sending direct message`
           );
-          // Send the original message directly
-          const messageBody = {
-            recipient: {
-              id: comment.from.id,
-            },
-            message: {
-              text: message,
-            },
-          };
+          // Debug what's in message and check if this story has buttons
+          console.log("Message content:", message);
+          console.log(
+            "Story has buttons?",
+            story.buttons && story.buttons.length > 0
+          );
 
-          await axios.post(url, messageBody, { headers });
-          return;
+          let messageBody;
+
+          // If story has buttons, use a button template
+          if (story.buttons && story.buttons.length > 0) {
+            // For button automation, use the story's buttonTitle field for the template text
+            // This is separate from the individual button's buttonText
+            let messageWithBranding = story.buttonTitle || "";
+
+            // Add branding only if not removed
+            if (!story.removeBranding && messageWithBranding) {
+              messageWithBranding += "\n\nSent using groimon.com";
+            }
+
+            // Create button message
+            messageBody = {
+              recipient: {
+                id: comment.from.id,
+              },
+              message: {
+                attachment: {
+                  type: "template",
+                  payload: {
+                    template_type: "button",
+                    text: messageWithBranding,
+                    buttons: story.buttons.map((button) => ({
+                      type: "web_url",
+                      url: `${
+                        process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
+                        "https://www.groimon.com"
+                      }/redirect?url=${encodeURIComponent(
+                        button.url
+                      )}&type=story&id=${storyId}`,
+                      title: button.buttonText || "Visit Link",
+                    })),
+                  },
+                },
+              },
+            };
+          } else {
+            // Simple text message - make sure we have valid text
+            const messageText =
+              message && message.trim() !== ""
+                ? message
+                : "Thank you for your response! We're happy to assist you.";
+
+            // Add branding if needed
+            let finalMessage = messageText;
+            if (!story.removeBranding) {
+              finalMessage += "\n\nSent using groimon.com";
+            }
+
+            messageBody = {
+              recipient: {
+                id: comment.from.id,
+              },
+              message: {
+                text: finalMessage,
+              },
+            };
+          }
+
+          // CRITICAL FIX: Verify messageBody has required content before sending
+          if (
+            !messageBody?.message?.text &&
+            !messageBody?.message?.attachment
+          ) {
+            console.log("WARNING: Empty message detected, adding default text");
+            messageBody = {
+              recipient: {
+                id: comment.from.id,
+              },
+              message: {
+                text: "Thank you for your response! We're happy to assist you.",
+              },
+            };
+          }
+
+          // Log the request for debugging
+          console.log(
+            "Sending message with payload:",
+            JSON.stringify(messageBody)
+          );
+          console.log("API URL being used:", url);
+          console.log("Headers being sent:", JSON.stringify(headers));
+
+          try {
+            // Make direct API call with properly formatted message
+            const response = await axios.post(url, messageBody, { headers });
+            console.log("Success response:", JSON.stringify(response.data));
+            console.log(`Message sent successfully to user ${comment.from.id}`);
+            return;
+          } catch (error) {
+            // Enhanced error handling with complete details
+            console.error(`----- INSTAGRAM API ERROR DETAILS -----`);
+            console.error(`Endpoint used: ${url}`);
+            console.error(
+              `HTTP Status: ${error.response?.status} ${error.response?.statusText}`
+            );
+
+            // Full request details for troubleshooting
+            console.error(
+              `Request method: ${error.config?.method?.toUpperCase()}`
+            );
+            console.error(`Request headers:`, error.config?.headers);
+            console.error(`Request data:`, error.config?.data);
+
+            // Detailed response error information
+            if (error.response?.data) {
+              console.error(
+                `Response data:`,
+                JSON.stringify(error.response.data, null, 2)
+              );
+
+              if (error.response?.data?.error) {
+                const apiError = error.response.data.error;
+                console.error(`Error code: ${apiError.code}`);
+                console.error(`Error message: ${apiError.message}`);
+                console.error(`Error type: ${apiError.type}`);
+                console.error(`Error subcode: ${apiError.error_subcode}`);
+                console.error(`User title: ${apiError.error_user_title}`);
+                console.error(`User message: ${apiError.error_user_msg}`);
+                console.error(`FB Trace ID: ${apiError.fbtrace_id}`);
+              }
+            } else {
+              // For network errors or other non-API errors
+              console.error(`Network error: ${error.message}`);
+            }
+            console.error(`----- END OF ERROR DETAILS -----`);
+            throw error;
+          }
         } else {
           console.log(
             `User ${comment.from.id} has commented before but still not following - sending notFollowerMessage ONLY`
@@ -667,11 +794,11 @@ export async function sendStoryDM(
     // Prepare the message with branding if needed
     let messageWithBranding = message;
     if (!story.removeBranding) {
-      messageWithBranding += "\n\nPowered by Groimon";
+      messageWithBranding += "\n\nSent using groimon.com";
     }
 
-    // Prepare the message body based on message type and buttons
-    const url = `https://graph.instagram.com/v22.0/${story.user.instagramId}/messages`;
+    // For story replies, we need to properly format the recipient
+    const url = `https://graph.instagram.com/v18.0/${story.user.instagramId}/messages`;
 
     const headers = {
       Authorization: `Bearer ${accessToken}`,
@@ -700,7 +827,7 @@ export async function sendStoryDM(
                 }/redirect?url=${encodeURIComponent(
                   button.url
                 )}&type=story&id=${storyId}`,
-                title: button.buttonText,
+                title: button.buttonText || "Visit Link", // Added fallback title
               })),
             },
           },
@@ -718,11 +845,54 @@ export async function sendStoryDM(
       };
     }
 
-    // Send the message
-    const response = await axios.post(url, messageBody, { headers });
-    console.log(`Message sent successfully to user ${comment.from.id}`);
+    // Enhanced logging for debugging
+    console.log("API URL being used:", url);
+    console.log("Headers being sent:", JSON.stringify(headers));
+    console.log("Message payload:", JSON.stringify(messageBody));
 
-    return response.data;
+    // Send the message
+    try {
+      const response = await axios.post(url, messageBody, { headers });
+      console.log("Success response:", JSON.stringify(response.data));
+      console.log(`Message sent successfully to user ${comment.from.id}`);
+      return response.data;
+    } catch (error) {
+      // Enhanced error handling with complete details
+      console.error(`----- INSTAGRAM API ERROR DETAILS -----`);
+      console.error(`Endpoint used: ${url}`);
+      console.error(
+        `HTTP Status: ${error.response?.status} ${error.response?.statusText}`
+      );
+
+      // Full request details for troubleshooting
+      console.error(`Request method: ${error.config?.method?.toUpperCase()}`);
+      console.error(`Request headers:`, error.config?.headers);
+      console.error(`Request data:`, error.config?.data);
+
+      // Detailed response error information
+      if (error.response?.data) {
+        console.error(
+          `Response data:`,
+          JSON.stringify(error.response.data, null, 2)
+        );
+
+        if (error.response?.data?.error) {
+          const apiError = error.response.data.error;
+          console.error(`Error code: ${apiError.code}`);
+          console.error(`Error message: ${apiError.message}`);
+          console.error(`Error type: ${apiError.type}`);
+          console.error(`Error subcode: ${apiError.error_subcode}`);
+          console.error(`User title: ${apiError.error_user_title}`);
+          console.error(`User message: ${apiError.error_user_msg}`);
+          console.error(`FB Trace ID: ${apiError.fbtrace_id}`);
+        }
+      } else {
+        // For network errors or other non-API errors
+        console.error(`Network error: ${error.message}`);
+      }
+      console.error(`----- END OF ERROR DETAILS -----`);
+      throw error;
+    }
   } catch (error) {
     console.error("Error sending Story DM:", error);
     throw error;
@@ -791,26 +961,21 @@ async function sendDM(
       "Content-Type": "application/json",
     };
 
-    // For button types, don't include the message
     const messageWithBranding = isButtonType
       ? automation.removeBranding
         ? ""
-        : "This automation is sent by Groimon."
+        : "Sent using groimon.com"
       : automation.removeBranding
       ? originalMessage
-      : `${originalMessage}\n\nThis automation is sent by Groimon.`;
+      : `${originalMessage}\n\nSent using groimon.com`;
 
     let body;
 
-    // For backtrack, always use comment_id
     const recipient = { comment_id: comment.id };
 
-    // Skip follow check for backtracked comments to avoid API errors with old comments
-    // For backtracked comments, we'll assume the user is following
     let skipNormalMessage = false;
 
     if (!isBacktrack && automation.isFollowed) {
-      // Check if this commenter has commented before
       const { isFirstTime } = await storeAndCheckCommenter(
         automation.user._id.toString(),
         comment.from.id
@@ -934,9 +1099,12 @@ async function sendDM(
                   template_type: "generic",
                   elements: [
                     {
-                      title:
-                        automation.buttons[0]?.title ||
-                        "Click the button below",
+                      // Add branding to button title if removeBranding is false
+                      title: automation.removeBranding
+                        ? automation.buttonTitle || "Click the button below"
+                        : `${automation.buttonTitle || "Click the button below"}
+
+Sent using groimon.com`,
                       image_url: automation.imageUrl,
                       buttons: automation.buttons.map((button) => ({
                         type: "web_url",
@@ -966,9 +1134,12 @@ async function sendDM(
                   template_type: "generic",
                   elements: [
                     {
-                      title:
-                        automation.buttons[0]?.title ||
-                        "Click the button below",
+                      // Add branding to button title if removeBranding is false
+                      title: automation.removeBranding
+                        ? automation.buttonTitle || "Click the button below"
+                        : `${automation.buttonTitle || "Click the button below"}
+
+Sent using groimon.com`,
                       buttons: automation.buttons.map((button) => ({
                         type: "web_url",
                         url:
@@ -1154,7 +1325,9 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                     }
 
                     user = automation.user as IUser;
-                    followUpMessage = automation.followUpMessage || "Thank you for following us!";
+                    followUpMessage =
+                      automation.followUpMessage ||
+                      "Thank you for following us!";
                   } else if (postbackData.storyId) {
                     // Handle story follow request
                     isStory = true;
@@ -1167,7 +1340,8 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                     }
 
                     user = story.user as IUser;
-                    followUpMessage = story.followUpMessage || "Thank you for following us!";
+                    followUpMessage =
+                      story.followUpMessage || "Thank you for following us!";
                   } else {
                     continue;
                   }
@@ -1198,13 +1372,13 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                     console.log(
                       `User ${senderId} is confirmed to be following. Sending followUpMessage.`
                     );
-                    
+
                     // Add branding based on the type (story or automation)
                     const messageWithBranding = isStory
                       ? (await StoryModel.findById(postbackData.storyId))
                           ?.removeBranding
                         ? followUpMessage
-                        : `${followUpMessage}\n\nPowered by Groimon`
+                        : `${followUpMessage}\n\nSent using groimon.com`
                       : (
                           await AutomationModel.findById(
                             postbackData.automationId
@@ -1215,7 +1389,7 @@ async function handlePostback(payload: InstagramWebhookPayload) {
 
                     // Get the full automation or story object
                     let messageBody;
-                    
+
                     if (isStory) {
                       // For story, we just send a simple text message
                       messageBody = {
@@ -1228,9 +1402,15 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                       };
                     } else {
                       // Handle automation - first retrieve full automation object
-                      const automation = await AutomationModel.findById(postbackData.automationId);
-                      
-                      if (automation?.messageType === "ButtonText" && automation?.buttons && automation?.buttons.length > 0) {
+                      const automation = await AutomationModel.findById(
+                        postbackData.automationId
+                      );
+
+                      if (
+                        automation?.messageType === "ButtonText" &&
+                        automation?.buttons &&
+                        automation?.buttons.length > 0
+                      ) {
                         // Handle ButtonText type with followUpMessage
                         messageBody = {
                           recipient: {
@@ -1243,26 +1423,36 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                                 template_type: "generic",
                                 elements: [
                                   {
-                                    title: automation.buttons[0]?.title || "Click the button below",
-                                    buttons: automation.buttons.map((button) => ({
-                                      type: "web_url",
-                                      url: `${
-                                        process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
-                                        "https://www.groimon.com"
-                                      }/redirect?url=${encodeURIComponent(
-                                        button.url
-                                      )}&type=automation&id=${
-                                        postbackData.automationId
-                                      }`,
-                                      title: button.buttonText,
-                                    })),
+                                    title:
+                                      automation.buttonTitle ||
+                                      "Click the button below",
+                                    buttons: automation.buttons.map(
+                                      (button) => ({
+                                        type: "web_url",
+                                        url: `${
+                                          process.env
+                                            .NEXT_PUBLIC_NEXTAUTH_URL ||
+                                          "https://www.groimon.com"
+                                        }/redirect?url=${encodeURIComponent(
+                                          button.url
+                                        )}&type=automation&id=${
+                                          postbackData.automationId
+                                        }`,
+                                        title: button.buttonText,
+                                      })
+                                    ),
                                   },
                                 ],
                               },
                             },
                           },
                         };
-                      } else if (automation?.messageType === "ButtonImage" && automation?.buttons && automation?.buttons.length > 0 && automation?.imageUrl) {
+                      } else if (
+                        automation?.messageType === "ButtonImage" &&
+                        automation?.buttons &&
+                        automation?.buttons.length > 0 &&
+                        automation?.imageUrl
+                      ) {
                         // Handle ButtonImage type with followUpMessage
                         messageBody = {
                           recipient: {
@@ -1275,20 +1465,25 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                                 template_type: "generic",
                                 elements: [
                                   {
-                                    title: automation.buttons[0]?.title || "Click the button below",
+                                    title:
+                                      automation.buttonTitle ||
+                                      "Click the button below",
                                     image_url: automation.imageUrl,
-                                    buttons: automation.buttons.map((button) => ({
-                                      type: "web_url",
-                                      url: `${
-                                        process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
-                                        "https://www.groimon.com"
-                                      }/redirect?url=${encodeURIComponent(
-                                        button.url
-                                      )}&type=automation&id=${
-                                        postbackData.automationId
-                                      }`,
-                                      title: button.buttonText,
-                                    })),
+                                    buttons: automation.buttons.map(
+                                      (button) => ({
+                                        type: "web_url",
+                                        url: `${
+                                          process.env
+                                            .NEXT_PUBLIC_NEXTAUTH_URL ||
+                                          "https://www.groimon.com"
+                                        }/redirect?url=${encodeURIComponent(
+                                          button.url
+                                        )}&type=automation&id=${
+                                          postbackData.automationId
+                                        }`,
+                                        title: button.buttonText,
+                                      })
+                                    ),
                                   },
                                 ],
                               },

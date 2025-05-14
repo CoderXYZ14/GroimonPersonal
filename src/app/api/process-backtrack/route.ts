@@ -22,7 +22,7 @@ async function fetchAllComments(
 ): Promise<InstagramComment[]> {
   try {
     // First get the comment IDs
-    const url = `https://graph.instagram.com/v22.0/${mediaId}/comments?fields=id,text,username,timestamp&access_token=${accessToken}`;
+    const url = `https://graph.instagram.com/v18.0/${mediaId}/comments?fields=id,text,username,timestamp&access_token=${accessToken}`;
     const response = await axios.get(url);
 
     if (!response.data.data) {
@@ -33,7 +33,7 @@ async function fetchAllComments(
     const commentPromises = response.data.data.map(async (comment) => {
       try {
         // Get detailed comment info including user data
-        const commentUrl = `https://graph.instagram.com/v22.0/${comment.id}?fields=id,text,username,timestamp,from&access_token=${accessToken}`;
+        const commentUrl = `https://graph.instagram.com/v18.0/${comment.id}?fields=id,text,username,timestamp,from&access_token=${accessToken}`;
         const commentResponse = await axios.get(commentUrl);
         const commentData = commentResponse.data;
 

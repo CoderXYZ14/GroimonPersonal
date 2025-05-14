@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch the permalink from Instagram Graph API
     const response = await axios.get(
-      `https://graph.instagram.com/v22.0/${mediaId}?fields=permalink&access_token=${accessToken}`
+      `https://graph.instagram.com/v18.0/${mediaId}?fields=permalink&access_token=${accessToken}`
     );
 
     return NextResponse.json({ permalink: response.data.permalink });

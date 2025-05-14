@@ -2,7 +2,6 @@ import mongoose, { Schema, Document } from "mongoose";
 import { IUser } from "./User";
 
 export interface Button {
-  title: string;
   url: string;
   buttonText: string;
 }
@@ -14,6 +13,7 @@ export interface IAutomation extends Document {
   messageType: "message" | "ButtonText" | "ButtonImage";
   message?: string;
   imageUrl?: string;
+  buttonTitle?: string;
   buttons?: Button[];
   enableCommentAutomation: boolean;
   commentMessage?: string[];
@@ -34,7 +34,6 @@ export interface IAutomation extends Document {
 
 const ButtonSchema = new Schema<Button>(
   {
-    title: { type: String, required: true },
     url: { type: String, required: true },
     buttonText: { type: String, required: true },
   },
@@ -59,6 +58,8 @@ const AutomationSchema: Schema<IAutomation> = new Schema(
       },
     },
     imageUrl: { type: String },
+    buttonTitle: { type: String },
+
     buttons: { type: [ButtonSchema], default: [] },
     enableCommentAutomation: { type: Boolean, default: false },
     commentMessage: { type: [String], default: [] },

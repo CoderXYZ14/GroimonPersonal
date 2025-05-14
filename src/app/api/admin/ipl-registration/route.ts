@@ -142,7 +142,7 @@ export async function GET(req: NextRequest) {
             ) {
               try {
                 const businessResponse = await axios.get(
-                  `https://graph.instagram.com/v22.0/me`,
+                  `https://graph.instagram.com/v18.0/me`,
                   {
                     params: {
                       fields: `business_discovery.username(${user.instagramUsername}){followers_count,follows_count,media_count,biography,website,name,profile_picture_url}`,

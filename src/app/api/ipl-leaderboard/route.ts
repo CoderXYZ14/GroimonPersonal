@@ -110,7 +110,7 @@ export async function GET() {
               try {
                 // Get additional account info if available
                 const accountInfoResponse = await axios.get(
-                  `https://graph.instagram.com/v22.0/me`,
+                  `https://graph.instagram.com/v18.0/me`,
                   {
                     params: {
                       fields: "id,username,account_type,media_count,biography",

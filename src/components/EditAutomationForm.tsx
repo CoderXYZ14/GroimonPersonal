@@ -12,6 +12,7 @@ import {
   FormDescription,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -51,9 +52,9 @@ interface MediaItem {
 }
 
 const buttonSchema = z.object({
-  title: z.string().min(1, "Button title is required"),
   url: z.string().url("Must be a valid URL"),
   buttonText: z.string().min(1, "Button text is required"),
+  title: z.string().optional(),
 });
 
 const formSchema = z
@@ -74,6 +75,7 @@ const formSchema = z
       z.literal("").optional(),
       z.undefined(),
     ]),
+    buttonTitle: z.string().optional(),
     buttons: z.array(buttonSchema).optional(),
     enableCommentAutomation: z.boolean(),
     commentMessage: z.array(z.string()).optional().default([]),
@@ -134,8 +136,13 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [buttons, setButtons] = useState<
-    Array<{ title: string; url: string; buttonText: string }>
-  >(automation.buttons || []);
+    Array<{ url: string; buttonText: string }>
+  >(
+    automation.buttons?.map((button) => ({
+      url: button.url,
+      buttonText: button.buttonText,
+    })) || []
+  );
   const [newKeyword, setNewKeyword] = useState("");
   const [newCommentMessage, setNewCommentMessage] = useState("");
 
@@ -224,7 +231,12 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
       messageType: automation.messageType || "message",
       message: automation.message,
       imageUrl: automation.imageUrl || "",
-      buttons: automation.buttons,
+      buttonTitle: automation.buttonTitle || "",
+      buttons:
+        automation.buttons?.map((button) => ({
+          url: button.url,
+          buttonText: button.buttonText,
+        })) || [],
       enableCommentAutomation: automation.enableCommentAutomation,
       commentMessage: Array.isArray(automation.commentMessage)
         ? automation.commentMessage
@@ -272,9 +284,12 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
       (messageType === "ButtonText" || messageType === "ButtonImage") &&
       buttons.length === 0
     ) {
+      // Set default button title in the form
+      form.setValue("buttonTitle", "Default Button");
+
+      // Add a default button without title (title is now at form level)
       setButtons([
         {
-          title: "Default Button",
           url: "https://example.com",
           buttonText: "Click Here",
         },
@@ -333,10 +348,22 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
           ? values.followButtonTitle
           : undefined,
         followUpMessage: values.isFollowed ? values.followUpMessage : undefined,
+        // Include buttonTitle at the main level
+        buttonTitle:
+          values.messageType === "ButtonText" ||
+          values.messageType === "ButtonImage"
+            ? values.buttonTitle
+            : undefined,
+        // Ensure buttons have title field set to match the buttonTitle
+        // This is needed because the MongoDB schema still validates title as required
         buttons:
           values.messageType === "ButtonText" ||
           values.messageType === "ButtonImage"
-            ? buttons
+            ? buttons.map(({ url, buttonText }) => ({
+                url,
+                buttonText,
+                title: values.buttonTitle || "", // Add title field with buttonTitle value
+              }))
             : undefined,
         // Explicitly include respondToAll to ensure it's sent to the backend
         respondToAll: values.respondToAll,
@@ -810,22 +837,27 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                 {(messageType === "ButtonText" ||
                   messageType === "ButtonImage") && (
                   <div className="space-y-4">
+                    {/* Button Title moved to form level */}
+                    <FormField
+                      control={form.control}
+                      name="buttonTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Button Title</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter Title" {...field} />
+                          </FormControl>
+                          <FormDescription className="text-xs text-gray-500 mt-1">
+                            This title will be used for all buttons
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     {buttons.map((button, index) => (
                       <Card key={index} className="p-4">
                         <div className="space-y-4">
-                          <div>
-                            <Label>Button Title</Label>
-                            <Input
-                              value={button.title}
-                              onChange={(e) => {
-                                const newButtons = [...buttons];
-                                newButtons[index].title = e.target.value;
-                                setButtons(newButtons);
-                              }}
-                              placeholder="Enter Title"
-                              className="mt-1"
-                            />
-                          </div>
                           <div>
                             <Label>URL</Label>
                             <Input
@@ -872,10 +904,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                       type="button"
                       variant="outline"
                       onClick={() => {
-                        setButtons([
-                          ...buttons,
-                          { title: "", url: "", buttonText: "" },
-                        ]);
+                        setButtons([...buttons, { url: "", buttonText: "" }]);
                       }}
                       className="w-full mt-4"
                     >

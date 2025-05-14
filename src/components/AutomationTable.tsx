@@ -60,7 +60,6 @@ const Badge = ({
   );
 };
 interface Button {
-  title: string;
   url: string;
   buttonText: string;
 }
@@ -72,6 +71,7 @@ interface Automation {
   keywords: string[];
   message: string;
   enableCommentAutomation: boolean;
+
   commentMessage: string[];
   isFollowed: boolean;
   createdAt: string;
@@ -79,6 +79,7 @@ interface Automation {
   hitCount: number;
   isActive: boolean;
   messageType: "message" | "ButtonText" | "ButtonImage";
+  buttonTitle?: string;
   buttons?: Button[];
   respondToAll?: boolean;
 }
@@ -550,7 +551,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
                           <div className="flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/30 rounded-md border border-blue-200 dark:border-blue-800">
                             <Star className="h-3 w-3 text-blue-600 dark:text-blue-400" />
                             <span className="text-blue-600 dark:text-blue-400 font-medium text-xs">
-                              {automation.buttons[0].title}
+                              {automation.buttonTitle}
                             </span>
                           </div>
                         </div>
@@ -565,7 +566,7 @@ export function AutomationTable({ type }: AutomationTableProps) {
                           <div className="flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-purple-50 to-indigo-100 dark:from-purple-900/20 dark:to-indigo-800/30 rounded-md border border-purple-200 dark:border-indigo-800">
                             <div className="h-3 w-3 rounded-sm bg-gradient-to-br from-purple-400 to-indigo-500"></div>
                             <span className="text-indigo-600 dark:text-indigo-400 font-medium text-xs">
-                              Image: {automation.buttons[0].title}
+                              Image: {automation.buttonTitle}
                             </span>
                           </div>
                         </div>
