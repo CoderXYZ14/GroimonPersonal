@@ -807,8 +807,47 @@ export async function sendStoryDM(
 
     let messageBody;
 
-    // Check if the story has buttons
-    if (story.buttons && story.buttons.length > 0) {
+    // Handle different message types
+    if (story.messageType === "ButtonImage" && story.imageUrl) {
+      // Use generic template for ButtonImage type to display the image
+      messageBody = {
+        recipient: {
+          id: comment.from.id,
+        },
+        message: {
+          attachment: {
+            type: "template",
+            payload: {
+              template_type: "generic",
+              elements: [
+                {
+                  // Add branding to button title if removeBranding is false
+                  title: story.removeBranding
+                    ? story.buttonTitle || "Click the button below"
+                    : `${story.buttonTitle || "Click the button below"}
+
+Sent using groimon.com`,
+                  image_url: story.imageUrl,
+                  buttons: story.buttons && story.buttons.length > 0
+                    ? story.buttons.map((button) => ({
+                        type: "web_url",
+                        url: `${
+                          process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
+                          "https://www.groimon.com"
+                        }/redirect?url=${encodeURIComponent(
+                          button.url
+                        )}&type=story&id=${storyId}`,
+                        title: button.buttonText || "Visit Link",
+                      }))
+                    : [],
+                },
+              ],
+            },
+          },
+        },
+      };
+    } else if (story.messageType === "ButtonText" && story.buttons && story.buttons.length > 0) {
+      // Use button template for ButtonText type
       messageBody = {
         recipient: {
           id: comment.from.id,
