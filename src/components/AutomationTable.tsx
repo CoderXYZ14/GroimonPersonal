@@ -170,7 +170,6 @@ export function AutomationTable({ type }: AutomationTableProps) {
 
   const handleViewInInstagram = async (postId: string) => {
     try {
-      toast.loading("Fetching Instagram link...");
       const { data } = await axios.get(`/api/instagram/permalink`, {
         params: { mediaId: postId, accessToken: user.instagramAccessToken },
       });

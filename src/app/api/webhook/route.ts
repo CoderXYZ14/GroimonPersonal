@@ -759,7 +759,7 @@ export async function sendStoryDM(
                 payload: {
                   template_type: "button",
                   text:
-                    story.notFollowerMessage ||
+                    story.followUpMessage ||
                     "We noticed you still haven't followed us. Please follow our account to continue.",
                   buttons: [
                     {
@@ -1049,7 +1049,7 @@ async function sendDM(
                 payload: {
                   template_type: "button",
                   text:
-                    automation.notFollowerMessage ||
+                    automation.followUpMessage ||
                     "We noticed you still haven't followed us. Please follow our account to continue.",
                   buttons: [
                     {
@@ -1520,7 +1520,7 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                           payload: {
                             template_type: "button",
                             text:
-                              postbackData.notFollowerMessage ||
+                              postbackData.followUpMessage ||
                               "We couldn't verify that you're following our account. Please make sure you're following us and click the button below again.",
                             buttons: [
                               {
