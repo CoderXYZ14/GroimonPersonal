@@ -227,9 +227,6 @@ export function CreateAutomationForm() {
       // Set default button title in the form
       form.setValue("buttonTitle", "Default Button");
 
-      // Add a default button with title matching the form level buttonTitle
-      const defaultButtonTitle =
-        form.getValues("buttonTitle") || "Default Button";
       setButtons([
         {
           url: "",
@@ -447,8 +444,12 @@ export function CreateAutomationForm() {
       // In the onSubmit function, modify the axios POST request:
       // Ensure buttons have title field set to match the buttonTitle
       // This is needed because the MongoDB schema still validates title as required
+      // Also ensure all URLs start with https://
       const buttonsList = buttons.map(({ url, buttonText }) => ({
-        url,
+        url:
+          url && !url.startsWith("http://") && !url.startsWith("https://")
+            ? `https://${url}`
+            : url,
         buttonText,
       }));
 

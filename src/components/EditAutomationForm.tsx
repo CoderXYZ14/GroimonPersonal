@@ -297,7 +297,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
     } else if (messageType === "message") {
       setButtons([]);
     }
-  }, [messageType, buttons.length]);
+  }, [messageType, buttons.length, form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -360,7 +360,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
           values.messageType === "ButtonText" ||
           values.messageType === "ButtonImage"
             ? buttons.map(({ url, buttonText }) => ({
-                url,
+                url: url && !url.startsWith('http://') && !url.startsWith('https://') ? `https://${url}` : url,
                 buttonText,
                 title: values.buttonTitle || "", // Add title field with buttonTitle value
               }))
@@ -503,6 +503,8 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                                 width={150}
                                 height={150}
                                 className="w-full h-full object-cover"
+                                unoptimized={true}
+                                loading="lazy"
                               />
                             )}
                             {item.mediaType === "VIDEO" && (
@@ -514,6 +516,8 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                                     width={150}
                                     height={150}
                                     className="w-full h-full object-cover"
+                                    unoptimized={true}
+                                    loading="lazy"
                                   />
                                 ) : (
                                   <span className="absolute text-gray-500 dark:text-gray-400 text-xs">
@@ -532,6 +536,8 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                                 width={150}
                                 height={150}
                                 className="w-full h-full object-cover"
+                                unoptimized={true}
+                                loading="lazy"
                               />
                             )}
                           </div>

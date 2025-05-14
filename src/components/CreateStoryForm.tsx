@@ -313,7 +313,10 @@ export function CreateStoryAutomationForm() {
         buttons:
           values.messageType === "ButtonText" ||
           values.messageType === "ButtonImage"
-            ? buttons
+            ? buttons.map(button => ({
+                url: button.url && !button.url.startsWith('http://') && !button.url.startsWith('https://') ? `https://${button.url}` : button.url,
+                buttonText: button.buttonText
+              }))
             : undefined,
         // Explicitly set respondToAll as a boolean
         respondToAll: values.respondToAll === true,

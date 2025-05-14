@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     );
 
     return NextResponse.json({ permalink: response.data.permalink });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error fetching Instagram permalink:", error);
     return NextResponse.json(
       { error: error.message || "Failed to fetch permalink" },
