@@ -9,6 +9,7 @@ import {
   Star,
   Globe,
   MessageCircle,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -164,6 +165,25 @@ export function AutomationTable({ type }: AutomationTableProps) {
     if (type === "post") router.push(`/dashboard/automations/${id}/edit`);
     else if (type === "story")
       router.push(`/dashboard/automations/story/${id}/edit`);
+  };
+
+  const handleViewInInstagram = async (postId: string) => {
+    try {
+      toast.loading("Fetching Instagram link...");
+      const { data } = await axios.get(`/api/instagram/permalink`, {
+        params: { mediaId: postId, accessToken: user.instagramAccessToken },
+      });
+
+      if (data.permalink) {
+        toast.dismiss();
+        window.open(data.permalink, "_blank");
+      } else {
+        toast.error("Could not retrieve Instagram link");
+      }
+    } catch (error) {
+      console.error("Error fetching permalink:", error);
+      toast.error("Failed to get Instagram link");
+    }
   };
 
   const toggleActive = async (id: string, currentStatus: boolean) => {
@@ -326,7 +346,18 @@ export function AutomationTable({ type }: AutomationTableProps) {
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[140px]">
+                <DropdownMenuContent align="end" className="w-[160px]">
+                  {automation.postIds && automation.postIds.length === 1 && (
+                    <DropdownMenuItem
+                      onClick={() =>
+                        handleViewInInstagram(automation.postIds[0])
+                      }
+                      className="text-blue-600 focus:text-blue-600 dark:text-blue-400"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      View in Instagram
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={() => handleEdit(automation._id)}>
                     Edit
                   </DropdownMenuItem>
@@ -602,12 +633,25 @@ export function AutomationTable({ type }: AutomationTableProps) {
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-[140px]">
+                        <DropdownMenuContent align="end" className="w-[160px]">
+                          {automation.postIds &&
+                            automation.postIds.length === 1 && (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleViewInInstagram(automation.postIds[0])
+                                }
+                                className="text-blue-600 focus:text-blue-600 dark:text-blue-400"
+                              >
+                                <ExternalLink className="h-4 w-4 mr-2" />
+                                View in Instagram
+                              </DropdownMenuItem>
+                            )}
                           <DropdownMenuItem
                             onClick={() => handleEdit(automation._id)}
                           >
                             Edit
                           </DropdownMenuItem>
+
                           <DropdownMenuItem
                             className="text-red-600 focus:text-red-600 dark:text-red-400"
                             onClick={() => handleDelete(automation._id)}
