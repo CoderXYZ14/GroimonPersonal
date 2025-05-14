@@ -109,6 +109,12 @@ interface StoryItem {
 
 interface InstagramStoriesResponse {
   data: InstagramStoryItem[];
+  paging?: {
+    cursors: {
+      before?: string;
+      after?: string;
+    };
+  };
 }
 
 export function CreateStoryAutomationForm() {
@@ -118,6 +124,10 @@ export function CreateStoryAutomationForm() {
   const [dmTypeOpen, setDmTypeOpen] = useState(true);
   const [stories, setStories] = useState<StoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [beforeCursor, setBeforeCursor] = useState<string | null>(null);
+  const [afterCursor, setAfterCursor] = useState<string | null>(null);
+  const [isPaginating, setIsPaginating] = useState(false);
   const [isFollowedOpen, setIsFollowedOpen] = useState(false);
   const [buttons, setButtons] = useState<
     Array<{ url: string; buttonText: string }>
@@ -198,55 +208,108 @@ export function CreateStoryAutomationForm() {
     }
   }, [form, messageType]);
 
-  useEffect(() => {
-    const fetchStories = async () => {
+  const fetchStories = async (
+    direction: "initial" | "next" | "previous" = "initial"
+  ) => {
+    if (direction === "initial") {
       setIsLoading(true);
-      const instagramId = user.instagramId;
-      const instagramAccessToken = user.instagramAccessToken;
+    } else {
+      setIsPaginating(true);
+    }
 
-      if (!instagramId || !instagramAccessToken) {
-        console.error(
-          "Instagram user ID or access token not found in localStorage"
-        );
-        toast.error("Instagram user ID or access token not found");
+    const instagramId = user.instagramId;
+    const instagramAccessToken = user.instagramAccessToken;
+
+    if (!instagramId || !instagramAccessToken) {
+      console.error(
+        "Instagram user ID or access token not found in localStorage"
+      );
+      toast.error("Instagram user ID or access token not found");
+      setIsLoading(false);
+      setIsPaginating(false);
+      return;
+    }
+
+    try {
+      // Build the URL with the appropriate cursor if needed
+      let url = `https://graph.instagram.com/v18.0/${instagramId}/stories?fields=id,media_type,media_url,thumbnail_url,timestamp&limit=25&access_token=${instagramAccessToken}`;
+
+      // Determine which cursor to use based on navigation direction
+      if (direction === "next" && afterCursor) {
+        url += `&after=${afterCursor}`;
+        setCurrentPage((prev) => prev + 1);
+      } else if (direction === "previous" && beforeCursor) {
+        url += `&before=${beforeCursor}`;
+        setCurrentPage((prev) => Math.max(0, prev - 1));
+      }
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch stories: ${response.statusText}`);
+      }
+
+      const data: InstagramStoriesResponse = await response.json();
+
+      // Check if there are any story items
+      if (!data.data || data.data.length === 0) {
+        // If there's no data, just return without updating
         setIsLoading(false);
+        setIsPaginating(false);
+        // If we're trying to go 'next' but there's no data, that means we're at the end
+        // So we should clear the afterCursor
+        if (direction === "next") {
+          setAfterCursor(null);
+        }
         return;
       }
 
-      try {
-        // The Instagram Graph API endpoint for stories
-        const response = await fetch(
-          `https://graph.instagram.com/v18.0/${instagramId}/stories?fields=id,media_type,media_url,thumbnail_url,timestamp&access_token=${instagramAccessToken}`
-        );
+      const newStoryItems = data.data.map((item: InstagramStoryItem) => ({
+        id: item.id,
+        mediaUrl: item.media_url,
+        mediaType: item.media_type,
+        thumbnailUrl: item.thumbnail_url,
+        timestamp: item.timestamp,
+      }));
 
-        if (!response.ok) {
-          throw new Error(`Failed to fetch stories: ${response.statusText}`);
-        }
+      // Always replace the stories with the new batch
+      setStories(newStoryItems);
 
-        const data: InstagramStoriesResponse = await response.json();
-        setStories(
-          data.data.map((item: InstagramStoryItem) => ({
-            id: item.id,
-            mediaUrl: item.media_url,
-            mediaType: item.media_type,
-            thumbnailUrl: item.thumbnail_url,
-            timestamp: item.timestamp,
-          }))
-        );
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          console.error("Error fetching stories:", error.message);
-          toast.error(`Failed to fetch stories: ${error.message}`);
+      // Update cursors for pagination
+      if (data.paging?.cursors) {
+        if (data.paging.cursors.after) {
+          setAfterCursor(data.paging.cursors.after);
         } else {
-          console.error("Unknown error fetching stories:", error);
-          toast.error("Failed to fetch stories");
+          setAfterCursor(null);
         }
-      } finally {
-        setIsLoading(false);
-      }
-    };
 
-    fetchStories();
+        if (data.paging.cursors.before) {
+          setBeforeCursor(data.paging.cursors.before);
+        } else {
+          setBeforeCursor(null);
+        }
+      } else {
+        // If no paging object at all, clear both cursors
+        setAfterCursor(null);
+        setBeforeCursor(null);
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error fetching stories:", error.message);
+        toast.error(`Failed to fetch stories: ${error.message}`);
+      } else {
+        console.error("Unknown error fetching stories:", error);
+        toast.error("Failed to fetch stories");
+      }
+    } finally {
+      setIsLoading(false);
+      setIsPaginating(false);
+    }
+  };
+
+  // Initial fetch of stories
+  useEffect(() => {
+    fetchStories("initial");
   }, [user.instagramId, user.instagramAccessToken]);
 
   useEffect(() => {
@@ -442,82 +505,120 @@ export function CreateStoryAutomationForm() {
                     <div className="w-8 h-8 border-4 border-t-purple-500 border-b-purple-300 border-l-purple-300 border-r-purple-300 rounded-full animate-spin"></div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {stories.length > 0 ? (
-                      stories.map((item) => (
-                        <Card
-                          key={item.id}
-                          className="overflow-hidden w-full border border-gray-200 dark:border-gray-700 transition-transform hover:scale-[1.02]"
-                        >
-                          <div className="aspect-square bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                            {item.mediaType === "IMAGE" && (
-                              <Image
-                                src={item.mediaUrl}
-                                alt="Story"
-                                width={150}
-                                height={150}
-                                className="w-full h-full object-cover"
-                              />
-                            )}
-                            {item.mediaType === "VIDEO" && (
-                              <div className="relative w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                                {item.thumbnailUrl ? (
-                                  <Image
-                                    src={item.thumbnailUrl}
-                                    alt="Video Thumbnail"
-                                    width={150}
-                                    height={150}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <span className="absolute text-gray-500 dark:text-gray-400 text-xs">
-                                    Video Preview
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          <div className="p-2 flex items-center justify-between">
-                            <div className="p-2 flex items-center justify-between">
-                              <FormField
-                                control={form.control}
-                                name="storyId"
-                                render={({ field }) => (
-                                  <FormItem className="flex items-center space-x-2 m-0">
-                                    <FormControl>
-                                      <RadioGroup
-                                        onValueChange={field.onChange}
-                                        value={field.value} // Changed from defaultValue to value
-                                      >
-                                        <div className="flex items-center space-x-2">
-                                          <RadioGroupItem
-                                            value={item.id}
-                                            id={item.id}
-                                            checked={field.value === item.id} // Added explicit checked state
-                                          />
-                                          <Label
-                                            htmlFor={item.id}
-                                            className="text-xs"
-                                          >
-                                            Select
-                                          </Label>
-                                        </div>
-                                      </RadioGroup>
-                                    </FormControl>
-                                  </FormItem>
-                                )}
-                              />
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {stories.length > 0 ? (
+                        stories.map((item) => (
+                          <Card
+                            key={item.id}
+                            className="overflow-hidden w-full border border-gray-200 dark:border-gray-700 transition-transform hover:scale-[1.02]"
+                          >
+                            <div className="aspect-square bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                              {item.mediaType === "IMAGE" && (
+                                <Image
+                                  src={item.mediaUrl}
+                                  alt="Story"
+                                  width={150}
+                                  height={150}
+                                  className="w-full h-full object-cover"
+                                />
+                              )}
+                              {item.mediaType === "VIDEO" && (
+                                <div className="relative w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                  {item.thumbnailUrl ? (
+                                    <Image
+                                      src={item.thumbnailUrl}
+                                      alt="Video Thumbnail"
+                                      width={150}
+                                      height={150}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <span className="absolute text-gray-500 dark:text-gray-400 text-xs">
+                                      Video Preview
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        </Card>
-                      ))
-                    ) : (
-                      <div className="text-center w-full py-4 text-muted-foreground col-span-4">
-                        No active stories found. Please create a story on
-                        Instagram first.
+                            <div className="p-2 flex items-center justify-between">
+                              <div className="p-2 flex items-center justify-between">
+                                <FormField
+                                  control={form.control}
+                                  name="storyId"
+                                  render={({ field }) => (
+                                    <FormItem className="flex items-center space-x-2 m-0">
+                                      <FormControl>
+                                        <RadioGroup
+                                          onValueChange={field.onChange}
+                                          value={field.value} // Changed from defaultValue to value
+                                        >
+                                          <div className="flex items-center space-x-2">
+                                            <RadioGroupItem
+                                              value={item.id}
+                                              id={item.id}
+                                              checked={field.value === item.id} // Added explicit checked state
+                                            />
+                                            <Label
+                                              htmlFor={item.id}
+                                              className="text-xs"
+                                            >
+                                              Select
+                                            </Label>
+                                          </div>
+                                        </RadioGroup>
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            </div>
+                          </Card>
+                        ))
+                      ) : (
+                        <div className="text-center w-full py-4 text-muted-foreground col-span-4">
+                          No active stories found. Please create a story on
+                          Instagram first.
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Pagination Controls */}
+                    {currentPage > 0 || afterCursor ? (
+                      <div className="flex justify-center gap-4 mt-6 w-full">
+                        {currentPage > 0 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => fetchStories("previous")}
+                            disabled={isPaginating || isLoading}
+                            className="px-6"
+                          >
+                            {isPaginating ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              "← Previous"
+                            )}
+                          </Button>
+                        )}
+                        {afterCursor && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => fetchStories("next")}
+                            disabled={isPaginating || isLoading}
+                            className="px-6"
+                          >
+                            {isPaginating ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              "Next →"
+                            )}
+                          </Button>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    ) : null}
+                  </>
                 )}
               </div>
             )}

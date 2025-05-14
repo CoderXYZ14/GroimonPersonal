@@ -20,7 +20,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, Loader2, X } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Loader2,
+  X,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -46,6 +53,12 @@ interface StoryItem {
 
 interface InstagramStoriesResponse {
   data: InstagramStoryItem[];
+  paging?: {
+    cursors: {
+      before?: string;
+      after?: string;
+    };
+  };
 }
 
 const buttonSchema = z.object({
@@ -123,6 +136,10 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
   const [dmTypeOpen, setDmTypeOpen] = useState(true);
   const [stories, setStories] = useState<StoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [beforeCursor, setBeforeCursor] = useState<string | null>(null);
+  const [afterCursor, setAfterCursor] = useState<string | null>(null);
+  const [isPaginating, setIsPaginating] = useState(false);
   const [isFollowedOpen, setIsFollowedOpen] = useState(false);
   const [storyLoaded, setStoryLoaded] = useState(false);
   const [buttons, setButtons] = useState<
@@ -233,48 +250,102 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
     }
   }, [messageType, buttons.length]);
 
-  const fetchStories = useCallback(async () => {
-    setIsLoading(true);
-    const instagramId = user.instagramId;
-    const instagramAccessToken = user.instagramAccessToken;
-
-    if (!instagramId || !instagramAccessToken) {
-      console.error("Instagram user ID or access token not found");
-      toast.error("Instagram user ID or access token not found");
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `https://graph.instagram.com/v18.0/${instagramId}/stories?fields=id,media_type,media_url,thumbnail_url,timestamp&access_token=${instagramAccessToken}`
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch stories: ${response.statusText}`);
+  const fetchStories = useCallback(
+    async (direction: "initial" | "next" | "previous" = "initial") => {
+      if (direction === "initial") {
+        setIsLoading(true);
+      } else {
+        setIsPaginating(true);
       }
 
-      const data: InstagramStoriesResponse = await response.json();
-      const fetchedStories = data.data.map((item: InstagramStoryItem) => ({
-        id: item.id,
-        mediaUrl: item.media_url,
-        mediaType: item.media_type,
-        thumbnailUrl: item.thumbnail_url,
-        timestamp: item.timestamp,
-      }));
+      const instagramId = user.instagramId;
+      const instagramAccessToken = user.instagramAccessToken;
 
-      setStories(fetchedStories);
-      setStoryLoaded(true);
-    } catch (error) {
-      console.error("Error fetching stories:", error);
-      toast.error("Failed to fetch stories");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user.instagramId, user.instagramAccessToken]);
+      if (!instagramId || !instagramAccessToken) {
+        console.error("Instagram user ID or access token not found");
+        toast.error("Instagram user ID or access token not found");
+        setIsLoading(false);
+        setIsPaginating(false);
+        return;
+      }
+
+      try {
+        // Build the URL with the appropriate cursor if needed
+        let url = `https://graph.instagram.com/v18.0/${instagramId}/stories?fields=id,media_type,media_url,thumbnail_url,timestamp&limit=25&access_token=${instagramAccessToken}`;
+
+        // Determine which cursor to use based on navigation direction
+        if (direction === "next" && afterCursor) {
+          url += `&after=${afterCursor}`;
+          setCurrentPage((prev) => prev + 1);
+        } else if (direction === "previous" && beforeCursor) {
+          url += `&before=${beforeCursor}`;
+          setCurrentPage((prev) => Math.max(0, prev - 1));
+        }
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch stories: ${response.statusText}`);
+        }
+
+        const data: InstagramStoriesResponse = await response.json();
+
+        // Check if there are any story items
+        if (!data.data || data.data.length === 0) {
+          // If there's no data, just return without updating
+          setIsLoading(false);
+          setIsPaginating(false);
+          // If we're trying to go 'next' but there's no data, that means we're at the end
+          // So we should clear the afterCursor
+          if (direction === "next") {
+            setAfterCursor(null);
+          }
+          return;
+        }
+
+        const fetchedStories = data.data.map((item: InstagramStoryItem) => ({
+          id: item.id,
+          mediaUrl: item.media_url,
+          mediaType: item.media_type,
+          thumbnailUrl: item.thumbnail_url,
+          timestamp: item.timestamp,
+        }));
+
+        // Always replace the stories with the new batch
+        setStories(fetchedStories);
+        setStoryLoaded(true);
+
+        // Update cursors for pagination
+        if (data.paging?.cursors) {
+          if (data.paging.cursors.after) {
+            setAfterCursor(data.paging.cursors.after);
+          } else {
+            setAfterCursor(null);
+          }
+
+          if (data.paging.cursors.before) {
+            setBeforeCursor(data.paging.cursors.before);
+          } else {
+            setBeforeCursor(null);
+          }
+        } else {
+          // If no paging object at all, clear both cursors
+          setAfterCursor(null);
+          setBeforeCursor(null);
+        }
+      } catch (error) {
+        console.error("Error fetching stories:", error);
+        toast.error("Failed to fetch stories");
+      } finally {
+        setIsLoading(false);
+        setIsPaginating(false);
+      }
+    },
+    [user.instagramId, user.instagramAccessToken, afterCursor, beforeCursor]
+  );
 
   useEffect(() => {
-    fetchStories();
+    fetchStories("initial");
   }, [fetchStories]);
 
   // Set the initial storyId when stories are loaded
@@ -353,9 +424,14 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
         buttons:
           values.messageType === "ButtonText" ||
           values.messageType === "ButtonImage"
-            ? buttons.map(button => ({
-                url: button.url && !button.url.startsWith('http://') && !button.url.startsWith('https://') ? `https://${button.url}` : button.url,
-                buttonText: button.buttonText
+            ? buttons.map((button) => ({
+                url:
+                  button.url &&
+                  !button.url.startsWith("http://") &&
+                  !button.url.startsWith("https://")
+                    ? `https://${button.url}`
+                    : button.url,
+                buttonText: button.buttonText,
               }))
             : undefined,
         respondToAll: values.respondToAll,
@@ -576,6 +652,47 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
                 )}
               </div>
             )}
+
+            {/* Pagination Controls */}
+            {applyOption === "selected" &&
+              selectStoryOpen &&
+              stories.length > 0 && (
+                <div className="flex justify-center mt-6 gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchStories("previous")}
+                    disabled={!beforeCursor || isPaginating || isLoading}
+                    className="flex items-center gap-1"
+                  >
+                    {isPaginating && currentPage > 0 ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ChevronLeft className="h-4 w-4" />
+                    )}
+                    Previous
+                  </Button>
+                  <div className="text-sm text-muted-foreground">
+                    Page {currentPage + 1}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchStories("next")}
+                    disabled={!afterCursor || isPaginating || isLoading}
+                    className="flex items-center gap-1"
+                  >
+                    Next
+                    {isPaginating && afterCursor ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              )}
           </div>
           {/* Trigger/Keywords section */}
           <div className="p-6 border-b border-gray-100 dark:border-gray-700">

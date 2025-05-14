@@ -40,6 +40,12 @@ interface InstagramMediaItem {
 
 interface InstagramMediaResponse {
   data: InstagramMediaItem[];
+  paging?: {
+    cursors: {
+      before?: string;
+      after?: string;
+    };
+  };
 }
 
 interface MediaItem {
@@ -135,6 +141,10 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
   const [isFollowedOpen, setIsFollowedOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [media, setMedia] = useState<MediaItem[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [beforeCursor, setBeforeCursor] = useState<string | null>(null);
+  const [afterCursor, setAfterCursor] = useState<string | null>(null);
+  const [isPaginating, setIsPaginating] = useState(false);
   const [buttons, setButtons] = useState<
     Array<{ url: string; buttonText: string }>
   >(
@@ -147,8 +157,15 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
   const [newCommentMessage, setNewCommentMessage] = useState("");
 
   // Define fetchMedia with useCallback to prevent it from changing on every render
-  const fetchMedia = useCallback(async () => {
-    setIsLoading(true);
+  const fetchMedia = useCallback(async (
+    direction: "initial" | "next" | "previous" = "initial"
+  ) => {
+    if (direction === "initial") {
+      setIsLoading(true);
+    } else {
+      setIsPaginating(true);
+    }
+
     const instagramId = user.instagramId;
     const instagramAccessToken = user.instagramAccessToken;
 
@@ -156,41 +173,90 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
       console.error("Instagram user ID or access token not found");
       toast.error("Instagram user ID or access token not found");
       setIsLoading(false);
+      setIsPaginating(false);
       return;
     }
 
     try {
-      const response = await fetch(
-        `https://graph.instagram.com/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&access_token=${instagramAccessToken}`
-      );
+      // Build the URL with the appropriate cursor if needed
+      let url = `https://graph.instagram.com/v18.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&limit=25&access_token=${instagramAccessToken}`;
+
+      // Determine which cursor to use based on navigation direction
+      if (direction === "next" && afterCursor) {
+        url += `&after=${afterCursor}`;
+        setCurrentPage((prev) => prev + 1);
+      } else if (direction === "previous" && beforeCursor) {
+        url += `&before=${beforeCursor}`;
+        setCurrentPage((prev) => Math.max(0, prev - 1));
+      }
+
+      const response = await fetch(url);
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Failed to fetch media: ${response.statusText}`);
       }
 
       const data: InstagramMediaResponse = await response.json();
 
-      // Transform the data - show ALL posts, not just the ones in the automation
-      const transformedMedia = data.data.map((item) => ({
+      // Check if there are any media items
+      if (!data.data || data.data.length === 0) {
+        // If there's no data, just return without updating
+        setIsLoading(false);
+        setIsPaginating(false);
+        // If we're trying to go 'next' but there's no data, that means we're at the end
+        // So we should clear the afterCursor
+        if (direction === "next") {
+          setAfterCursor(null);
+        }
+        return;
+      }
+
+      const newMediaItems = data.data.map((item: InstagramMediaItem) => ({
         id: item.id,
-        title: item.caption || "No caption",
+        title: item.caption || `Post ${item.id}`,
         mediaUrl: item.media_url,
         mediaType: item.media_type,
         thumbnailUrl: item.thumbnail_url,
         timestamp: item.timestamp,
       }));
 
-      setMedia(transformedMedia);
-    } catch (error) {
-      console.error("Error fetching Instagram media:", error);
-      toast.error("Failed to fetch Instagram media");
+      // Always replace the media with the new batch
+      setMedia(newMediaItems);
+
+      // Update cursors for pagination
+      if (data.paging?.cursors) {
+        if (data.paging.cursors.after) {
+          setAfterCursor(data.paging.cursors.after);
+        } else {
+          setAfterCursor(null);
+        }
+
+        if (data.paging.cursors.before) {
+          setBeforeCursor(data.paging.cursors.before);
+        } else {
+          setBeforeCursor(null);
+        }
+      } else {
+        // If no paging object at all, clear both cursors
+        setAfterCursor(null);
+        setBeforeCursor(null);
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error fetching media:", error.message);
+        toast.error(`Failed to fetch media: ${error.message}`);
+      } else {
+        console.error("Unknown error fetching media:", error);
+        toast.error("Failed to fetch media");
+      }
     } finally {
       setIsLoading(false);
+      setIsPaginating(false);
     }
-  }, [user.instagramId, user.instagramAccessToken]);
+  }, [user.instagramId, user.instagramAccessToken, afterCursor, beforeCursor]);
 
   useEffect(() => {
-    fetchMedia();
+    fetchMedia("initial");
   }, [user.instagramId, user.instagramAccessToken, fetchMedia]);
 
   const toggleDmType = () => {
@@ -570,6 +636,14 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                                 </FormItem>
                               )}
                             />
+                            <div className="flex items-center space-x-2">
+                              <p className="text-xs font-medium truncate">
+                                {item.title || "No caption"}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {new Date(item.timestamp).toLocaleDateString()}
+                              </p>
+                            </div>
                           </div>
                         </Card>
                       ))
@@ -583,6 +657,42 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
               </div>
             )}
           </div>
+
+          {/* Pagination controls */}
+          {currentPage > 0 || afterCursor ? (
+            <div className="flex justify-center gap-4 mt-6 w-full">
+              {currentPage > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fetchMedia("previous")}
+                  disabled={isPaginating || isLoading}
+                  className="px-6"
+                >
+                  {isPaginating ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "← Previous"
+                  )}
+                </Button>
+              )}
+              {afterCursor && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fetchMedia("next")}
+                  disabled={isPaginating || isLoading}
+                  className="px-6"
+                >
+                  {isPaginating ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Next →"
+                  )}
+                </Button>
+              )}
+            </div>
+          ) : null}
 
           {/* Trigger/Keywords section */}
           <div className="p-6 border-b border-gray-100 dark:border-gray-700">
