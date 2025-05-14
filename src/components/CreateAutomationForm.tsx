@@ -1069,51 +1069,129 @@ export function CreateAutomationForm() {
                       )}
                     />
 
-                    {buttons.map((button, index) => (
-                      <Card key={index} className="p-4">
-                        <div className="space-y-4">
-                          <div>
-                            <Label>URL</Label>
-                            <Input
-                              value={button.url}
-                              onChange={(e) => {
-                                const newButtons = [...buttons];
-                                newButtons[index].url = e.target.value;
-                                setButtons(newButtons);
-                              }}
-                              placeholder="Enter URL"
-                              className="mt-1"
-                            />
-                          </div>
-                          <div>
-                            <Label>Button Text</Label>
-                            <Input
-                              value={button.buttonText}
-                              onChange={(e) => {
-                                const newButtons = [...buttons];
-                                newButtons[index].buttonText = e.target.value;
-                                setButtons(newButtons);
-                              }}
-                              placeholder="Click here"
-                              className="mt-1"
-                            />
-                          </div>
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <div className="w-full md:w-1/2 space-y-4">
+                        {buttons.map((button, index) => (
+                          <Card key={index} className="p-4">
+                            <div className="space-y-4">
+                              <div>
+                                <Label>URL</Label>
+                                <Input
+                                  value={button.url}
+                                  onChange={(e) => {
+                                    const newButtons = [...buttons];
+                                    newButtons[index].url = e.target.value;
+                                    setButtons(newButtons);
+                                  }}
+                                  placeholder="Enter URL"
+                                  className="mt-1"
+                                />
+                              </div>
+                              <div>
+                                <Label>Button Text</Label>
+                                <Input
+                                  value={button.buttonText}
+                                  onChange={(e) => {
+                                    const newButtons = [...buttons];
+                                    newButtons[index].buttonText =
+                                      e.target.value;
+                                    setButtons(newButtons);
+                                  }}
+                                  placeholder="Click here"
+                                  className="mt-1"
+                                />
+                              </div>
 
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            onClick={() => {
-                              const newButtons = buttons.filter(
-                                (_, i) => i !== index
-                              );
-                              setButtons(newButtons);
-                            }}
-                          >
-                            Remove Button
-                          </Button>
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                onClick={() => {
+                                  const newButtons = buttons.filter(
+                                    (_, i) => i !== index
+                                  );
+                                  setButtons(newButtons);
+                                }}
+                              >
+                                Remove Button
+                              </Button>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+
+                      {/* Button Preview Section */}
+                      {buttons.length > 0 && (
+                        <div className="w-full md:w-1/2 p-4 border rounded-lg bg-gray-100 dark:bg-gray-800">
+                          <h3 className="text-sm font-medium mb-3">
+                            Button Preview
+                          </h3>
+                          <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                            {form.watch("messageType") === "ButtonImage" && (
+                              <div className="mb-3 flex justify-center">
+                                {form.watch("imageUrl") ? (
+                                  <Image
+                                    src={form.watch("imageUrl")}
+                                    alt="Preview image"
+                                    width={200}
+                                    height={150}
+                                    className="rounded-md max-h-[150px] object-contain"
+                                    unoptimized={true}
+                                    onError={(e) => {
+                                      const target =
+                                        e.target as HTMLImageElement;
+                                      target.src = "/placeholder-image.jpg";
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-[200px] h-[150px] border border-dashed border-gray-300 rounded-md flex items-center justify-center bg-gray-50">
+                                    <div className="text-center">
+                                      <div className="flex justify-center">
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          className="h-10 w-10 text-gray-400"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          stroke="currentColor"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={1}
+                                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                          />
+                                        </svg>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {form.watch("buttonTitle") && (
+                              <div className="font-medium text-sm mb-2">
+                                {form.watch("buttonTitle")}
+                              </div>
+                            )}
+                            {!form.watch("removeBranding") && (
+                              <div className="text-xs text-gray-500 mb-2">
+                                Sent using groimon.com
+                              </div>
+                            )}
+                            <div className="flex flex-col gap-2">
+                              {buttons.map((button, index) => (
+                                <Button
+                                  key={index}
+                                  className="w-full bg-white hover:bg-gray-50 text-black border border-gray-200"
+                                  variant="outline"
+                                  disabled
+                                >
+                                  {button.buttonText || "Click Here"}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
                         </div>
-                      </Card>
-                    ))}
+                      )}
+                    </div>
                     <Button
                       type="button"
                       variant="outline"
