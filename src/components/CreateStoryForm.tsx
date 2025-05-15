@@ -277,7 +277,9 @@ export function CreateStoryAutomationForm() {
 
       // Update cursors for pagination
       if (data.paging?.cursors) {
-        if (data.paging.cursors.after) {
+        // Only set afterCursor if we have exactly 25 stories (a full page)
+        // This ensures we don't show the Next button when there are no more stories
+        if (data.paging.cursors.after && data.data.length === 25) {
           setAfterCursor(data.paging.cursors.after);
         } else {
           setAfterCursor(null);

@@ -141,9 +141,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
   const [isFollowedOpen, setIsFollowedOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [media, setMedia] = useState<MediaItem[]>([]);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [beforeCursor, setBeforeCursor] = useState<string | null>(null);
-  const [afterCursor, setAfterCursor] = useState<string | null>(null);
+
   const [isPaginating, setIsPaginating] = useState(false);
   const [buttons, setButtons] = useState<
     Array<{ url: string; buttonText: string }>
@@ -156,8 +154,13 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
   const [newKeyword, setNewKeyword] = useState("");
   const [newCommentMessage, setNewCommentMessage] = useState("");
 
+  const [currentPage, setCurrentPage] = useState(0);
+  const [beforeCursor, setBeforeCursor] = useState<string | null>(null);
+  const [afterCursor, setAfterCursor] = useState<string | null>(null);
+
   // Define fetchMedia with useCallback to prevent it from changing on every render
-  const fetchMedia = useCallback(async (
+
+  const fetchMedia = async (
     direction: "initial" | "next" | "previous" = "initial"
   ) => {
     if (direction === "initial") {
@@ -225,7 +228,9 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
 
       // Update cursors for pagination
       if (data.paging?.cursors) {
-        if (data.paging.cursors.after) {
+        // Only set afterCursor if we have exactly 25 posts (a full page)
+        // This ensures we don't show the Next button when there are no more posts
+        if (data.paging.cursors.after && data.data.length === 25) {
           setAfterCursor(data.paging.cursors.after);
         } else {
           setAfterCursor(null);
@@ -253,11 +258,63 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
       setIsLoading(false);
       setIsPaginating(false);
     }
-  }, [user.instagramId, user.instagramAccessToken, afterCursor, beforeCursor]);
-
+  };
+  
+  // Initial fetch of media
   useEffect(() => {
-    fetchMedia("initial");
-  }, [user.instagramId, user.instagramAccessToken, fetchMedia]);
+    const initialFetch = async () => {
+      const instagramId = user.instagramId;
+      const instagramAccessToken = user.instagramAccessToken;
+
+      if (!instagramId || !instagramAccessToken) {
+        console.error("Instagram user ID or access token not found");
+        toast.error("Instagram user ID or access token not found");
+        return;
+      }
+
+      setIsLoading(true);
+
+      try {
+        // Initial fetch to get the first 25 posts
+        const url = `https://graph.instagram.com/v18.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&limit=25&access_token=${instagramAccessToken}`;
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch media: ${response.statusText}`);
+        }
+
+        const data: InstagramMediaResponse = await response.json();
+
+        // Map the items
+        const mediaItems = data.data.map((item: InstagramMediaItem) => ({
+          id: item.id,
+          title: item.caption || `Post ${item.id}`,
+          mediaUrl: item.media_url,
+          mediaType: item.media_type,
+          thumbnailUrl: item.thumbnail_url,
+          timestamp: item.timestamp,
+        }));
+
+        setMedia(mediaItems);
+
+        // Only set afterCursor if we have exactly 25 posts (a full page)
+        // This ensures we don't show the Next button when there are no more posts
+        if (data.paging?.cursors?.after && data.data.length === 25) {
+          setAfterCursor(data.paging.cursors.after);
+        } else {
+          setAfterCursor(null);
+        }
+      } catch (error) {
+        console.error("Error in initial media fetch:", error);
+        toast.error("Failed to load posts");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initialFetch();
+  }, [user.instagramId, user.instagramAccessToken]);
 
   const toggleDmType = () => {
     setDmTypeOpen(!dmTypeOpen);
@@ -426,7 +483,12 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
           values.messageType === "ButtonText" ||
           values.messageType === "ButtonImage"
             ? buttons.map(({ url, buttonText }) => ({
-                url: url && !url.startsWith('http://') && !url.startsWith('https://') ? `https://${url}` : url,
+                url:
+                  url &&
+                  !url.startsWith("http://") &&
+                  !url.startsWith("https://")
+                    ? `https://${url}`
+                    : url,
                 buttonText,
                 title: values.buttonTitle || "", // Add title field with buttonTitle value
               }))
@@ -658,7 +720,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
             )}
           </div>
 
-          {/* Pagination controls */}
+          {/* Only show pagination when needed */}
           {currentPage > 0 || afterCursor ? (
             <div className="flex justify-center gap-4 mt-6 w-full">
               {currentPage > 0 && (
@@ -995,7 +1057,8 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                                   value={button.buttonText}
                                   onChange={(e) => {
                                     const newButtons = [...buttons];
-                                    newButtons[index].buttonText = e.target.value;
+                                    newButtons[index].buttonText =
+                                      e.target.value;
                                     setButtons(newButtons);
                                   }}
                                   placeholder="Click here"
@@ -1027,7 +1090,10 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                               toast.error("Maximum 3 buttons are allowed");
                               return;
                             }
-                            setButtons([...buttons, { url: "", buttonText: "" }]);
+                            setButtons([
+                              ...buttons,
+                              { url: "", buttonText: "" },
+                            ]);
                           }}
                           className="w-full mt-4"
                           disabled={buttons.length >= 3}
@@ -1035,7 +1101,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                           Add Button
                         </Button>
                       </div>
-                      
+
                       {/* Button Preview Section */}
                       {buttons.length > 0 && (
                         <div className="w-full md:w-1/2 p-4 border rounded-lg bg-gray-100 dark:bg-gray-800">

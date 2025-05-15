@@ -624,7 +624,7 @@ export async function sendStoryDM(
 
             // Add branding only if not removed
             if (!story.removeBranding && messageWithBranding) {
-              messageWithBranding += "\n\nSent using groimon.com";
+              messageWithBranding += "\n\nSent using -groimon.com-";
             }
 
             // Create button message
@@ -662,7 +662,7 @@ export async function sendStoryDM(
             // Add branding if needed
             let finalMessage = messageText;
             if (!story.removeBranding) {
-              finalMessage += "\n\nSent using groimon.com";
+              finalMessage += "\n\nSent using -groimon.com-";
             }
 
             messageBody = {
@@ -794,7 +794,7 @@ export async function sendStoryDM(
     // Prepare the message with branding if needed
     let messageWithBranding = message;
     if (!story.removeBranding) {
-      messageWithBranding += "\n\nSent using groimon.com";
+      messageWithBranding += "\n\nSent using -groimon.com-";
     }
 
     // For story replies, we need to properly format the recipient
@@ -826,27 +826,32 @@ export async function sendStoryDM(
                     ? story.buttonTitle || "Click the button below"
                     : `${story.buttonTitle || "Click the button below"}
 
-Sent using groimon.com`,
+Sent using -groimon.com-`,
                   image_url: story.imageUrl,
-                  buttons: story.buttons && story.buttons.length > 0
-                    ? story.buttons.map((button) => ({
-                        type: "web_url",
-                        url: `${
-                          process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
-                          "https://www.groimon.com"
-                        }/redirect?url=${encodeURIComponent(
-                          button.url
-                        )}&type=story&id=${storyId}`,
-                        title: button.buttonText || "Visit Link",
-                      }))
-                    : [],
+                  buttons:
+                    story.buttons && story.buttons.length > 0
+                      ? story.buttons.map((button) => ({
+                          type: "web_url",
+                          url: `${
+                            process.env.NEXT_PUBLIC_NEXTAUTH_URL ||
+                            "https://www.groimon.com"
+                          }/redirect?url=${encodeURIComponent(
+                            button.url
+                          )}&type=story&id=${storyId}`,
+                          title: button.buttonText || "Visit Link",
+                        }))
+                      : [],
                 },
               ],
             },
           },
         },
       };
-    } else if (story.messageType === "ButtonText" && story.buttons && story.buttons.length > 0) {
+    } else if (
+      story.messageType === "ButtonText" &&
+      story.buttons &&
+      story.buttons.length > 0
+    ) {
       // Use button template for ButtonText type
       messageBody = {
         recipient: {
@@ -937,7 +942,6 @@ Sent using groimon.com`,
     throw error;
   }
 }
-
 async function sendDM(
   comment: InstagramComment,
   message: string,
@@ -1003,10 +1007,10 @@ async function sendDM(
     const messageWithBranding = isButtonType
       ? automation.removeBranding
         ? ""
-        : "Sent using groimon.com"
+        : "Sent using -groimon.com-"
       : automation.removeBranding
       ? originalMessage
-      : `${originalMessage}\n\nSent using groimon.com`;
+      : `${originalMessage}\n\nSent using -groimon.com-`;
 
     let body;
 
@@ -1021,7 +1025,6 @@ async function sendDM(
       );
 
       if (isFirstTime) {
-        // For first-time commenters, ONLY send the follow request message
         console.log(
           `First-time commenter ${comment.from.id} - sending follow request ONLY`
         );
@@ -1088,7 +1091,7 @@ async function sendDM(
                 payload: {
                   template_type: "button",
                   text:
-                    automation.followUpMessage ||
+                    automation.notFollowerMessage ||
                     "We noticed you still haven't followed us. Please follow our account to continue.",
                   buttons: [
                     {
@@ -1143,7 +1146,7 @@ async function sendDM(
                         ? automation.buttonTitle || "Click the button below"
                         : `${automation.buttonTitle || "Click the button below"}
 
-Sent using groimon.com`,
+Sent using -groimon.com-`,
                       image_url: automation.imageUrl,
                       buttons: automation.buttons.map((button) => ({
                         type: "web_url",
@@ -1178,7 +1181,7 @@ Sent using groimon.com`,
                         ? automation.buttonTitle || "Click the button below"
                         : `${automation.buttonTitle || "Click the button below"}
 
-Sent using groimon.com`,
+Sent using -groimon.com-`,
                       buttons: automation.buttons.map((button) => ({
                         type: "web_url",
                         url:
@@ -1250,13 +1253,6 @@ Sent using groimon.com`,
         errorCode: error.response?.data?.error?.code,
         errorSubcode: error.response?.data?.error?.error_subcode,
       });
-
-      if (isBacktrack) {
-        console.log(
-          `Skipping error for backtracked comment from ${comment.from.username}`
-        );
-        return null;
-      }
 
       throw error;
     }
@@ -1417,7 +1413,7 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                       ? (await StoryModel.findById(postbackData.storyId))
                           ?.removeBranding
                         ? followUpMessage
-                        : `${followUpMessage}\n\nSent using groimon.com`
+                        : `${followUpMessage}\n\nSent using -groimon.com-`
                       : (
                           await AutomationModel.findById(
                             postbackData.automationId
