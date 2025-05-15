@@ -653,7 +653,11 @@ export function CreateAutomationForm() {
                         media.map((item) => (
                           <Card
                             key={item.id}
-                            className="overflow-hidden w-full border border-gray-200 dark:border-gray-700 transition-transform hover:scale-[1.02]"
+                            className={`overflow-hidden w-full border transition-transform hover:scale-[1.02] cursor-pointer ${form.watch('postId') === item.id ? 'border-primary border-2' : 'border-gray-200 dark:border-gray-700'}`}
+                            onClick={() => {
+                              // Simple approach - just set the form value directly
+                              form.setValue('postId', item.id);
+                            }}
                           >
                             <div className="aspect-square bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                               {item.mediaType === "IMAGE" && (
@@ -702,34 +706,23 @@ export function CreateAutomationForm() {
                               )}
                             </div>
                             <div className="p-2 flex items-center justify-between">
-                              <FormField
-                                control={form.control}
-                                name="postId"
-                                render={({ field }) => (
-                                  <FormItem className="flex items-center space-x-2 m-0">
-                                    <FormControl>
-                                      <RadioGroup
-                                        onValueChange={field.onChange}
-                                        value={field.value}
-                                      >
-                                        <div className="flex items-center space-x-2">
-                                          <RadioGroupItem
-                                            value={item.id}
-                                            id={item.id}
-                                            checked={field.value === item.id}
-                                          />
-                                          <Label
-                                            htmlFor={item.id}
-                                            className="text-xs"
-                                          >
-                                            Select
-                                          </Label>
-                                        </div>
-                                      </RadioGroup>
-                                    </FormControl>
-                                  </FormItem>
-                                )}
-                              />
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="radio"
+                                  id={item.id}
+                                  value={item.id}
+                                  checked={form.watch('postId') === item.id}
+                                  onChange={() => form.setValue('postId', item.id)}
+                                  className="h-4 w-4 text-primary"
+                                />
+                                <label
+                                  htmlFor={item.id}
+                                  className="text-xs cursor-pointer"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  Select
+                                </label>
+                              </div>
                             </div>
                           </Card>
                         ))
