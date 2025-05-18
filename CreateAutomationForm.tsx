@@ -12,6 +12,7 @@ import {
   FormDescription,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -29,17 +30,25 @@ import {
   X,
   Plus,
   Check,
+  Send,
   ChevronLeft,
   Rocket,
-  Image as ImageIcon,
-  Globe as GlobeIcon,
+  ChevronRight,
+  Play,
+  ImageIcon,
+  GlobeIcon,
+  InfoIcon,
   MousePointerClick,
   AlertCircle,
   Info,
   MessageCircle,
+  User,
   MessageSquareText,
-  Link as LinkIcon,
+  ImagesIcon,
+  Link2,
+  LinkIcon,
   Trash2,
+  TextCursorInput,
   Eye,
   UserPlus,
   UserX,
@@ -48,15 +57,18 @@ import { useRouter } from "next/navigation";
 import { Switch } from "@/components/ui/switch";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import SimpleBar from "simplebar-react";
-import "simplebar-react/dist/simplebar.min.css";
 import { cn } from "@/lib/utils";
 
-// Animation variants for motion components
-// const buttonVariants = {
-//   hover: { scale: 1.02 },
-//   tap: { scale: 0.98 },
-// };
+const sectionVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+  exit: { opacity: 0, y: -10 },
+};
+
+const buttonVariants = {
+  hover: { scale: 1.02 },
+  tap: { scale: 0.98 },
+};
 
 const buttonSchema = z.object({
   url: z.string().min(1, "URL is required"),
@@ -162,8 +174,7 @@ interface InstagramMediaResponse {
 export function CreateAutomationForm() {
   const router = useRouter();
   const user = useAppSelector((state) => state.user);
-  // Always keep post selection open
-  const [selectPostOpen] = useState(true);
+  const [selectPostOpen, setSelectPostOpen] = useState(true);
   const [dmTypeOpen, setDmTypeOpen] = useState(true);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -177,6 +188,11 @@ export function CreateAutomationForm() {
   const [newCommentMessage, setNewCommentMessage] = useState("");
   const [afterCursor, setAfterCursor] = useState<string | null>(null);
   const [beforeCursor, setBeforeCursor] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const toggleSelectPost = () => {
+    setSelectPostOpen(!selectPostOpen);
+  };
 
   const toggleDmType = () => {
     setDmTypeOpen(!dmTypeOpen);
@@ -311,8 +327,10 @@ export function CreateAutomationForm() {
       // Determine which cursor to use based on navigation direction
       if (direction === "next" && afterCursor) {
         url += `&after=${afterCursor}`;
+        setCurrentPage((prev) => prev + 1);
       } else if (direction === "previous" && beforeCursor) {
         url += `&before=${beforeCursor}`;
+        setCurrentPage((prev) => Math.max(0, prev - 1));
       }
 
       const response = await fetch(url);
@@ -348,17 +366,8 @@ export function CreateAutomationForm() {
         timestamp: item.timestamp,
       }));
 
-      // Handle the media items based on the direction
-      if (direction === "initial") {
-        // For initial load, just set the media
-        setMedia(newMediaItems);
-      } else if (direction === "next") {
-        // For next page, append the new items
-        setMedia((prevMedia) => [...prevMedia, ...newMediaItems]);
-      } else if (direction === "previous") {
-        // For previous page, prepend the new items
-        setMedia((prevMedia) => [...newMediaItems, ...prevMedia]);
-      }
+      // Always replace the media with the new batch
+      setMedia(newMediaItems);
 
       // Update cursors for pagination
       if (data.paging?.cursors) {
@@ -834,127 +843,108 @@ export function CreateAutomationForm() {
                           />
                         </div>
                       ) : (
-                        <div className="relative flex flex-col space-y-4">
-                          {/* SimpleBar for horizontal scrolling with custom styling */}
-                          <div className="relative">
-                            <SimpleBar
-                              className="py-2"
-                              style={{
-                                height: "100%",
-                                overflowX: "auto",
-                              }}
-                              autoHide={false}
-                              onScroll={() => {
-                                const scrollContainer = document.querySelector(
-                                  ".simplebar-content-wrapper"
-                                );
-                                if (scrollContainer) {
-                                  const element =
-                                    scrollContainer as HTMLDivElement;
-                                  const scrollThreshold = 100; // pixels before end/beginning to trigger load
+                        <div
+                          className="relative"
+                          onScroll={(e) => {
+                            const element = e.currentTarget;
+                            const scrollThreshold = 100; // pixels before end to trigger load
 
-                                  // Detect scroll end - load next posts
-                                  if (
-                                    element.scrollWidth - element.scrollLeft <=
-                                      element.clientWidth + scrollThreshold &&
-                                    !isPaginating &&
-                                    afterCursor
-                                  ) {
-                                    fetchMedia("next");
-                                  }
-
-                                  // Detect scroll beginning - load previous posts
-                                  if (
-                                    element.scrollLeft <= scrollThreshold &&
-                                    !isPaginating &&
-                                    beforeCursor
-                                  ) {
-                                    fetchMedia("previous");
-                                  }
-                                }
-                              }}
-                            >
-                              {/* Posts Container */}
-                              <div className="inline-flex gap-4 pl-2 pr-4">
-                                {media.map((item) => (
-                                  <div
-                                    key={item.id}
-                                    className="inline-block w-[250px] flex-shrink-0"
-                                  >
-                                    <FormField
-                                      control={form.control}
-                                      name="postId"
-                                      render={({ field }) => (
-                                        <RadioGroup
-                                          value={field.value}
-                                          onValueChange={field.onChange}
+                            // Detect scroll end
+                            if (
+                              element.scrollWidth - element.scrollLeft <=
+                                element.clientWidth + scrollThreshold &&
+                              !isPaginating &&
+                              afterCursor
+                            ) {
+                              fetchMedia("next");
+                            }
+                          }}
+                          style={{
+                            overflowX: "auto",
+                            whiteSpace: "nowrap",
+                            scrollBehavior: "smooth",
+                            WebkitOverflowScrolling: "touch",
+                          }}
+                        >
+                          {/* Posts Container */}
+                          <div className="inline-flex gap-4">
+                            {media.map((item) => (
+                              <div
+                                key={item.id}
+                                className="inline-block w-[250px] flex-shrink-0"
+                              >
+                                <FormField
+                                  control={form.control}
+                                  name="postId"
+                                  render={({ field }) => (
+                                    <RadioGroup
+                                      value={field.value}
+                                      onValueChange={field.onChange}
+                                    >
+                                      <Label className="block relative group cursor-pointer">
+                                        <motion.div
+                                          whileHover={{ scale: 1.03 }}
+                                          className={cn(
+                                            "relative aspect-square rounded-xl overflow-hidden border-4 transition-all",
+                                            field.value === item.id
+                                              ? "border-[#1A69DD] dark:border-[#26A5E9]"
+                                              : "border-transparent group-hover:border-[#1A69DD]/30"
+                                          )}
                                         >
-                                          <Label className="block relative group cursor-pointer">
-                                            <motion.div
-                                              whileHover={{ scale: 1.03 }}
+                                          {/* Media Preview */}
+                                          <div className="relative h-full w-full bg-gray-100 dark:bg-gray-700">
+                                            {item.mediaType === "IMAGE" && (
+                                              <Image
+                                                src={item.mediaUrl}
+                                                alt={item.title}
+                                                fill
+                                                className="object-cover"
+                                                loading="lazy"
+                                              />
+                                            )}
+                                          </div>
+
+                                          {/* Selection Overlay */}
+                                          <div
+                                            className={cn(
+                                              "absolute inset-0 flex items-center justify-center bg-black/40 transition-opacity",
+                                              field.value === item.id
+                                                ? "opacity-100"
+                                                : "opacity-0"
+                                            )}
+                                          >
+                                            <Check className="h-8 w-8 text-white" />
+                                          </div>
+
+                                          {/* Selection Badge */}
+                                          <div className="absolute top-2 right-2">
+                                            <RadioGroupItem
+                                              value={item.id}
                                               className={cn(
-                                                "relative aspect-square rounded-xl overflow-hidden border-4 transition-all",
+                                                "h-6 w-6 rounded-full border-2 flex items-center justify-center",
+                                                "border-white bg-[#1A69DD] dark:bg-[#26A5E9]",
                                                 field.value === item.id
-                                                  ? "border-[#1A69DD] dark:border-[#26A5E9]"
-                                                  : "border-transparent group-hover:border-[#1A69DD]/30"
+                                                  ? "opacity-100"
+                                                  : "opacity-0 group-hover:opacity-100"
                                               )}
                                             >
-                                              {/* Media Preview */}
-                                              <div className="relative h-full w-full bg-gray-100 dark:bg-gray-700">
-                                                {item.mediaType === "IMAGE" && (
-                                                  <Image
-                                                    src={item.mediaUrl}
-                                                    alt={item.title}
-                                                    fill
-                                                    className="object-cover"
-                                                    loading="lazy"
-                                                  />
-                                                )}
-                                              </div>
-
-                                              {/* Selection Overlay */}
-                                              <div
-                                                className={cn(
-                                                  "absolute inset-0 flex items-center justify-center bg-black/40 transition-opacity",
-                                                  field.value === item.id
-                                                    ? "opacity-100"
-                                                    : "opacity-0"
-                                                )}
-                                              >
-                                                <Check className="h-8 w-8 text-white" />
-                                              </div>
-
-                                              {/* Selection Badge */}
-                                              <div className="absolute top-2 right-2">
-                                                <RadioGroupItem
-                                                  value={item.id}
-                                                  className={cn(
-                                                    "h-6 w-6 rounded-full border-2 flex items-center justify-center",
-                                                    "border-white bg-[#1A69DD] dark:bg-[#26A5E9]",
-                                                    field.value === item.id
-                                                      ? "opacity-100"
-                                                      : "opacity-0 group-hover:opacity-100"
-                                                  )}
-                                                >
-                                                  <Check className="h-4 w-4 text-white" />
-                                                </RadioGroupItem>
-                                              </div>
-                                            </motion.div>
-                                          </Label>
-                                        </RadioGroup>
-                                      )}
-                                    />
-                                  </div>
-                                ))}
-
-                                {/* Loading Indicator */}
-                                {isPaginating && (
-                                  <div className="inline-flex w-[250px] flex-shrink-0 items-center justify-center">
-                                    <Loader2 className="h-8 w-8 animate-spin text-[#1A69DD] dark:text-[#26A5E9]" />
-                                  </div>
-                                )}
+                                              <Check className="h-4 w-4 text-white" />
+                                            </RadioGroupItem>
+                                          </div>
+                                        </motion.div>
+                                      </Label>
+                                    </RadioGroup>
+                                  )}
+                                />
                               </div>
-                            </SimpleBar>
+                            ))}
+
+                            {/* Loading Indicator */}
+                            {isPaginating && (
+                              <div className="inline-flex w-[250px] flex-shrink-0 items-center justify-center">
+                                <Loader2 className="h-8 w-8 animate-spin text-[#1A69DD] dark:text-[#26A5E9]" />
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
@@ -1029,7 +1019,7 @@ export function CreateAutomationForm() {
                             className="peer hidden"
                           />
                           <div className="flex items-center gap-3">
-                            <div className="h-6 w-6 rounded-full border-2 flex items-center justify-center border-current">
+                            <div className="h-6 w-6 rounded-full border-2 flex items-center justify-center">
                               <div
                                 className={cn(
                                   "h-3 w-3 rounded-full transition-all",
@@ -1212,7 +1202,8 @@ export function CreateAutomationForm() {
                               >
                                 <AlertCircle size={16} />
                                 <span>
-                                  <p>Don&apos;t worry, we won&apos;t post anything without your permission. We&apos;ll just check if they&apos;re one of your followers.</p>
+                                  At least one keyword is required when not
+                                  responding to all messages
                                 </span>
                               </motion.div>
                             )}
@@ -1899,7 +1890,7 @@ export function CreateAutomationForm() {
                           Non-Follower Message
                         </Label>
                         <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
-                          Displayed to users who don&apos;t follow you
+                          Displayed to users who don't follow you
                         </FormDescription>
                         <FormControl>
                           <Textarea

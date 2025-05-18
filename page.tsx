@@ -19,9 +19,9 @@ export default function CreateAutomationPage() {
 
         {/* Form Container */}
         {/* <div className="bg-white dark:bg-[#0F172A] rounded-xl shadow-lg border border-border"> */}
-        {/* <div className="p-6 sm:p-8 lg:p-10"> */}
-        <CreateAutomationForm />
-        {/* </div> */}
+          {/* <div className="p-6 sm:p-8 lg:p-10"> */}
+            <CreateAutomationForm />
+          {/* </div> */}
         {/* </div> */}
       </div>
     </div>

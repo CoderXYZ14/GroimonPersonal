@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, KeyboardEvent } from "react";
+import { useState, useEffect, useCallback, KeyboardEvent } from "react";
 import { useAppSelector } from "@/redux/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -208,7 +208,7 @@ export function CreateStoryAutomationForm() {
     }
   }, [form, messageType]);
 
-  const fetchStories = async (
+  const fetchStories = useCallback(async (
     direction: "initial" | "next" | "previous" = "initial"
   ) => {
     if (direction === "initial") {
@@ -307,12 +307,12 @@ export function CreateStoryAutomationForm() {
       setIsLoading(false);
       setIsPaginating(false);
     }
-  };
+  }, [user.instagramId, user.instagramAccessToken, afterCursor, beforeCursor]);
 
   // Initial fetch of stories
   useEffect(() => {
     fetchStories("initial");
-  }, [user.instagramId, user.instagramAccessToken]);
+  }, [user.instagramId, user.instagramAccessToken, fetchStories]);
 
   useEffect(() => {
     const messageType = form.watch("messageType");
