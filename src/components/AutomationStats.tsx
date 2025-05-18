@@ -27,8 +27,8 @@ export function AutomationStats() {
           const automationsResponseStory = await axios.get(
             `/api/automations/stories?userId=${user._id}`
           );
-          setTotalHits(hitsResponse.data.totalRedirectHits);
-          setRedirectCount(hitsResponse.data.totalHits);
+          setTotalHits(hitsResponse.data.totalHits);
+          setRedirectCount(hitsResponse.data.totalRedirectHits);
           setAutomationsCount(
             automationsResponsePost.data.length +
               automationsResponseStory.data.length
