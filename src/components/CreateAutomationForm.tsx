@@ -93,6 +93,7 @@ const formSchema = z
     notFollowerMessage: z.string().optional(),
     followButtonTitle: z.string().optional(),
     followUpMessage: z.string().optional(),
+    followUpButtonTitle: z.string().optional(),
     respondToAll: z.boolean().default(false),
     removeBranding: z.boolean().default(false),
   })
@@ -221,22 +222,6 @@ const formSchema = z
     {
       message: "Follow button title is required",
       path: ["followButtonTitle"],
-    }
-  )
-  .refine(
-    (data) => {
-      // If isFollowed is true, followUpMessage is required
-      if (
-        data.isFollowed &&
-        (!data.followUpMessage || data.followUpMessage.trim() === "")
-      ) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: "Follow-up message is required",
-      path: ["followUpMessage"],
     }
   );
 
@@ -620,6 +605,38 @@ export function CreateAutomationForm() {
         return;
       }
 
+      // Apply fallback logic for follow-related fields if they are left blank
+      if (values.isFollowed) {
+        const updatedValues = { ...values };
+        let formUpdated = false;
+
+        // If followUpButtonTitle is empty, use followButtonTitle
+        if (
+          !updatedValues.followUpButtonTitle ||
+          updatedValues.followUpButtonTitle.trim() === ""
+        ) {
+          updatedValues.followUpButtonTitle = updatedValues.followButtonTitle;
+          form.setValue("followUpButtonTitle", updatedValues.followButtonTitle);
+          formUpdated = true;
+        }
+
+        // If followUpMessage is empty, use notFollowerMessage
+        if (
+          !updatedValues.followUpMessage ||
+          updatedValues.followUpMessage.trim() === ""
+        ) {
+          updatedValues.followUpMessage = updatedValues.notFollowerMessage;
+          form.setValue("followUpMessage", updatedValues.notFollowerMessage);
+          formUpdated = true;
+        }
+
+        // If form was updated, wait a moment for the form to update before proceeding
+        if (formUpdated) {
+          // Use the updated values for the rest of the function
+          values = updatedValues;
+        }
+      }
+
       const postIds =
         values.applyOption === "all"
           ? media.map((post) => post.id)
@@ -690,6 +707,9 @@ export function CreateAutomationForm() {
           ? values.followButtonTitle
           : undefined,
         followUpMessage: values.isFollowed ? values.followUpMessage : undefined,
+        followUpButtonTitle: values.isFollowed
+          ? values.followUpButtonTitle
+          : undefined,
         respondToAll: Boolean(values.respondToAll),
       });
       toast.success("Automation created successfully!");
@@ -2223,6 +2243,32 @@ export function CreateAutomationForm() {
                           <Textarea
                             placeholder="Thanks for following! Here's your message..."
                             className="min-h-[120px] p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="followUpButtonTitle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                          <UserPlus className="w-5 h-5" />
+                          Follow-up Button Text
+                        </Label>
+                        <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
+                          Customize your follow-up button text
+                        </FormDescription>
+                        <FormControl>
+                          <Input
+                            placeholder="Continue"
+                            className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
                             {...field}
                           />
                         </FormControl>

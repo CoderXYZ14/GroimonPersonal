@@ -27,11 +27,11 @@ export async function POST(request: Request) {
       isFollowed,
       notFollowerMessage,
       followButtonTitle,
-      followUpMessage,
       removeBranding,
       autoReplyLimitLeft,
       respondToAll,
     } = body;
+    let { followUpMessage, followUpButtonTitle } = body;
 
     if (
       !name ||
@@ -57,14 +57,23 @@ export async function POST(request: Request) {
     }
     // Additional check for isFollowed
     if (isFollowed) {
-      if (!notFollowerMessage || !followButtonTitle || !followUpMessage) {
+      if (!notFollowerMessage || !followButtonTitle) {
         return NextResponse.json(
           {
             message:
-              "When isFollowed is true, notFollowerMessage, followButtonTitle, and followUpMessage are required.",
+              "When isFollowed is true, notFollowerMessage and followButtonTitle are required.",
           },
           { status: 400 }
         );
+      }
+      
+      // Apply fallback logic if followUpMessage or followUpButtonTitle are missing
+      if (!followUpMessage) {
+        followUpMessage = notFollowerMessage;
+      }
+      
+      if (!followUpButtonTitle) {
+        followUpButtonTitle = followButtonTitle;
       }
     }
 
@@ -99,6 +108,7 @@ export async function POST(request: Request) {
       notFollowerMessage: isFollowed ? notFollowerMessage : undefined,
       followButtonTitle: isFollowed ? followButtonTitle : undefined,
       followUpMessage: isFollowed ? followUpMessage : undefined,
+      followUpButtonTitle: isFollowed ? followUpButtonTitle : undefined,
       removeBranding: removeBranding || false,
       respondToAll: respondToAll === true, // Explicitly convert to boolean
       isActive: true,

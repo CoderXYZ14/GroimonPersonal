@@ -1053,6 +1053,7 @@ async function sendDM(
                       notFollowerMessage: automation.notFollowerMessage,
                       followButtonTitle: automation.followButtonTitle,
                       followUpMessage: automation.followUpMessage,
+                      followUpButtonTitle: automation.followUpButtonTitle,
                     }),
                   },
                 ],
@@ -1109,6 +1110,7 @@ async function sendDM(
                         notFollowerMessage: automation.notFollowerMessage,
                         followButtonTitle: automation.followButtonTitle,
                         followUpMessage: automation.followUpMessage,
+                        followUpButtonTitle: automation.followUpButtonTitle,
                       }),
                     },
                   ],
@@ -1363,6 +1365,9 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                     followUpMessage =
                       automation.followUpMessage ||
                       "Thank you for following us!";
+
+                    // Prepare the follow-up button title for later use
+                    // We'll use this value directly when needed instead of storing in a variable
                   } else if (postbackData.storyId) {
                     // Handle story follow request
                     isStory = true;
@@ -1405,7 +1410,11 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                   if (isNowFollowing) {
                     // When user is actually following, send the followUpMessage
                     console.log(
-                      `User ${senderId} is confirmed to be following. Sending followUpMessage.`
+                      `User ${senderId} is confirmed to be following. Sending followUpMessage with followUpButtonTitle: ${
+                        postbackData.followUpButtonTitle ||
+                        postbackData.followButtonTitle ||
+                        "Continue"
+                      }`
                     );
 
                     // Add branding based on the type (story or automation)
@@ -1561,7 +1570,7 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                               {
                                 type: "postback",
                                 title:
-                                  postbackData.followButtonTitle ||
+                                  postbackData.followUpButtonTitle ||
                                   "I'm following now",
                                 payload: JSON.stringify({
                                   action: "followConfirmed",
@@ -1576,6 +1585,8 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                                   followButtonTitle:
                                     postbackData.followButtonTitle,
                                   followUpMessage: postbackData.followUpMessage,
+                                  followUpButtonTitle:
+                                    postbackData.followUpButtonTitle,
                                 }),
                               },
                             ],

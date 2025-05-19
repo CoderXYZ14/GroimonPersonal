@@ -27,6 +27,7 @@ export interface IAutomation extends Document {
   notFollowerMessage?: string;
   followButtonTitle?: string;
   followUpMessage?: string;
+  followUpButtonTitle?: string;
   isActive?: boolean;
   respondToAll?: boolean;
   user: mongoose.Types.ObjectId | IUser;
@@ -73,6 +74,7 @@ const AutomationSchema: Schema<IAutomation> = new Schema(
     notFollowerMessage: { type: String },
     followButtonTitle: { type: String },
     followUpMessage: { type: String },
+    followUpButtonTitle: { type: String },
     isActive: { type: Boolean, default: true },
     respondToAll: { type: Boolean, default: false },
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },

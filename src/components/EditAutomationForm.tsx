@@ -90,6 +90,7 @@ const formSchema = z
     notFollowerMessage: z.string().optional(),
     followButtonTitle: z.string().optional(),
     followUpMessage: z.string().optional(),
+    followUpButtonTitle: z.string().optional(),
     isActive: z.boolean().default(true),
     respondToAll: z.boolean().default(false),
     removeBranding: z.boolean().default(false),
@@ -371,8 +372,9 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
         "Please follow our account to receive the information you requested. Once you've followed, click the button below.",
       followButtonTitle: automation.followButtonTitle || "I'm following now!",
       followUpMessage:
-        automation.followUpMessage ||
-        "Thanks for following! Here's your message...",
+        automation.followUpMessage || "Thanks for following! Here's your message...",
+      followUpButtonTitle:
+        automation.followUpButtonTitle || "Continue",
       isActive: automation.isActive !== undefined ? automation.isActive : true,
       respondToAll:
         automation.respondToAll !== undefined ? automation.respondToAll : false,
@@ -471,6 +473,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
           ? values.followButtonTitle
           : undefined,
         followUpMessage: values.isFollowed ? values.followUpMessage : undefined,
+        followUpButtonTitle: values.isFollowed ? values.followUpButtonTitle : undefined,
         // Include buttonTitle at the main level
         buttonTitle:
           values.messageType === "ButtonText" ||
@@ -1422,6 +1425,23 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                           className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[100px]"
                           {...field}
                         />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="followUpButtonTitle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label>Follow-up Button Text</Label>
+                      <FormDescription>
+                        Customize your follow-up button text
+                      </FormDescription>
+                      <FormControl>
+                        <Input placeholder="Continue" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
