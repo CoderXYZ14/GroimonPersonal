@@ -128,6 +128,116 @@ const formSchema = z
       message: "Message template is required for message type",
       path: ["message"],
     }
+  )
+  .refine(
+    (data) => {
+      // If applyOption is "selected", postId is required
+      if (data.applyOption === "selected" && !data.postId) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Please select a post",
+      path: ["postId"],
+    }
+  )
+  .refine(
+    (data) => {
+      // If messageType is ButtonImage, imageUrl is required
+      if (
+        data.messageType === "ButtonImage" &&
+        (!data.imageUrl || data.imageUrl.trim() === "")
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Image URL is required for Button Image type",
+      path: ["imageUrl"],
+    }
+  )
+  .refine(
+    (data) => {
+      // If messageType is ButtonText or ButtonImage, buttonTitle is required
+      if (
+        (data.messageType === "ButtonText" ||
+          data.messageType === "ButtonImage") &&
+        (!data.buttonTitle || data.buttonTitle.trim() === "")
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Button section title is required",
+      path: ["buttonTitle"],
+    }
+  )
+  .refine(
+    (data) => {
+      // If enableCommentAutomation is true, commentMessage array should not be empty
+      if (
+        data.enableCommentAutomation &&
+        (!data.commentMessage || data.commentMessage.length === 0)
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "At least one auto reply message is required",
+      path: ["commentMessage"],
+    }
+  )
+  .refine(
+    (data) => {
+      // If isFollowed is true, notFollowerMessage is required
+      if (
+        data.isFollowed &&
+        (!data.notFollowerMessage || data.notFollowerMessage.trim() === "")
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Message for non-followers is required",
+      path: ["notFollowerMessage"],
+    }
+  )
+  .refine(
+    (data) => {
+      // If isFollowed is true, followButtonTitle is required
+      if (
+        data.isFollowed &&
+        (!data.followButtonTitle || data.followButtonTitle.trim() === "")
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Follow button title is required",
+      path: ["followButtonTitle"],
+    }
+  )
+  .refine(
+    (data) => {
+      // If isFollowed is true, followUpMessage is required
+      if (
+        data.isFollowed &&
+        (!data.followUpMessage || data.followUpMessage.trim() === "")
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Follow-up message is required",
+      path: ["followUpMessage"],
+    }
   );
 
 interface InstagramMediaItem {
@@ -450,14 +560,36 @@ export function CreateAutomationForm() {
     try {
       setIsLoading(true);
 
+      // Validate form before submission
+      const errors = form.formState.errors;
+      if (Object.keys(errors).length > 0) {
+        // Scroll to the first error
+        const firstErrorField = Object.keys(errors)[0];
+        const element = document.querySelector(`[name="${firstErrorField}"]`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+
+        // Show toast with error message
+        toast.error("Please fix the errors in the form before submitting");
+        setIsLoading(false);
+        return;
+      }
+
       const postIds =
         values.applyOption === "all"
           ? media.map((post) => post.id)
           : values.postId
           ? [values.postId]
           : [];
+
+      // This validation is handled by the form schema now
+      // but we'll keep it as a fallback
       if (values.applyOption === "selected" && !values.postId) {
-        throw new Error("Please select a post");
+        form.setError("postId", { message: "Please select a post" });
+        toast.error("Please select a post");
+        setIsLoading(false);
+        return;
       }
 
       const userId = user._id;
@@ -817,6 +949,8 @@ export function CreateAutomationForm() {
                   exit={{ opacity: 0, height: 0 }}
                   className="mt-8"
                 >
+                  {/* Post selection error will be shown after the grid */}
+
                   {/* Content */}
                   {selectPostOpen && (
                     <motion.div
@@ -838,7 +972,11 @@ export function CreateAutomationForm() {
                           {/* SimpleBar for horizontal scrolling with custom styling */}
                           <div className="relative">
                             <SimpleBar
-                              className="py-2"
+                              className={`py-2 ${
+                                form.formState.errors.postId
+                                  ? "border-2 border-red-500 dark:border-red-500 rounded-lg p-2"
+                                  : ""
+                              }`}
                               style={{
                                 height: "100%",
                                 overflowX: "auto",
@@ -926,18 +1064,20 @@ export function CreateAutomationForm() {
 
                                               {/* Selection Badge */}
                                               <div className="absolute top-2 right-2">
-                                                <RadioGroupItem
-                                                  value={item.id}
+                                                <div
                                                   className={cn(
                                                     "h-6 w-6 rounded-full border-2 flex items-center justify-center",
-                                                    "border-white bg-[#1A69DD] dark:bg-[#26A5E9]",
                                                     field.value === item.id
-                                                      ? "opacity-100"
-                                                      : "opacity-0 group-hover:opacity-100"
+                                                      ? "border-white bg-[#1A69DD] dark:bg-[#26A5E9] opacity-100"
+                                                      : "border-white bg-[#1A69DD]/60 dark:bg-[#26A5E9]/60 opacity-0 group-hover:opacity-70"
                                                   )}
                                                 >
                                                   <Check className="h-4 w-4 text-white" />
-                                                </RadioGroupItem>
+                                                </div>
+                                                <RadioGroupItem
+                                                  value={item.id}
+                                                  className="sr-only"
+                                                />
                                               </div>
                                             </motion.div>
                                           </Label>
@@ -955,6 +1095,16 @@ export function CreateAutomationForm() {
                                 )}
                               </div>
                             </SimpleBar>
+
+                            {/* Single line error message for post selection */}
+                            {form.formState.errors.postId && (
+                              <div className="mt-2 flex items-center gap-1.5 text-red-500 dark:text-red-400">
+                                <AlertCircle size={14} />
+                                <p className="text-sm font-medium">
+                                  {form.formState.errors.postId.message}
+                                </p>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
@@ -1141,7 +1291,11 @@ export function CreateAutomationForm() {
                           <div className="relative">
                             <Input
                               placeholder="Add keyword"
-                              className="w-full py-6 px-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-[#1A69DD] focus:ring-0 dark:focus:border-[#26A5E9]"
+                              className={`w-full py-6 px-6 rounded-xl border-2 ${
+                                form.formState.errors.keywords
+                                  ? "border-red-500 dark:border-red-500"
+                                  : "border-gray-200 dark:border-gray-700"
+                              } focus:border-[#1A69DD] focus:ring-0 dark:focus:border-[#26A5E9]`}
                               value={newKeyword}
                               onChange={(e) => setNewKeyword(e.target.value)}
                               onKeyDown={(
@@ -1203,19 +1357,15 @@ export function CreateAutomationForm() {
                             </motion.button>
                           </div>
 
-                          {form.formState.isSubmitted &&
-                            (!field.value || field.value.length === 0) && (
-                              <motion.div
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="flex items-center gap-2 text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg"
-                              >
-                                <AlertCircle size={16} />
-                                <span>
-                                  <p>Don&apos;t worry, we won&apos;t post anything without your permission. We&apos;ll just check if they&apos;re one of your followers.</p>
-                                </span>
-                              </motion.div>
-                            )}
+                          {/* Error message for keywords */}
+                          {form.formState.errors.keywords && (
+                            <div className="mt-2 flex items-center gap-1.5 text-red-500 dark:text-red-400">
+                              <AlertCircle size={14} />
+                              <p className="text-sm font-medium">
+                                {form.formState.errors.keywords.message}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </FormItem>
                     )}
@@ -1347,18 +1497,33 @@ export function CreateAutomationForm() {
                           <FormControl>
                             <Textarea
                               placeholder="Enter the message to send as an auto-reply"
-                              className="w-full p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg min-h-[140px] 
+                              className={`w-full p-4 border-2 ${
+                                form.formState.errors.message
+                                  ? "border-red-500 dark:border-red-500"
+                                  : "border-gray-200 dark:border-gray-700"
+                              } rounded-lg min-h-[140px] 
                                         text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800/90
                                         focus:border-[#1A69DD] dark:focus:border-[#26A5E9] focus:ring-2 
                                         focus:ring-[#1A69DD]/20 dark:focus:ring-[#26A5E9]/30
                                         hover:border-gray-300 dark:hover:border-gray-600
                                         transition-all duration-200 ease-in-out
                                         placeholder-gray-400 dark:placeholder-gray-500
-                                        resize-y"
+                                        resize-y`}
                               {...field}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                if (e.target.value.trim() !== "") {
+                                  form.clearErrors("message");
+                                }
+                              }}
                             />
                           </FormControl>
-                          <FormMessage className="text-sm font-medium text-red-500 dark:text-red-400 mt-1.5" />
+                          {form.formState.errors.message && (
+                            <FormMessage className="text-sm font-medium text-red-500 dark:text-red-400 mt-1.5 flex items-center gap-1.5">
+                              <AlertCircle size={14} />
+                              {form.formState.errors.message.message}
+                            </FormMessage>
+                          )}
                         </FormItem>
                       )}
                     />
@@ -1379,14 +1544,24 @@ export function CreateAutomationForm() {
                             <div className="relative group">
                               <Input
                                 placeholder="https://example.com/main-image.jpg"
-                                className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-lg
+                                className={`w-full pl-10 pr-4 py-3 border-2 ${
+                                  form.formState.errors.imageUrl
+                                    ? "border-red-500 dark:border-red-500"
+                                    : "border-gray-200 dark:border-gray-700"
+                                } rounded-lg
                                           text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800/90
                                           focus:border-[#1A69DD] dark:focus:border-[#26A5E9] focus:ring-2
                                           focus:ring-[#1A69DD]/20 dark:focus:ring-[#26A5E9]/30
                                           hover:border-gray-300 dark:hover:border-gray-600
                                           transition-all duration-200 ease-in-out
-                                          placeholder-gray-400 dark:placeholder-gray-500"
+                                          placeholder-gray-400 dark:placeholder-gray-500`}
                                 {...field}
+                                onChange={(e) => {
+                                  field.onChange(e);
+                                  if (e.target.value.trim() !== "") {
+                                    form.clearErrors("imageUrl");
+                                  }
+                                }}
                               />
                               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <LinkIcon className="w-5 h-5 text-gray-400 dark:text-gray-500 group-hover:text-[#1A69DD] dark:group-hover:text-[#26A5E9] transition-colors" />
@@ -1396,7 +1571,12 @@ export function CreateAutomationForm() {
                           <FormDescription className="text-sm mt-2 px-3 py-1.5 bg-blue-50/50 dark:bg-[#26A5E9]/10 text-gray-600 dark:text-gray-400 rounded-md border-l-4 border-[#1A69DD] dark:border-[#26A5E9]">
                             Must start with http:// or https://
                           </FormDescription>
-                          <FormMessage className="text-sm font-medium text-red-500 dark:text-red-400 mt-1.5 flex items-center gap-1.5" />
+                          {form.formState.errors.imageUrl && (
+                            <FormMessage className="text-sm font-medium text-red-500 dark:text-red-400 mt-1.5 flex items-center gap-1.5">
+                              <AlertCircle size={14} />
+                              {form.formState.errors.imageUrl.message}
+                            </FormMessage>
+                          )}
                         </FormItem>
                       )}
                     />
@@ -1651,7 +1831,11 @@ export function CreateAutomationForm() {
                         <div className="relative">
                           <Input
                             placeholder="Add auto reply"
-                            className="w-full py-6 px-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-[#1A69DD] focus:ring-0 dark:focus:border-[#26A5E9]"
+                            className={`w-full py-6 px-6 rounded-xl border-2 ${
+                              form.formState.errors.commentMessage
+                                ? "border-red-500 dark:border-red-500"
+                                : "border-gray-200 dark:border-gray-700"
+                            } focus:border-[#1A69DD] focus:ring-0 dark:focus:border-[#26A5E9]`}
                             value={newCommentMessage}
                             onChange={(e) =>
                               setNewCommentMessage(e.target.value)
@@ -1676,6 +1860,8 @@ export function CreateAutomationForm() {
                                   ];
                                   updatedMessages.push(trimmedMessage);
                                   field.onChange(updatedMessages);
+                                  // Clear any errors
+                                  form.clearErrors("commentMessage");
                                   setNewCommentMessage("");
                                 } else {
                                   toast.error(
@@ -1707,6 +1893,8 @@ export function CreateAutomationForm() {
                                   ];
                                   updatedMessages.push(trimmedMessage);
                                   field.onChange(updatedMessages);
+                                  // Clear any errors
+                                  form.clearErrors("commentMessage");
                                   setNewCommentMessage("");
                                 } else {
                                   toast.error(
@@ -1725,7 +1913,12 @@ export function CreateAutomationForm() {
                       <FormDescription className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                         Press Enter or click Add to add a auto reply message
                       </FormDescription>
-                      <FormMessage />
+                      {form.formState.errors.commentMessage && (
+                        <FormMessage className="text-sm font-medium text-red-500 dark:text-red-400 mt-1.5 flex items-center gap-1.5">
+                          <AlertCircle size={14} />
+                          {form.formState.errors.commentMessage.message}
+                        </FormMessage>
+                      )}
                     </FormItem>
                   )}
                 />
@@ -1748,7 +1941,9 @@ export function CreateAutomationForm() {
                           value={
                             field.value === -1
                               ? "unlimited"
-                              : field.value.toString()
+                              : field.value
+                              ? field.value.toString()
+                              : "100"
                           }
                           className="grid grid-cols-1 md:grid-cols-3 gap-4"
                         >
@@ -1757,19 +1952,46 @@ export function CreateAutomationForm() {
                             { value: "200", label: "200 Replies" },
                             { value: "unlimited", label: "Unlimited" },
                           ].map((option) => (
-                            <div
+                            <label
                               key={option.value}
                               className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                                field.value.toString() === option.value
+                                (field.value === -1 &&
+                                  option.value === "unlimited") ||
+                                (field.value !== null &&
+                                  field.value !== undefined &&
+                                  field.value.toString() === option.value)
                                   ? "border-[#1A69DD] bg-[#1A69DD]/5 dark:border-[#26A5E9] dark:bg-[#26A5E9]/10"
                                   : "border-gray-200 dark:border-gray-700 hover:border-[#1A69DD]/50"
                               }`}
                             >
+                              <input
+                                type="radio"
+                                name="autoReplyLimit"
+                                value={option.value}
+                                checked={
+                                  (field.value === -1 &&
+                                    option.value === "unlimited") ||
+                                  (field.value !== null &&
+                                    field.value !== undefined &&
+                                    field.value.toString() === option.value)
+                                }
+                                onChange={() => {
+                                  const newValue =
+                                    option.value === "unlimited"
+                                      ? -1
+                                      : parseInt(option.value);
+                                  field.onChange(newValue);
+                                }}
+                                className="sr-only" // Hide the actual radio input
+                              />
                               <div className="flex items-center gap-3">
                                 <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center border-current">
                                   <div
                                     className={`w-3 h-3 rounded-full ${
-                                      field.value.toString() === option.value
+                                      (field.value === -1 &&
+                                        option.value === "unlimited") ||
+                                      (field.value &&
+                                        field.value.toString() === option.value)
                                         ? "bg-[#1A69DD] dark:bg-[#26A5E9]"
                                         : "bg-transparent"
                                     }`}
@@ -1779,7 +2001,7 @@ export function CreateAutomationForm() {
                                   {option.label}
                                 </span>
                               </div>
-                            </div>
+                            </label>
                           ))}
                         </RadioGroup>
                       </FormControl>
