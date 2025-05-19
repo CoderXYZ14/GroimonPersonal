@@ -392,11 +392,16 @@ export function CreateAutomationForm() {
     }
   }, [buttons.length, form, messageType]);
 
+  // Track all loaded cursors to prevent duplicate loading
+  const [loadedCursors, setLoadedCursors] = useState<Set<string>>(new Set());
+
   const fetchMedia = async (
     direction: "initial" | "next" | "previous" = "initial"
   ) => {
     if (direction === "initial") {
       setIsLoading(true);
+      // Reset loaded cursors on initial load
+      setLoadedCursors(new Set());
     } else {
       setIsPaginating(true);
     }
@@ -419,10 +424,23 @@ export function CreateAutomationForm() {
       let url = `https://graph.instagram.com/v18.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&limit=25&access_token=${instagramAccessToken}`;
 
       // Determine which cursor to use based on navigation direction
+      let currentCursor = "";
       if (direction === "next" && afterCursor) {
+        currentCursor = afterCursor;
         url += `&after=${afterCursor}`;
       } else if (direction === "previous" && beforeCursor) {
+        currentCursor = beforeCursor;
         url += `&before=${beforeCursor}`;
+      }
+
+      // Skip if we've already loaded this cursor
+      if (
+        direction !== "initial" &&
+        currentCursor &&
+        loadedCursors.has(currentCursor)
+      ) {
+        setIsPaginating(false);
+        return;
       }
 
       const response = await fetch(url);
@@ -463,11 +481,37 @@ export function CreateAutomationForm() {
         // For initial load, just set the media
         setMedia(newMediaItems);
       } else if (direction === "next") {
-        // For next page, append the new items
-        setMedia((prevMedia) => [...prevMedia, ...newMediaItems]);
+        // For next page, append the new items without duplicates
+        setMedia((prevMedia) => {
+          // Create a set of existing IDs for quick lookup
+          const existingIds = new Set(prevMedia.map((item) => item.id));
+          // Filter out any duplicates from the new items
+          const uniqueNewItems = newMediaItems.filter(
+            (item) => !existingIds.has(item.id)
+          );
+          return [...prevMedia, ...uniqueNewItems];
+        });
+
+        // Add this cursor to our loaded set
+        if (currentCursor) {
+          setLoadedCursors((prev) => new Set(prev).add(currentCursor));
+        }
       } else if (direction === "previous") {
-        // For previous page, prepend the new items
-        setMedia((prevMedia) => [...newMediaItems, ...prevMedia]);
+        // For previous page, prepend the new items without duplicates
+        setMedia((prevMedia) => {
+          // Create a set of existing IDs for quick lookup
+          const existingIds = new Set(prevMedia.map((item) => item.id));
+          // Filter out any duplicates from the new items
+          const uniqueNewItems = newMediaItems.filter(
+            (item) => !existingIds.has(item.id)
+          );
+          return [...uniqueNewItems, ...prevMedia];
+        });
+
+        // Add this cursor to our loaded set
+        if (currentCursor) {
+          setLoadedCursors((prev) => new Set(prev).add(currentCursor));
+        }
       }
 
       // Update cursors for pagination
