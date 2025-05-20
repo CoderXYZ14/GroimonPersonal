@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, KeyboardEvent } from "react";
+import { useState, useEffect, KeyboardEvent, useCallback } from "react";
 import { useAppSelector } from "@/redux/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -12,7 +12,6 @@ import {
   FormDescription,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -164,7 +163,8 @@ const formSchema = z
     (data) => {
       // If messageType is ButtonText or ButtonImage, at least one button is required
       if (
-        (data.messageType === "ButtonText" || data.messageType === "ButtonImage") &&
+        (data.messageType === "ButtonText" ||
+          data.messageType === "ButtonImage") &&
         (!data.buttons || data.buttons.length === 0)
       ) {
         return false;
@@ -180,12 +180,18 @@ const formSchema = z
     (data) => {
       // If messageType is ButtonText or ButtonImage, validate each button's URL and button text
       if (
-        (data.messageType === "ButtonText" || data.messageType === "ButtonImage") &&
-        data.buttons && data.buttons.length > 0
+        (data.messageType === "ButtonText" ||
+          data.messageType === "ButtonImage") &&
+        data.buttons &&
+        data.buttons.length > 0
       ) {
         // Check if any button has empty URL or button text
         const hasInvalidButton = data.buttons.some(
-          (button) => !button.url || button.url.trim() === "" || !button.buttonText || button.buttonText.trim() === ""
+          (button) =>
+            !button.url ||
+            button.url.trim() === "" ||
+            !button.buttonText ||
+            button.buttonText.trim() === ""
         );
         return !hasInvalidButton;
       }
@@ -216,7 +222,8 @@ const formSchema = z
     (data) => {
       // If messageType is ButtonText or ButtonImage, buttonTitle is required
       if (
-        (data.messageType === "ButtonText" || data.messageType === "ButtonImage") &&
+        (data.messageType === "ButtonText" ||
+          data.messageType === "ButtonImage") &&
         (!data.buttonTitle || data.buttonTitle.trim() === "")
       ) {
         return false;
@@ -243,10 +250,12 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
   const [enableFollowUp, setEnableFollowUp] = useState(
     // Check if follow-up message and button title are different from non-follower message and button title
     Boolean(
-      (automation.followUpMessage && automation.notFollowerMessage && 
-       automation.followUpMessage !== automation.notFollowerMessage) ||
-      (automation.followUpButtonTitle && automation.followButtonTitle && 
-       automation.followUpButtonTitle !== automation.followButtonTitle)
+      (automation.followUpMessage &&
+        automation.notFollowerMessage &&
+        automation.followUpMessage !== automation.notFollowerMessage) ||
+        (automation.followUpButtonTitle &&
+          automation.followButtonTitle &&
+          automation.followUpButtonTitle !== automation.followButtonTitle)
     )
   );
   const [isLoading, setIsLoading] = useState(false);
@@ -273,11 +282,11 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
   const [beforeCursor, setBeforeCursor] = useState<string | null>(null);
   const [afterCursor, setAfterCursor] = useState<string | null>(null);
 
-  const fetchMedia = async (
+  const fetchMedia = useCallback(async (
     direction: "initial" | "next" | "previous" = "initial"
   ) => {
     console.log(`Fetching media: ${direction} direction`);
-    
+
     if (direction === "initial") {
       setIsLoading(true);
       // Reset loaded cursors on initial load
@@ -372,7 +381,9 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
           const uniqueNewItems = newMediaItems.filter(
             (item) => !existingIds.has(item.id)
           );
-          console.log(`Adding ${uniqueNewItems.length} unique items to existing ${prevMedia.length} items`);
+          console.log(
+            `Adding ${uniqueNewItems.length} unique items to existing ${prevMedia.length} items`
+          );
           return [...prevMedia, ...uniqueNewItems];
         });
 
@@ -381,7 +392,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
           console.log(`Adding cursor ${currentCursor} to loaded set`);
           setLoadedCursors((prev) => new Set(prev).add(currentCursor));
         }
-        
+
         // Reset near-end flag after loading
         setIsNearEnd(false);
       } else if (direction === "previous") {
@@ -394,7 +405,9 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
           const uniqueNewItems = newMediaItems.filter(
             (item) => !existingIds.has(item.id)
           );
-          console.log(`Adding ${uniqueNewItems.length} unique items to beginning of existing ${prevMedia.length} items`);
+          console.log(
+            `Adding ${uniqueNewItems.length} unique items to beginning of existing ${prevMedia.length} items`
+          );
           return [...uniqueNewItems, ...prevMedia];
         });
 
@@ -403,7 +416,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
           console.log(`Adding cursor ${currentCursor} to loaded set`);
           setLoadedCursors((prev) => new Set(prev).add(currentCursor));
         }
-        
+
         // Reset near-beginning flag after loading
         setIsNearBeginning(false);
       }
@@ -414,7 +427,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
           console.log(`Setting after cursor: ${data.paging.cursors.after}`);
           setAfterCursor(data.paging.cursors.after);
         } else {
-          console.log('No after cursor available, setting to null');
+          console.log("No after cursor available, setting to null");
           setAfterCursor(null);
           setIsNearEnd(false);
         }
@@ -423,13 +436,13 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
           console.log(`Setting before cursor: ${data.paging.cursors.before}`);
           setBeforeCursor(data.paging.cursors.before);
         } else {
-          console.log('No before cursor available, setting to null');
+          console.log("No before cursor available, setting to null");
           setBeforeCursor(null);
           setIsNearBeginning(false);
         }
       } else {
         // If no paging object at all, clear both cursors
-        console.log('No paging object available, clearing all cursors');
+        console.log("No paging object available, clearing all cursors");
         setAfterCursor(null);
         setBeforeCursor(null);
         setIsNearEnd(false);
@@ -447,7 +460,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
       setIsLoading(false);
       setIsPaginating(false);
     }
-  };  
+  }, [user.instagramId, user.instagramAccessToken, afterCursor, beforeCursor, loadedCursors, setMedia, setIsLoading, setIsPaginating, setAfterCursor, setBeforeCursor, setIsNearEnd, setIsNearBeginning, setLoadedCursors, toast]);
 
   // Effect to preload next batch of posts when near the end
   useEffect(() => {
@@ -457,11 +470,11 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
       const timer = setTimeout(() => {
         fetchMedia("next");
       }, 300);
-      
+
       return () => clearTimeout(timer);
     }
   }, [isNearEnd, afterCursor, isPaginating, isLoading, fetchMedia]);
-  
+
   // Effect to preload previous batch of posts when near the beginning
   useEffect(() => {
     if (isNearBeginning && beforeCursor && !isPaginating && !isLoading) {
@@ -470,7 +483,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
       const timer = setTimeout(() => {
         fetchMedia("previous");
       }, 300);
-      
+
       return () => clearTimeout(timer);
     }
   }, [isNearBeginning, beforeCursor, isPaginating, isLoading, fetchMedia]);
@@ -595,10 +608,12 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
         "Please follow our account to receive the information you requested. Once you've followed, click the button below.",
       followButtonTitle: automation.followButtonTitle || "I'm following now!",
       enableFollowUp: Boolean(
-        (automation.followUpMessage && automation.notFollowerMessage && 
-         automation.followUpMessage !== automation.notFollowerMessage) ||
-        (automation.followUpButtonTitle && automation.followButtonTitle && 
-         automation.followUpButtonTitle !== automation.followButtonTitle)
+        (automation.followUpMessage &&
+          automation.notFollowerMessage &&
+          automation.followUpMessage !== automation.notFollowerMessage) ||
+          (automation.followUpButtonTitle &&
+            automation.followButtonTitle &&
+            automation.followUpButtonTitle !== automation.followButtonTitle)
       ),
       followUpMessage:
         automation.followUpMessage ||
@@ -709,14 +724,14 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
           : undefined,
         enableFollowUp: values.isFollowed ? values.enableFollowUp : false,
         followUpMessage: values.isFollowed
-          ? (values.enableFollowUp 
-              ? values.followUpMessage 
-              : values.notFollowerMessage)
+          ? values.enableFollowUp
+            ? values.followUpMessage
+            : values.notFollowerMessage
           : undefined,
         followUpButtonTitle: values.isFollowed
-          ? (values.enableFollowUp 
-              ? values.followUpButtonTitle 
-              : values.followButtonTitle)
+          ? values.enableFollowUp
+            ? values.followUpButtonTitle
+            : values.followButtonTitle
           : undefined,
         // Include buttonTitle at the main level
         buttonTitle:
@@ -1059,7 +1074,9 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                                   const distanceFromStart = element.scrollLeft;
 
                                   // Debug scroll metrics
-                                  console.log(`Scroll metrics - Distance from end: ${distanceFromEnd}, Distance from start: ${distanceFromStart}, Total width: ${element.scrollWidth}, Current position: ${element.scrollLeft}, Viewport width: ${element.clientWidth}`);
+                                  console.log(
+                                    `Scroll metrics - Distance from end: ${distanceFromEnd}, Distance from start: ${distanceFromStart}, Total width: ${element.scrollWidth}, Current position: ${element.scrollLeft}, Viewport width: ${element.clientWidth}`
+                                  );
 
                                   // Detect approaching end - set flag to preload next posts
                                   if (
@@ -1068,7 +1085,9 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                                     !isPaginating &&
                                     afterCursor
                                   ) {
-                                    console.log("Near end detected, setting isNearEnd flag");
+                                    console.log(
+                                      "Near end detected, setting isNearEnd flag"
+                                    );
                                     setIsNearEnd(true);
                                   }
 
@@ -1079,7 +1098,9 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                                     !isPaginating &&
                                     beforeCursor
                                   ) {
-                                    console.log("Near beginning detected, setting isNearBeginning flag");
+                                    console.log(
+                                      "Near beginning detected, setting isNearBeginning flag"
+                                    );
                                     setIsNearBeginning(true);
                                   }
 
@@ -1089,7 +1110,9 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                                     !isPaginating &&
                                     afterCursor
                                   ) {
-                                    console.log("Very close to end, directly loading next posts");
+                                    console.log(
+                                      "Very close to end, directly loading next posts"
+                                    );
                                     fetchMedia("next");
                                   }
 
@@ -1099,13 +1122,18 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                                     !isPaginating &&
                                     beforeCursor
                                   ) {
-                                    console.log("Very close to beginning, directly loading previous posts");
+                                    console.log(
+                                      "Very close to beginning, directly loading previous posts"
+                                    );
                                     fetchMedia("previous");
                                   }
                                 }
                               }}
                             >
-                              <div className="inline-flex gap-4 pl-2 pr-4" style={{ minWidth: media.length * 160 + "px" }}>
+                              <div
+                                className="inline-flex gap-4 pl-2 pr-4"
+                                style={{ minWidth: media.length * 160 + "px" }}
+                              >
                                 {media.map((item) => (
                                   <div
                                     key={item.id}
@@ -2155,18 +2183,19 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                             {form.watch("notFollowerMessage")}
                           </p>
                         )}
-                        
+
                         <div className="flex flex-col gap-2">
                           <div className="p-2 px-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
                             <span className="text-sm text-gray-800 dark:text-gray-200">
-                              {form.watch("followButtonTitle") || "I'm following now!"}
+                              {form.watch("followButtonTitle") ||
+                                "I'm following now!"}
                             </span>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Form Section - Right (3/4 width) */}
                   <div className="flex-1 space-y-6">
                     <FormField
@@ -2271,18 +2300,19 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                                 {form.watch("followUpMessage")}
                               </p>
                             )}
-                            
+
                             <div className="flex flex-col gap-2">
                               <div className="p-2 px-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
                                 <span className="text-sm text-gray-800 dark:text-gray-200">
-                                  {form.watch("followUpButtonTitle") || "Continue"}
+                                  {form.watch("followUpButtonTitle") ||
+                                    "Continue"}
                                 </span>
                               </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Form Section - Right (3/4 width) */}
                       <div className="flex-1 space-y-6">
                         <FormField

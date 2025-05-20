@@ -661,7 +661,7 @@ export function CreateAutomationForm() {
 
       return () => clearTimeout(timer);
     }
-  }, [isNearEnd, afterCursor, isPaginating, isLoading]);
+  }, [isNearEnd, afterCursor, isPaginating, isLoading, fetchMedia]);
 
   // Effect to preload previous batch of posts when near the beginning
   useEffect(() => {
@@ -673,7 +673,7 @@ export function CreateAutomationForm() {
 
       return () => clearTimeout(timer);
     }
-  }, [isNearBeginning, beforeCursor, isPaginating, isLoading]);
+  }, [isNearBeginning, beforeCursor, isPaginating, isLoading, fetchMedia]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -2343,18 +2343,19 @@ export function CreateAutomationForm() {
                             {form.watch("notFollowerMessage")}
                           </p>
                         )}
-                        
+
                         <div className="flex flex-col gap-2">
                           <div className="p-2 px-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
                             <span className="text-sm text-gray-800 dark:text-gray-200">
-                              {form.watch("followButtonTitle") || "I'm following now!"}
+                              {form.watch("followButtonTitle") ||
+                                "I'm following now!"}
                             </span>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Form Section - Right (3/4 width) */}
                   <div className="flex-1 space-y-6">
                     <FormField
@@ -2456,18 +2457,19 @@ export function CreateAutomationForm() {
                                 {form.watch("followUpMessage")}
                               </p>
                             )}
-                            
+
                             <div className="flex flex-col gap-2">
                               <div className="p-2 px-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
                                 <span className="text-sm text-gray-800 dark:text-gray-200">
-                                  {form.watch("followUpButtonTitle") || "Continue"}
+                                  {form.watch("followUpButtonTitle") ||
+                                    "Continue"}
                                 </span>
                               </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Form Section - Right (3/4 width) */}
                       <div className="flex-1 space-y-6">
                         <FormField
