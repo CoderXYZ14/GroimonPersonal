@@ -92,6 +92,7 @@ const formSchema = z
     isFollowed: z.boolean().default(false),
     notFollowerMessage: z.string().optional(),
     followButtonTitle: z.string().optional(),
+    enableFollowUp: z.boolean().default(false),
     followUpMessage: z.string().optional(),
     followUpButtonTitle: z.string().optional(),
     respondToAll: z.boolean().default(false),
@@ -223,6 +224,49 @@ const formSchema = z
       message: "Follow button title is required",
       path: ["followButtonTitle"],
     }
+  )
+  .refine(
+    (data) => {
+      // If messageType is ButtonText or ButtonImage, at least one button is required
+      if (
+        (data.messageType === "ButtonText" ||
+          data.messageType === "ButtonImage") &&
+        (!data.buttons || data.buttons.length === 0)
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "At least one button is required",
+      path: ["buttons"],
+    }
+  )
+  .refine(
+    (data) => {
+      // If messageType is ButtonText or ButtonImage, validate each button's URL and button text
+      if (
+        (data.messageType === "ButtonText" ||
+          data.messageType === "ButtonImage") &&
+        data.buttons &&
+        data.buttons.length > 0
+      ) {
+        // Check if any button has empty URL or button text
+        const hasInvalidButton = data.buttons.some(
+          (button) =>
+            !button.url ||
+            button.url.trim() === "" ||
+            !button.buttonText ||
+            button.buttonText.trim() === ""
+        );
+        return !hasInvalidButton;
+      }
+      return true;
+    },
+    {
+      message: "All buttons must have URL and button text",
+      path: ["buttons"],
+    }
   );
 
 interface InstagramMediaItem {
@@ -296,9 +340,10 @@ export function CreateAutomationForm() {
       notFollowerMessage:
         "Please follow our account to receive the information you requested. Once you've followed, click the button below.",
       followButtonTitle: "I'm following now!",
-
+      enableFollowUp: false,
       followUpMessage:
         "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
+      followUpButtonTitle: "I'm following now!",
       respondToAll: false,
       removeBranding: false,
     },
@@ -483,7 +528,7 @@ export function CreateAutomationForm() {
         if (currentCursor) {
           setLoadedCursors((prev) => new Set(prev).add(currentCursor));
         }
-        
+
         // Reset near-end flag after loading
         setIsNearEnd(false);
       } else if (direction === "previous") {
@@ -502,7 +547,7 @@ export function CreateAutomationForm() {
         if (currentCursor) {
           setLoadedCursors((prev) => new Set(prev).add(currentCursor));
         }
-        
+
         // Reset near-beginning flag after loading
         setIsNearBeginning(false);
       }
@@ -588,7 +633,7 @@ export function CreateAutomationForm() {
         } else {
           setAfterCursor(null);
         }
-        
+
         // Set before cursor if available
         if (data.paging?.cursors?.before) {
           setBeforeCursor(data.paging.cursors.before);
@@ -605,7 +650,7 @@ export function CreateAutomationForm() {
 
     initialFetch();
   }, [user.instagramId, user.instagramAccessToken]);
-  
+
   // Effect to preload next batch of posts when near the end
   useEffect(() => {
     if (isNearEnd && afterCursor && !isPaginating && !isLoading) {
@@ -613,11 +658,11 @@ export function CreateAutomationForm() {
       const timer = setTimeout(() => {
         fetchMedia("next");
       }, 300);
-      
+
       return () => clearTimeout(timer);
     }
   }, [isNearEnd, afterCursor, isPaginating, isLoading]);
-  
+
   // Effect to preload previous batch of posts when near the beginning
   useEffect(() => {
     if (isNearBeginning && beforeCursor && !isPaginating && !isLoading) {
@@ -625,7 +670,7 @@ export function CreateAutomationForm() {
       const timer = setTimeout(() => {
         fetchMedia("previous");
       }, 300);
-      
+
       return () => clearTimeout(timer);
     }
   }, [isNearBeginning, beforeCursor, isPaginating, isLoading]);
@@ -751,9 +796,15 @@ export function CreateAutomationForm() {
         followButtonTitle: values.isFollowed
           ? values.followButtonTitle
           : undefined,
-        followUpMessage: values.isFollowed ? values.followUpMessage : undefined,
+        followUpMessage: values.isFollowed
+          ? values.enableFollowUp
+            ? values.followUpMessage
+            : values.notFollowerMessage
+          : undefined,
         followUpButtonTitle: values.isFollowed
-          ? values.followUpButtonTitle
+          ? values.enableFollowUp
+            ? values.followUpButtonTitle
+            : values.followButtonTitle
           : undefined,
         respondToAll: Boolean(values.respondToAll),
       });
@@ -1102,9 +1153,12 @@ export function CreateAutomationForm() {
                                   const preloadThreshold = 500; // Even earlier threshold to detect approaching end
 
                                   // Calculate scroll position metrics
-                                  const distanceFromEnd = element.scrollWidth - element.scrollLeft - element.clientWidth;
+                                  const distanceFromEnd =
+                                    element.scrollWidth -
+                                    element.scrollLeft -
+                                    element.clientWidth;
                                   const distanceFromStart = element.scrollLeft;
-                                  
+
                                   // Detect approaching end - set flag to preload next posts
                                   if (
                                     distanceFromEnd <= preloadThreshold &&
@@ -1114,7 +1168,7 @@ export function CreateAutomationForm() {
                                   ) {
                                     setIsNearEnd(true);
                                   }
-                                  
+
                                   // Detect approaching beginning - set flag to preload previous posts
                                   if (
                                     distanceFromStart <= preloadThreshold &&
@@ -1827,7 +1881,15 @@ export function CreateAutomationForm() {
                                       setButtons(newButtons);
                                     }}
                                     placeholder="Button label"
+                                    className={
+                                      !button.buttonText ? "border-red-500" : ""
+                                    }
                                   />
+                                  {!button.buttonText && (
+                                    <p className="text-sm text-red-500 mt-1">
+                                      Button text is required
+                                    </p>
+                                  )}
                                 </div>
                                 <div>
                                   <Input
@@ -1838,12 +1900,30 @@ export function CreateAutomationForm() {
                                       setButtons(newButtons);
                                     }}
                                     placeholder="https://example.com"
+                                    className={
+                                      !button.url ? "border-red-500" : ""
+                                    }
                                   />
+                                  {!button.url && (
+                                    <p className="text-sm text-red-500 mt-1">
+                                      URL is required
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             </Card>
                           ))}
                         </div>
+
+                        {/* Display general error message for buttons */}
+                        {form.formState.errors.buttons && (
+                          <div className="mt-2 flex items-center gap-1.5 text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
+                            <AlertCircle size={16} />
+                            <p className="text-sm font-medium">
+                              {form.formState.errors.buttons.message}
+                            </p>
+                          </div>
+                        )}
 
                         <Button
                           type="button"
@@ -2199,10 +2279,12 @@ export function CreateAutomationForm() {
                 Ask to Follow
               </h2>
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
                 className="text-[#1A69DD] dark:text-[#26A5E9] hover:bg-[#1A69DD]/10 dark:hover:bg-[#26A5E9]/10 flex items-center gap-2"
                 onClick={toggleIsFollowed}
+                disabled={!form.watch("isFollowed")}
               >
                 {isFollowedOpen ? (
                   <ChevronUp className="w-4 h-4" />
@@ -2297,55 +2379,84 @@ export function CreateAutomationForm() {
 
                 <FormField
                   control={form.control}
-                  name="followUpMessage"
+                  name="enableFollowUp"
                   render={({ field }) => (
-                    <FormItem>
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
-                          <MessageCircle className="w-5 h-5" />
-                          Follow-up Message
+                    <FormItem className="flex flex-row items-center justify-between rounded-xl border-2 border-[#1A69DD]/20 dark:border-[#26A5E9]/20 p-4 bg-white dark:bg-gray-800">
+                      <div className="space-y-1">
+                        <Label className="text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                          Enable Follow-up Message
                         </Label>
-                        <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
-                          Sent after users follow your account
+                        <FormDescription className="text-gray-600 dark:text-gray-400">
+                          Send a different message after users follow your
+                          account
                         </FormDescription>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Thanks for following! Here's your message..."
-                            className="min-h-[120px] p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
                       </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          className="data-[state=checked]:bg-[#1A69DD] data-[state=unchecked]:bg-gray-200 dark:data-[state=unchecked]:bg-gray-600"
+                        />
+                      </FormControl>
                     </FormItem>
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="followUpButtonTitle"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
-                          <UserPlus className="w-5 h-5" />
-                          Follow-up Button Text
-                        </Label>
-                        <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
-                          Customize your follow-up button text
-                        </FormDescription>
-                        <FormControl>
-                          <Input
-                            placeholder="Continue"
-                            className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
-                      </div>
-                    </FormItem>
-                  )}
-                />
+                {form.watch("enableFollowUp") && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="followUpMessage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="space-y-2">
+                            <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                              <MessageCircle className="w-5 h-5" />
+                              Follow-up Message
+                            </Label>
+                            <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
+                              Sent after users follow your account
+                            </FormDescription>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Thanks for following! Here's your message..."
+                                className="min-h-[120px] p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="followUpButtonTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="space-y-2">
+                            <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                              <UserPlus className="w-5 h-5" />
+                              Follow-up Button Text
+                            </Label>
+                            <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
+                              Customize your follow-up button text
+                            </FormDescription>
+                            <FormControl>
+                              <Input
+                                placeholder="Continue"
+                                className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
               </motion.div>
             )}
           </motion.div>

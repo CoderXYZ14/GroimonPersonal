@@ -20,7 +20,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, Loader2, X } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  X,
+  Plus,
+  Check,
+  ChevronLeft,
+  Rocket,
+  Image as ImageIcon,
+  Globe as GlobeIcon,
+  MousePointerClick,
+  AlertCircle,
+  Info,
+  MessageCircle,
+  MessageSquareText,
+  Link as LinkIcon,
+  Trash2,
+  Eye,
+  UserPlus,
+  UserX,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Switch } from "@/components/ui/switch";
 import { IAutomation } from "@/models/Automation";
@@ -28,6 +49,10 @@ import { toast } from "sonner";
 import axios from "axios";
 import Image from "next/image";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import SimpleBar from "simplebar-react";
+import "simplebar-react/dist/simplebar.min.css";
+import { cn } from "@/lib/utils";
 
 interface InstagramMediaItem {
   id: string;
@@ -85,6 +110,12 @@ const formSchema = z
     buttons: z.array(buttonSchema).optional(),
     enableCommentAutomation: z.boolean(),
     commentMessage: z.array(z.string()).optional().default([]),
+    autoReplyLimit: z
+      .number()
+      .refine((val) => val === -1 || val >= 100, {
+        message: "Minimum value: 100, or choose 'Unlimited'",
+      })
+      .default(100),
     enableBacktrack: z.boolean().default(false),
     isFollowed: z.boolean().default(false),
     notFollowerMessage: z.string().optional(),
@@ -520,59 +551,102 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
   return (
     <div className="w-full">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Input
-                      placeholder="Untitled"
-                      className="text-xl font-medium border-none focus-visible:ring-0 px-2 bg-transparent max-w-[200px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex gap-2">
-              <Link href="/dashboard/automation?type=post">
-                <Button
-                  variant="outline"
-                  className="border-gray-200 dark:border-gray-700"
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* Header Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-[#1A69DD]/20 dark:border-gray-700"
+          >
+            <div className="px-2 sm:px-3 lg:px-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-3 md:gap-4 md:py-4">
+                {/* Title Input */}
+                <motion.div
+                  whileHover={{ scale: 1.01 }}
+                  className="w-full sm:max-w-[300px] lg:max-w-[400px] relative flex-1"
                 >
-                  Back
-                </Button>
-              </Link>
-              <Button
-                type="submit"
-                className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  "Update"
-                )}
-              </Button>
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem className="w-full">
+                        <FormControl>
+                          <Input
+                            placeholder="✨ Name Your Automation"
+                            className="text-base md:text-lg font-semibold bg-transparent border-gradient-to-r from-[#1A69DD]/30 to-[#26A5E9]/30 dark:border-[#26A5E9]/30 focus-visible:ring-0 px-3 py-2 placeholder:text-[#1A69DD]/60 dark:placeholder:text-[#26A5E9]/80"
+                            {...field}
+                          />
+                        </FormControl>
+                        {/* <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-[#1A69DD]/30 to-[#26A5E9]/30" /> */}
+                        <FormMessage className="text-sm mt-1 ml-2" />
+                      </FormItem>
+                    )}
+                  />
+                </motion.div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                  <motion.div
+                    whileHover={{ x: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full sm:w-auto"
+                  >
+                    <Link href="/dashboard/automation?type=post">
+                      <Button
+                        variant="ghost"
+                        className="w-full sm:w-auto gap-2 text-sm sm:text-base font-medium text-[#1A69DD] dark:text-[#26A5E9] hover:bg-[#1A69DD]/10 dark:hover:bg-[#26A5E9]/10 border border-[#1A69DD]/20 dark:border-[#26A5E9]/30"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        <span>Back to Dashboard</span>
+                      </Button>
+                    </Link>
+                  </motion.div>
+
+                  <motion.div
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    className="w-full sm:w-auto"
+                  >
+                    <Button
+                      type="submit"
+                      className="w-full sm:w-auto text-sm sm:text-base font-medium bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] text-white shadow-lg shadow-[#1A69DD]/20 dark:shadow-[#26A5E9]/30"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin text-white/90" />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <Rocket className="h-4 w-4 mr-2" />
+                          Update Automation
+                        </>
+                      )}
+                    </Button>
+                  </motion.div>
+                </div>
+              </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Post selection section */}
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">Posts</h2>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-[#1A69DD]/10 dark:border-gray-700"
+          >
+            {/* Section Header */}
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent">
+                Posts
+              </h2>
               {form.watch("applyOption") === "selected" && (
                 <Button
                   type="button"
                   variant="ghost"
-                  className="text-gray-600 dark:text-gray-300 flex items-center"
+                  className="text-gray-600 dark:text-gray-300 flex items-center hover:bg-[#1A69DD]/10 dark:hover:bg-[#26A5E9]/10"
                   onClick={toggleSelectPost}
                 >
                   Select post
@@ -585,6 +659,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
               )}
             </div>
 
+            {/* Automation Type Selection */}
             <FormField
               control={form.control}
               name="applyOption"
@@ -594,185 +669,328 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                     <RadioGroup
                       onValueChange={field.onChange}
                       value={field.value}
-                      className="grid grid-cols-2 gap-4"
+                      className="grid grid-cols-1 lg:grid-cols-2 gap-6"
                     >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="all" id="all" />
-                        <Label htmlFor="all" className="text-sm">
-                          Apply on all posts
+                      {/* All Posts Card */}
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="relative"
+                      >
+                        <RadioGroupItem
+                          value="all"
+                          id="all"
+                          className="peer hidden"
+                        />
+                        <Label
+                          htmlFor="all"
+                          className={cn(
+                            "flex flex-col p-6 border-3 rounded-2xl cursor-pointer transition-all",
+                            field.value === "all"
+                              ? "border-[#1A69DD] bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10"
+                              : "border-gray-200 dark:border-gray-700 hover:border-[#1A69DD]/50"
+                          )}
+                        >
+                          <div className="flex items-center gap-3 mb-4">
+                            <div
+                              className={cn(
+                                "p-2 rounded-full transition-colors",
+                                field.value === "all"
+                                  ? "bg-[#1A69DD] dark:bg-[#26A5E9]"
+                                  : "bg-[#1A69DD]/10 dark:bg-[#26A5E9]/10"
+                              )}
+                            >
+                              <GlobeIcon
+                                className={cn(
+                                  "h-6 w-6 transition-colors",
+                                  field.value === "all"
+                                    ? "text-white"
+                                    : "text-[#1A69DD] dark:text-[#26A5E9]"
+                                )}
+                              />
+                            </div>
+                            <h3 className="text-lg font-semibold">All Posts</h3>
+                          </div>
+                          <p className="text-gray-600 dark:text-gray-300">
+                            Automatically apply this workflow to all existing
+                            posts
+                          </p>
+
+                          {/* Selection Indicator */}
+                          <div
+                            className={cn(
+                              "absolute top-4 right-4 flex items-center justify-center h-6 w-6 rounded-full border-2 transition-colors",
+                              field.value === "all"
+                                ? "border-[#1A69DD] bg-[#1A69DD] dark:border-[#26A5E9] dark:bg-[#26A5E9]"
+                                : "border-gray-300"
+                            )}
+                          >
+                            <Check className="h-4 w-4 text-white opacity-100 transition-opacity" />
+                          </div>
                         </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="selected" id="selected" />
-                        <Label htmlFor="selected" className="text-sm">
-                          Apply on selected post
+                      </motion.div>
+
+                      {/* Specific Post Card */}
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="relative"
+                      >
+                        <RadioGroupItem
+                          value="selected"
+                          id="selected"
+                          className="peer hidden"
+                        />
+                        <Label
+                          htmlFor="selected"
+                          className={cn(
+                            "flex flex-col p-6 border-3 rounded-2xl cursor-pointer transition-all",
+                            field.value === "selected"
+                              ? "border-[#1A69DD] bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10"
+                              : "border-gray-200 dark:border-gray-700 hover:border-[#1A69DD]/50"
+                          )}
+                        >
+                          <div className="flex items-center gap-3 mb-4">
+                            <div
+                              className={cn(
+                                "p-2 rounded-full transition-colors",
+                                field.value === "selected"
+                                  ? "bg-[#1A69DD] dark:bg-[#26A5E9]"
+                                  : "bg-[#1A69DD]/10 dark:bg-[#26A5E9]/10"
+                              )}
+                            >
+                              <MousePointerClick
+                                className={cn(
+                                  "h-6 w-6 transition-colors",
+                                  field.value === "selected"
+                                    ? "text-white"
+                                    : "text-[#1A69DD] dark:text-[#26A5E9]"
+                                )}
+                              />
+                            </div>
+                            <h3 className="text-lg font-semibold">
+                              Specific Post
+                            </h3>
+                          </div>
+                          <p className="text-gray-600 dark:text-gray-300">
+                            Choose individual posts to apply this automation
+                            workflow
+                          </p>
+
+                          {/* Selection Indicator */}
+                          <div
+                            className={cn(
+                              "absolute top-4 right-4 flex items-center justify-center h-6 w-6 rounded-full border-2 transition-colors",
+                              field.value === "selected"
+                                ? "border-[#1A69DD] bg-[#1A69DD] dark:border-[#26A5E9] dark:bg-[#26A5E9]"
+                                : "border-gray-300"
+                            )}
+                          >
+                            <Check className="h-4 w-4 text-white opacity-100 transition-opacity" />
+                          </div>
                         </Label>
-                      </div>
+                      </motion.div>
                     </RadioGroup>
                   </FormControl>
                 </FormItem>
               )}
             />
 
-            {form.watch("applyOption") === "selected" && (
-              <div className="mt-4">
-                {isLoading ? (
-                  <div className="flex justify-center py-6">
-                    <div className="w-8 h-8 border-4 border-t-purple-500 border-b-purple-300 border-l-purple-300 border-r-purple-300 rounded-full animate-spin"></div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {media.length > 0 ? (
-                      media.map((item) => (
-                        <Card
-                          key={item.id}
-                          className={`overflow-hidden w-full border transition-transform hover:scale-[1.02] cursor-pointer ${
-                            form.watch("postId") === item.id
-                              ? "border-primary border-2"
-                              : "border-gray-200 dark:border-gray-700"
-                          }`}
-                          onClick={() => {
-                            // Simple approach - just set the form value directly
-                            form.setValue("postId", item.id);
-                          }}
-                        >
-                          <div className="aspect-square bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                            {item.mediaType === "IMAGE" && (
-                              <Image
-                                src={item.mediaUrl}
-                                alt={item.title}
-                                width={150}
-                                height={150}
-                                className="w-full h-full object-cover"
-                                unoptimized={true}
-                                loading="lazy"
-                              />
-                            )}
-                            {item.mediaType === "VIDEO" && (
-                              <div className="relative w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                                {item.thumbnailUrl ? (
-                                  <Image
-                                    src={item.thumbnailUrl}
-                                    alt={item.title}
-                                    width={150}
-                                    height={150}
-                                    className="w-full h-full object-cover"
-                                    unoptimized={true}
-                                    loading="lazy"
-                                  />
-                                ) : (
-                                  <span className="absolute text-gray-500 dark:text-gray-400 text-xs">
-                                    Video Preview
-                                  </span>
+            {/* Post Selection Grid */}
+            <AnimatePresence>
+              {form.watch("applyOption") === "selected" && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-8"
+                >
+                  {selectPostOpen && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="space-y-6"
+                    >
+                      {isLoading ? (
+                        <div className="flex justify-center py-12">
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ repeat: Infinity, duration: 1.5 }}
+                            className="h-12 w-12 rounded-full border-4 border-[#1A69DD] border-t-transparent"
+                          />
+                        </div>
+                      ) : (
+                        <div className="relative flex flex-col space-y-4">
+                          <div className="relative">
+                            <SimpleBar
+                              className={`py-2 ${
+                                form.formState.errors.postId
+                                  ? "border-2 border-red-500 dark:border-red-500 rounded-lg p-2"
+                                  : ""
+                              }`}
+                              style={{ height: "100%", overflowX: "auto" }}
+                              autoHide={false}
+                            >
+                              <div className="inline-flex gap-4 pl-2 pr-4">
+                                {media.map((item) => (
+                                  <div
+                                    key={item.id}
+                                    className="inline-block w-[250px] flex-shrink-0"
+                                  >
+                                    <FormField
+                                      control={form.control}
+                                      name="postId"
+                                      render={({ field }) => (
+                                        <RadioGroup
+                                          value={field.value}
+                                          onValueChange={field.onChange}
+                                        >
+                                          <Label className="block relative group cursor-pointer">
+                                            <motion.div
+                                              whileHover={{ scale: 1.03 }}
+                                              className={cn(
+                                                "relative aspect-square rounded-xl overflow-hidden border-4 transition-all",
+                                                field.value === item.id
+                                                  ? "border-[#1A69DD] dark:border-[#26A5E9]"
+                                                  : "border-transparent group-hover:border-[#1A69DD]/30"
+                                              )}
+                                            >
+                                              <div className="relative h-full w-full bg-gray-100 dark:bg-gray-700">
+                                                {item.mediaType === "IMAGE" && (
+                                                  <Image
+                                                    src={item.mediaUrl}
+                                                    alt={item.title}
+                                                    fill
+                                                    className="object-cover"
+                                                    loading="lazy"
+                                                  />
+                                                )}
+                                              </div>
+
+                                              <div
+                                                className={cn(
+                                                  "absolute inset-0 flex items-center justify-center bg-black/40 transition-opacity",
+                                                  field.value === item.id
+                                                    ? "opacity-100"
+                                                    : "opacity-0"
+                                                )}
+                                              >
+                                                <Check className="h-8 w-8 text-white" />
+                                              </div>
+
+                                              <div className="absolute top-2 right-2">
+                                                <div
+                                                  className={cn(
+                                                    "h-6 w-6 rounded-full border-2 flex items-center justify-center",
+                                                    field.value === item.id
+                                                      ? "border-white bg-[#1A69DD] dark:bg-[#26A5E9] opacity-100"
+                                                      : "border-white bg-[#1A69DD]/60 dark:bg-[#26A5E9]/60 opacity-0 group-hover:opacity-70"
+                                                  )}
+                                                >
+                                                  <Check className="h-4 w-4 text-white" />
+                                                </div>
+                                                <RadioGroupItem
+                                                  value={item.id}
+                                                  className="sr-only"
+                                                />
+                                              </div>
+                                            </motion.div>
+                                          </Label>
+                                        </RadioGroup>
+                                      )}
+                                    />
+                                  </div>
+                                ))}
+
+                                {isPaginating && (
+                                  <div className="inline-flex w-[250px] flex-shrink-0 items-center justify-center">
+                                    <Loader2 className="h-8 w-8 animate-spin text-[#1A69DD] dark:text-[#26A5E9]" />
+                                  </div>
                                 )}
                               </div>
-                            )}
-                            {item.mediaType === "CAROUSEL_ALBUM" && (
-                              <Image
-                                src={
-                                  item.thumbnailUrl ||
-                                  "/api/placeholder/150/150"
-                                }
-                                alt={item.title}
-                                width={150}
-                                height={150}
-                                className="w-full h-full object-cover"
-                                unoptimized={true}
-                                loading="lazy"
-                              />
+                            </SimpleBar>
+
+                            {form.formState.errors.postId && (
+                              <div className="mt-2 flex items-center gap-1.5 text-red-500 dark:text-red-400">
+                                <AlertCircle size={14} />
+                                <p className="text-sm font-medium">
+                                  {form.formState.errors.postId.message}
+                                </p>
+                              </div>
                             )}
                           </div>
-                          <div className="p-2 flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                              <input
-                                type="radio"
-                                id={item.id}
-                                value={item.id}
-                                checked={form.watch("postId") === item.id}
-                                onChange={() =>
-                                  form.setValue("postId", item.id)
-                                }
-                                className="h-4 w-4 text-primary"
-                              />
-                              <label
-                                htmlFor={item.id}
-                                className="text-xs cursor-pointer"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                Select
-                              </label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <p className="text-xs font-medium truncate">
-                                {item.title || "No caption"}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {new Date(item.timestamp).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                        </Card>
-                      ))
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Pagination */}
+            {(currentPage > 0 || afterCursor) && (
+              <div className="flex justify-center gap-4 mt-6 w-full">
+                {currentPage > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fetchMedia("previous")}
+                    disabled={isPaginating || isLoading}
+                    className="px-6 border-[#1A69DD] text-[#1A69DD] hover:bg-[#1A69DD]/10 dark:border-[#26A5E9] dark:text-[#26A5E9]"
+                  >
+                    {isPaginating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <div className="text-center w-full py-4 text-muted-foreground">
-                        No media found
-                      </div>
+                      "← Previous"
                     )}
-                  </div>
+                  </Button>
+                )}
+                {afterCursor && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fetchMedia("next")}
+                    disabled={isPaginating || isLoading}
+                    className="px-6 border-[#1A69DD] text-[#1A69DD] hover:bg-[#1A69DD]/10 dark:border-[#26A5E9] dark:text-[#26A5E9]"
+                  >
+                    {isPaginating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Next →"
+                    )}
+                  </Button>
                 )}
               </div>
             )}
-          </div>
+          </motion.div>
 
-          {/* Only show pagination when needed */}
-          {currentPage > 0 || afterCursor ? (
-            <div className="flex justify-center gap-4 mt-6 w-full">
-              {currentPage > 0 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fetchMedia("previous")}
-                  disabled={isPaginating || isLoading}
-                  className="px-6"
-                >
-                  {isPaginating ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "← Previous"
-                  )}
-                </Button>
-              )}
-              {afterCursor && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fetchMedia("next")}
-                  disabled={isPaginating || isLoading}
-                  className="px-6"
-                >
-                  {isPaginating ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Next →"
-                  )}
-                </Button>
-              )}
-            </div>
-          ) : null}
-
-          {/* Trigger/Keywords section */}
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+          {/* Trigger/Keywords Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-[#1A69DD]/10 dark:border-gray-700"
+          >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">Trigger</h2>
+              <div className="flex items-center">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent mr-12">
+                  Trigger
+                </h2>
+                <div className="relative group -ml-9">
+                  <Info className="h-5 w-5 text-[#1A69DD] dark:text-[#26A5E9]" />
+                  <div className="absolute hidden group-hover:block bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 dark:bg-gray-100 text-white dark:text-gray-900 text-sm rounded-lg shadow-lg w-64 text-center">
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-gray-800 dark:bg-gray-100 rotate-45"></div>
+                    Keywords are not case-sensitive, e.g., “Groimon” and
+                    “groimon” are recognized as the same.
+                  </div>
+                </div>
+              </div>
               {!form.watch("respondToAll") && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="text-green-500 flex items-center"
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  className="px-3 py-1 rounded-full bg-[#1A69DD]/10 dark:bg-[#26A5E9]/10 text-[#1A69DD] dark:text-[#26A5E9]"
                 >
-                  {keywordsCount} keyword{keywordsCount !== 1 ? "s" : ""}
-                  <ChevronDown className="w-4 h-4 ml-1" />
-                </Button>
+                  {keywordsCount} {keywordsCount === 1 ? "Keyword" : "Keywords"}
+                </motion.div>
               )}
             </div>
 
@@ -780,318 +998,555 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
               control={form.control}
               name="respondToAll"
               render={({ field }) => (
-                <FormItem className="space-y-3">
+                <FormItem>
                   <FormControl>
                     <RadioGroup
-                      onValueChange={(value) =>
-                        field.onChange(value === "true")
-                      }
-                      defaultValue={field.value ? "true" : "false"}
-                      className="flex flex-col space-y-1"
+                      onValueChange={(value) => {
+                        const boolValue = value === "true";
+                        field.onChange(boolValue);
+                        if (boolValue) form.clearErrors("keywords");
+                      }}
+                      value={field.value ? "true" : "false"}
+                      className="grid grid-cols-1 md:grid-cols-2 gap-4"
                     >
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="false" />
-                        </FormControl>
-                        <Label className="font-normal">
-                          a specific word or words
+                      {/* Specific Words Option */}
+                      <motion.div whileHover={{ scale: 1.02 }}>
+                        <Label
+                          htmlFor="specific"
+                          className={cn(
+                            "flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all",
+                            field.value === false
+                              ? "border-[#1A69DD] bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10"
+                              : "border-gray-200 dark:border-gray-700 hover:border-[#1A69DD]/50"
+                          )}
+                        >
+                          <RadioGroupItem
+                            value="false"
+                            id="specific"
+                            className="peer hidden"
+                          />
+                          <div className="flex items-center gap-3">
+                            <div className="h-6 w-6 rounded-full border-2 flex items-center justify-center border-current">
+                              <div
+                                className={cn(
+                                  "h-3 w-3 rounded-full transition-all",
+                                  field.value === false
+                                    ? "bg-[#1A69DD] dark:bg-[#26A5E9]"
+                                    : "bg-transparent"
+                                )}
+                              />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-base">
+                                Specific Words
+                              </h3>
+                              <p className="text-sm text-gray-500 dark:text-gray-300">
+                                Respond when specific keywords are used
+                              </p>
+                            </div>
+                          </div>
                         </Label>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="true" />
-                        </FormControl>
-                        <Label className="font-normal">any word</Label>
-                      </FormItem>
+                      </motion.div>
+
+                      {/* Any Word Option */}
+                      <motion.div whileHover={{ scale: 1.02 }}>
+                        <Label
+                          htmlFor="any"
+                          className={cn(
+                            "flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all",
+                            field.value === true
+                              ? "border-[#1A69DD] bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10"
+                              : "border-gray-200 dark:border-gray-700 hover:border-[#1A69DD]/50"
+                          )}
+                        >
+                          <RadioGroupItem
+                            value="true"
+                            id="any"
+                            className="peer hidden"
+                          />
+                          <div className="flex items-center gap-3">
+                            <div className="h-6 w-6 rounded-full border-2 flex items-center justify-center">
+                              <div
+                                className={cn(
+                                  "h-3 w-3 rounded-full transition-all",
+                                  field.value === true
+                                    ? "bg-[#1A69DD] dark:bg-[#26A5E9]"
+                                    : "bg-transparent"
+                                )}
+                              />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-base">
+                                Any Word
+                              </h3>
+                              <p className="text-sm text-gray-500 dark:text-gray-300">
+                                Respond to all messages
+                              </p>
+                            </div>
+                          </div>
+                        </Label>
+                      </motion.div>
                     </RadioGroup>
                   </FormControl>
                 </FormItem>
               )}
             />
 
-            {!form.watch("respondToAll") && (
-              <div className="mt-4">
-                <FormField
-                  control={form.control}
-                  name="keywords"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex flex-col space-y-3">
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          {field.value?.map((keyword, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-md px-3 py-1 text-sm"
-                            >
-                              <span className="mr-1">{keyword}</span>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const newKeywords = [...field.value];
-                                  newKeywords.splice(index, 1);
-                                  field.onChange(newKeywords);
-                                }}
-                                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 ml-1"
-                              >
-                                <X size={12} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="flex">
-                          <Input
-                            placeholder="Add keyword"
-                            className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-md"
-                            value={newKeyword}
-                            onChange={(e) => setNewKeyword(e.target.value)}
-                            onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-                              if (e.key === "Enter" && newKeyword.trim()) {
-                                e.preventDefault();
-                                const trimmedKeyword = newKeyword.trim();
-                                // Check if keyword already exists (case insensitive)
-                                if (
-                                  !field.value?.some(
-                                    (k) =>
-                                      k.toLowerCase() ===
-                                      trimmedKeyword.toLowerCase()
-                                  )
-                                ) {
-                                  const updatedKeywords = [
-                                    ...(field.value || []),
-                                  ];
-                                  updatedKeywords.push(trimmedKeyword);
-                                  field.onChange(updatedKeywords);
-                                  setNewKeyword("");
-                                } else {
-                                  toast.error("This keyword already exists");
-                                  setNewKeyword("");
-                                }
-                              }
-                            }}
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="ml-2"
-                            onClick={() => {
-                              if (newKeyword.trim()) {
-                                const trimmedKeyword = newKeyword.trim();
-                                // Check if keyword already exists (case insensitive)
-                                if (
-                                  !field.value?.some(
-                                    (k) =>
-                                      k.toLowerCase() ===
-                                      trimmedKeyword.toLowerCase()
-                                  )
-                                ) {
-                                  const updatedKeywords = [
-                                    ...(field.value || []),
-                                  ];
-                                  updatedKeywords.push(trimmedKeyword);
-                                  field.onChange(updatedKeywords);
-                                  setNewKeyword("");
-                                } else {
-                                  toast.error("This keyword already exists");
-                                  setNewKeyword("");
-                                }
-                              }
-                            }}
-                          >
-                            Add
-                          </Button>
-                        </div>
-                      </div>
-                      <FormDescription className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                        Press Enter or click Add to add a keyword
-                      </FormDescription>
-                      {form.formState.isSubmitted &&
-                        (!field.value || field.value.length === 0) && (
-                          <p className="text-sm font-medium text-destructive mt-2">
-                            At least one keyword is required when not responding
-                            to all messages
-                          </p>
-                        )}
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
-          </div>
+            <AnimatePresence>
+              {!form.watch("respondToAll") && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-6"
+                >
+                  <FormField
+                    control={form.control}
+                    name="keywords"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="space-y-4">
+                          <div className="flex flex-wrap gap-2">
+                            <AnimatePresence>
+                              {field.value?.map((keyword, index) => (
+                                <motion.div
+                                  key={index}
+                                  initial={{ scale: 0.8, opacity: 0 }}
+                                  animate={{ scale: 1, opacity: 1 }}
+                                  exit={{ scale: 0.8, opacity: 0 }}
+                                  className="flex items-center bg-[#1A69DD]/10 dark:bg-[#26A5E9]/10 rounded-full px-3 py-1.5"
+                                >
+                                  <span className="text-[#1A69DD] dark:text-[#26A5E9] text-base font-medium mr-1">
+                                    {keyword}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newKeywords = [...field.value];
+                                      newKeywords.splice(index, 1);
+                                      field.onChange(newKeywords);
+                                    }}
+                                    className="text-[#1A69DD] dark:text-[#26A5E9] hover:text-[#1A69DD]/70 dark:hover:text-[#26A5E9]/70"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                </motion.div>
+                              ))}
+                            </AnimatePresence>
+                          </div>
 
-          {/* DM Type section */}
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+                          <div className="relative">
+                            <Input
+                              placeholder="Add keyword"
+                              className={`w-full py-6 px-6 rounded-xl border-2 ${
+                                form.formState.errors.keywords
+                                  ? "border-red-500 dark:border-red-500"
+                                  : "border-gray-200 dark:border-gray-700"
+                              } focus:border-[#1A69DD] focus:ring-0 dark:focus:border-[#26A5E9]`}
+                              value={newKeyword}
+                              onChange={(e) => setNewKeyword(e.target.value)}
+                              onKeyDown={(
+                                e: KeyboardEvent<HTMLInputElement>
+                              ) => {
+                                if (e.key === "Enter" && newKeyword.trim()) {
+                                  e.preventDefault();
+                                  const trimmedKeyword = newKeyword.trim();
+                                  if (
+                                    !field.value?.some(
+                                      (k) =>
+                                        k.toLowerCase() ===
+                                        trimmedKeyword.toLowerCase()
+                                    )
+                                  ) {
+                                    const updatedKeywords = [
+                                      ...(field.value || []),
+                                    ];
+                                    updatedKeywords.push(trimmedKeyword);
+                                    field.onChange(updatedKeywords);
+                                    setNewKeyword("");
+                                  } else {
+                                    toast.error("This keyword already exists");
+                                    setNewKeyword("");
+                                  }
+                                }
+                              }}
+                            />
+                            <motion.button
+                              whileHover={{ scale: 1.03 }}
+                              whileTap={{ scale: 0.97 }}
+                              type="button"
+                              onClick={() => {
+                                if (newKeyword.trim()) {
+                                  const trimmedKeyword = newKeyword.trim();
+                                  if (
+                                    !field.value?.some(
+                                      (k) =>
+                                        k.toLowerCase() ===
+                                        trimmedKeyword.toLowerCase()
+                                    )
+                                  ) {
+                                    const updatedKeywords = [
+                                      ...(field.value || []),
+                                    ];
+                                    updatedKeywords.push(trimmedKeyword);
+                                    field.onChange(updatedKeywords);
+                                    setNewKeyword("");
+                                  } else {
+                                    toast.error("This keyword already exists");
+                                    setNewKeyword("");
+                                  }
+                                }
+                              }}
+                              className="absolute right-2 top-2 bottom-2 px-4 bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] text-white rounded-lg flex items-center gap-2"
+                            >
+                              <Plus size={18} />
+                              <span className="font-semibold">Add</span>
+                            </motion.button>
+                          </div>
+
+                          {form.formState.errors.keywords && (
+                            <div className="mt-2 flex items-center gap-1.5 text-red-500 dark:text-red-400">
+                              <AlertCircle size={14} />
+                              <p className="text-sm font-medium">
+                                {form.formState.errors.keywords.message}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+
+          {/* DM Type Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-[#1A69DD]/10 dark:border-gray-700"
+          >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">DM Message</h2>
-              <Button
-                type="button"
-                variant="ghost"
-                className="text-green-500 flex items-center"
-                onClick={toggleDmType}
-              >
-                Message Type
-                {dmTypeOpen ? (
-                  <ChevronUp className="w-4 h-4 ml-1" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 ml-1" />
-                )}
-              </Button>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent">
+                DM Type
+              </h2>
+              <motion.div whileHover={{ scale: 1.05 }}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-[#1A69DD] dark:text-[#26A5E9] hover:bg-[#1A69DD]/10 dark:hover:bg-[#26A5E9]/10"
+                  onClick={toggleDmType}
+                >
+                  <MessageCircle className="w-4 h-4" /> Message Type
+                  {dmTypeOpen ? (
+                    <ChevronUp className="w-4 h-4 ml-1" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 ml-1" />
+                  )}
+                </Button>
+              </motion.div>
             </div>
 
-            {dmTypeOpen && (
-              <div className="mt-4 space-y-4">
-                <FormField
-                  control={form.control}
-                  name="messageType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="grid grid-cols-3 gap-4"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="message" id="message" />
-                            <Label htmlFor="message">Message</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="ButtonText"
-                              id="ButtonText"
-                            />
-                            <Label htmlFor="ButtonText">Button Text</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="ButtonImage"
-                              id="ButtonImage"
-                            />
-                            <Label htmlFor="ButtonImage">Button Image</Label>
-                          </div>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {messageType === "message" && (
+            <AnimatePresence>
+              {dmTypeOpen && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-6"
+                >
+                  {/* Message Type Selection */}
                   <FormField
                     control={form.control}
-                    name="message"
+                    name="messageType"
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          <Textarea
-                            placeholder="Enter your message template"
-                            className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[120px]"
-                            {...field}
-                          />
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value || ""}
+                            className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                          >
+                            {["message", "ButtonText", "ButtonImage"].map(
+                              (type) => (
+                                <motion.div
+                                  key={type}
+                                  whileHover={{ scale: 1.02 }}
+                                  className="relative"
+                                >
+                                  <RadioGroupItem
+                                    value={type}
+                                    id={type}
+                                    className="peer hidden"
+                                  />
+                                  <Label
+                                    htmlFor={type}
+                                    className={cn(
+                                      "flex flex-col p-4 border-2 rounded-xl cursor-pointer transition-all",
+                                      field.value === type
+                                        ? "border-[#1A69DD] bg-[#1A69DD]/5 dark:border-[#26A5E9] dark:bg-[#26A5E9]/10"
+                                        : "border-gray-200 dark:border-gray-700 hover:border-[#1A69DD]/50"
+                                    )}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      {/* Custom Radio Indicator */}
+                                      <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center border-current">
+                                        <div
+                                          className={cn(
+                                            "w-3 h-3 rounded-full transition-all",
+                                            field.value === type
+                                              ? "bg-[#1A69DD] dark:bg-[#26A5E9]"
+                                              : "bg-transparent"
+                                          )}
+                                        />
+                                      </div>
+
+                                      {/* Icon Container */}
+                                      <div className="p-2 rounded-lg bg-[#1A69DD]/10 dark:bg-[#26A5E9]/10">
+                                        {type === "message" && (
+                                          <MessageSquareText className="w-5 h-5 text-[#1A69DD] dark:text-[#26A5E9]" />
+                                        )}
+                                        {type === "ButtonText" && (
+                                          <LinkIcon className="w-5 h-5 text-[#1A69DD] dark:text-[#26A5E9]" />
+                                        )}
+                                        {type === "ButtonImage" && (
+                                          <ImageIcon className="w-5 h-5 text-[#1A69DD] dark:text-[#26A5E9]" />
+                                        )}
+                                      </div>
+
+                                      <span className="font-medium text-base capitalize dark:text-gray-200">
+                                        {type.replace(/([A-Z])/g, " $1").trim()}
+                                      </span>
+                                    </div>
+                                  </Label>
+                                </motion.div>
+                              )
+                            )}
+                          </RadioGroup>
                         </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
-                )}
 
-                {messageType === "ButtonImage" && (
-                  <FormField
-                    control={form.control}
-                    name="imageUrl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <div className="space-y-2">
-                            <Label>Main Image URL</Label>
-                            <Input
-                              placeholder="https://example.com/main-image.jpg"
-                              className="w-full"
-                              {...field}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
-                {(messageType === "ButtonText" ||
-                  messageType === "ButtonImage") && (
-                  <div className="space-y-4">
-                    {/* Button Title moved to form level */}
+                  {form.watch("messageType") === "message" && (
                     <FormField
                       control={form.control}
-                      name="buttonTitle"
+                      name="message"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Button Title</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter Title" {...field} />
+                            <Textarea
+                              placeholder="Enter the message to send as an auto-reply"
+                              className={`w-full p-4 border-2 ${
+                                form.formState.errors.message
+                                  ? "border-red-500 dark:border-red-500"
+                                  : "border-gray-200 dark:border-gray-700"
+                              } rounded-lg min-h-[140px] 
+                                        text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800/90
+                                        focus:border-[#1A69DD] dark:focus:border-[#26A5E9] focus:ring-2 
+                                        focus:ring-[#1A69DD]/20 dark:focus:ring-[#26A5E9]/30
+                                        hover:border-gray-300 dark:hover:border-gray-600
+                                        transition-all duration-200 ease-in-out
+                                        placeholder-gray-400 dark:placeholder-gray-500
+                                        resize-y`}
+                              {...field}
+                            />
                           </FormControl>
-                          <FormDescription className="text-xs text-gray-500 mt-1">
-                            This title will be used for all buttons
-                          </FormDescription>
-                          <FormMessage />
+                          {form.formState.errors.message && (
+                            <FormMessage className="text-sm font-medium text-red-500 dark:text-red-400 mt-1.5 flex items-center gap-1.5">
+                              <AlertCircle size={14} />
+                              {form.formState.errors.message.message}
+                            </FormMessage>
+                          )}
                         </FormItem>
                       )}
                     />
+                  )}
 
-                    <div className="flex flex-col md:flex-row gap-4">
-                      <div className="w-full md:w-1/2 space-y-4">
-                        {buttons.map((button, index) => (
-                          <Card key={index} className="p-4">
+                  {form.watch("messageType") === "ButtonImage" && (
+                    <FormField
+                      control={form.control}
+                      name="imageUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Label className="block text-sm font-medium mb-2 text-gray-800 dark:text-gray-200 transition-colors hover:text-[#1A69DD] dark:hover:text-[#26A5E9]">
+                            <span className="bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent">
+                              Media URL
+                            </span>
+                          </Label>
+                          <FormControl>
+                            <div className="relative group">
+                              <Input
+                                placeholder="https://example.com/main-image.jpg"
+                                className={`w-full pl-10 pr-4 py-3 border-2 ${
+                                  form.formState.errors.imageUrl
+                                    ? "border-red-500 dark:border-red-500"
+                                    : "border-gray-200 dark:border-gray-700"
+                                } rounded-lg
+                                          text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800/90
+                                          focus:border-[#1A69DD] dark:focus:border-[#26A5E9] focus:ring-2
+                                          focus:ring-[#1A69DD]/20 dark:focus:ring-[#26A5E9]/30
+                                          hover:border-gray-300 dark:hover:border-gray-600
+                                          transition-all duration-200 ease-in-out
+                                          placeholder-gray-400 dark:placeholder-gray-500`}
+                                {...field}
+                              />
+                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <LinkIcon className="w-5 h-5 text-gray-400 dark:text-gray-500 group-hover:text-[#1A69DD] dark:group-hover:text-[#26A5E9] transition-colors" />
+                              </div>
+                            </div>
+                          </FormControl>
+                          <FormDescription className="text-sm mt-2 px-3 py-1.5 bg-blue-50/50 dark:bg-[#26A5E9]/10 text-gray-600 dark:text-gray-400 rounded-md border-l-4 border-[#1A69DD] dark:border-[#26A5E9]">
+                            Must start with http:// or https://
+                          </FormDescription>
+                          {form.formState.errors.imageUrl && (
+                            <FormMessage className="text-sm font-medium text-red-500 dark:text-red-400 mt-1.5 flex items-center gap-1.5">
+                              <AlertCircle size={14} />
+                              {form.formState.errors.imageUrl.message}
+                            </FormMessage>
+                          )}
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  {(form.watch("messageType") === "ButtonText" ||
+                    form.watch("messageType") === "ButtonImage") && (
+                    <div className="flex flex-col lg:flex-row gap-6">
+                      {/* Preview Section - Left (1/4 width) */}
+                      {buttons.length > 0 && (
+                        <div className="lg:w-1/4">
+                          <div className="sticky top-4 p-4 border-2 border-gray-100 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 shadow-sm">
+                            <div className="flex items-center gap-2 mb-4">
+                              <Eye className="w-5 h-5 text-[#1A69DD] dark:text-[#26A5E9]" />
+                              <h3 className="font-medium text-gray-800 dark:text-gray-200">
+                                Live Preview
+                              </h3>
+                            </div>
+
                             <div className="space-y-4">
-                              <div>
-                                <Label>URL</Label>
-                                <Input
-                                  value={button.url}
-                                  onChange={(e) => {
-                                    const newButtons = [...buttons];
-                                    newButtons[index].url = e.target.value;
-                                    setButtons(newButtons);
-                                  }}
-                                  placeholder="Enter URL"
-                                  className="mt-1"
-                                />
-                              </div>
-                              <div>
-                                <Label>Button Text</Label>
-                                <Input
-                                  value={button.buttonText}
-                                  onChange={(e) => {
-                                    const newButtons = [...buttons];
-                                    newButtons[index].buttonText =
-                                      e.target.value;
-                                    setButtons(newButtons);
-                                  }}
-                                  placeholder="Click here"
-                                  className="mt-1"
-                                />
-                              </div>
+                              {form.watch("messageType") === "ButtonImage" && (
+                                <div className="relative aspect-square bg-gray-100 dark:bg-gray-900 rounded-lg overflow-hidden">
+                                  {form.watch("imageUrl")?.trim() ? (
+                                    <Image
+                                      src={form.watch("imageUrl").trim()}
+                                      alt="Preview"
+                                      fill
+                                      className="object-cover"
+                                      onError={(e) => {
+                                        const target =
+                                          e.target as HTMLImageElement;
+                                        target.src = "/placeholder-image.jpg";
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+                                      <ImageIcon className="w-8 h-8" />
+                                    </div>
+                                  )}
+                                </div>
+                              )}
 
+                              {form.watch("buttonTitle") && (
+                                <p className="font-medium text-gray-800 dark:text-gray-200">
+                                  {form.watch("buttonTitle")}
+                                </p>
+                              )}
+
+                              <div className="flex flex-col gap-2">
+                                {buttons.map((button, index) => (
+                                  <div
+                                    key={index}
+                                    className="p-2 px-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg"
+                                  >
+                                    <span className="text-sm text-gray-800 dark:text-gray-200">
+                                      {button.buttonText || "Button Text"}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Configuration Section - Right (3/4 width) */}
+                      <div className="flex-1 space-y-6">
+                        <FormField
+                          control={form.control}
+                          name="buttonTitle"
+                          render={({ field }) => (
+                            <FormItem>
+                              <Label className="text-gray-800 dark:text-gray-200">
+                                Button Section Title
+                              </Label>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  placeholder="e.g. 'Choose an option'"
+                                  className="border-2 border-gray-200 dark:border-gray-700 focus:border-[#1A69DD] dark:focus:border-[#26A5E9]"
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="space-y-4">
+                          {buttons.map((button, index) => (
+                            <Card
+                              key={index}
+                              className="p-4 relative bg-white dark:bg-gray-800"
+                            >
                               <Button
                                 type="button"
-                                variant="destructive"
-                                onClick={() => {
-                                  const newButtons = buttons.filter(
-                                    (_, i) => i !== index
-                                  );
-                                  setButtons(newButtons);
-                                }}
+                                variant="ghost"
+                                size="icon"
+                                className="absolute top-3 right-3 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20"
+                                onClick={() =>
+                                  setButtons(
+                                    buttons.filter((_, i) => i !== index)
+                                  )
+                                }
                               >
-                                Remove Button
+                                <Trash2 className="w-4 h-4" />
                               </Button>
-                            </div>
-                          </Card>
-                        ))}
+
+                              <div className="space-y-3">
+                                <div>
+                                  <Input
+                                    value={button.buttonText}
+                                    onChange={(e) => {
+                                      const newButtons = [...buttons];
+                                      newButtons[index].buttonText =
+                                        e.target.value;
+                                      setButtons(newButtons);
+                                    }}
+                                    placeholder="Button label"
+                                  />
+                                </div>
+                                <div>
+                                  <Input
+                                    value={button.url}
+                                    onChange={(e) => {
+                                      const newButtons = [...buttons];
+                                      newButtons[index].url = e.target.value;
+                                      setButtons(newButtons);
+                                    }}
+                                    placeholder="https://example.com"
+                                  />
+                                </div>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+
                         <Button
                           type="button"
                           variant="outline"
                           onClick={() => {
-                            // Limit to maximum 3 buttons
                             if (buttons.length >= 3) {
-                              toast.error("Maximum 3 buttons are allowed");
+                              toast.error("Maximum 3 buttons allowed");
                               return;
                             }
                             setButtons([
@@ -1099,107 +1554,45 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                               { url: "", buttonText: "" },
                             ]);
                           }}
-                          className="w-full mt-4"
+                          className="w-full border-2 border-[#1A69DD] dark:border-[#26A5E9] text-[#1A69DD] dark:text-[#26A5E9] hover:bg-[#1A69DD]/10 py-2 px-6 rounded-lg font-medium"
                           disabled={buttons.length >= 3}
                         >
+                          <Plus className="w-4 h-4 mr-2" />
                           Add Button
                         </Button>
                       </div>
-
-                      {/* Button Preview Section */}
-                      {buttons.length > 0 && (
-                        <div className="w-full md:w-1/2 p-4 border rounded-lg bg-gray-100 dark:bg-gray-800">
-                          <h3 className="text-sm font-medium mb-3">
-                            Button Preview
-                          </h3>
-                          <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                            {messageType === "ButtonImage" && (
-                              <div className="mb-3 flex justify-center">
-                                {form.watch("imageUrl") ? (
-                                  <Image
-                                    src={form.watch("imageUrl")}
-                                    alt="Preview image"
-                                    width={200}
-                                    height={150}
-                                    className="rounded-md max-h-[150px] object-contain"
-                                    unoptimized={true}
-                                    onError={(e) => {
-                                      const target =
-                                        e.target as HTMLImageElement;
-                                      target.src = "/placeholder-image.jpg";
-                                    }}
-                                  />
-                                ) : (
-                                  <div className="w-[200px] h-[150px] border border-dashed border-gray-300 rounded-md flex items-center justify-center bg-gray-50">
-                                    <div className="text-center">
-                                      <div className="flex justify-center">
-                                        <svg
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          className="h-10 w-10 text-gray-400"
-                                          fill="none"
-                                          viewBox="0 0 24 24"
-                                          stroke="currentColor"
-                                        >
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={1}
-                                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                          />
-                                        </svg>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            {form.watch("buttonTitle") && (
-                              <div className="font-medium text-sm mb-2">
-                                {form.watch("buttonTitle")}
-                              </div>
-                            )}
-                            {!form.watch("removeBranding") && (
-                              <div className="text-xs text-gray-500 mb-2">
-                                Sent using groimon.com
-                              </div>
-                            )}
-                            <div className="flex flex-col gap-2">
-                              {buttons.map((button, index) => (
-                                <Button
-                                  key={index}
-                                  className="w-full bg-white hover:bg-gray-50 text-black border border-gray-200"
-                                  variant="outline"
-                                  disabled
-                                >
-                                  {button.buttonText || "Click Here"}
-                                </Button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
 
-          {/* Comment Automation section */}
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+          {/* Auto Reply section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-[#1A69DD]/10 dark:border-gray-700"
+          >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">Auto Reply</h2>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent mr-12">
+                Auto Reply
+              </h2>
               <Button
                 type="button"
                 variant="ghost"
-                className="text-green-500 flex items-center"
+                className={`text-[#1A69DD] dark:text-[#26A5E9] hover:bg-[#1A69DD]/10 dark:hover:bg-[#26A5E9]/10 flex items-center gap-2 ${
+                  !enableCommentAutomation
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
                 onClick={toggleCommentAutomation}
+                disabled={!enableCommentAutomation}
               >
-                Comment Template
                 {commentAutomationOpen ? (
-                  <ChevronUp className="w-4 h-4 ml-1" />
+                  <ChevronUp className="w-4 h-4" />
                 ) : (
-                  <ChevronDown className="w-4 h-4 ml-1" />
+                  <ChevronDown className="w-4 h-4" />
                 )}
               </Button>
             </div>
@@ -1208,17 +1601,20 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
               control={form.control}
               name="enableCommentAutomation"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">Enable Auto Reply</Label>
-                    <FormDescription>
-                      Automatically respond to comments on your posts
+                <FormItem className="flex flex-row items-center justify-between rounded-xl border-2 border-[#1A69DD]/20 dark:border-[#26A5E9]/20 p-4 bg-white dark:bg-gray-800">
+                  <div className="space-y-1">
+                    <Label className="text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                      Enable Auto Reply
+                    </Label>
+                    <FormDescription className="text-gray-600 dark:text-gray-400">
+                      Automatically respond to comments using your templates
                     </FormDescription>
                   </div>
                   <FormControl>
                     <Switch
                       checked={field.value}
                       onCheckedChange={field.onChange}
+                      className="data-[state=checked]:bg-[#1A69DD] data-[state=unchecked]:bg-gray-200 dark:data-[state=unchecked]:bg-gray-600"
                     />
                   </FormControl>
                 </FormItem>
@@ -1232,32 +1628,44 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                   name="commentMessage"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="flex flex-col space-y-3">
+                      <div className="flex flex-col space-y-2">
                         <div className="flex flex-wrap gap-2 mb-2">
-                          {field.value?.map((message, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-md px-3 py-1 text-sm"
-                            >
-                              <span className="mr-1">{message}</span>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const newMessages = [...field.value];
-                                  newMessages.splice(index, 1);
-                                  field.onChange(newMessages);
-                                }}
-                                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 ml-1"
+                          <AnimatePresence>
+                            {field.value?.map((message, index) => (
+                              <motion.div
+                                key={index}
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.8, opacity: 0 }}
+                                className="flex items-center bg-[#1A69DD]/10 dark:bg-[#26A5E9]/10 rounded-full px-3 py-1.5"
                               >
-                                <X size={12} />
-                              </button>
-                            </div>
-                          ))}
+                                <span className="text-[#1A69DD] dark:text-[#26A5E9] text-base font-medium mr-1">
+                                  {message}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newMessages = [...field.value];
+                                    newMessages.splice(index, 1);
+                                    field.onChange(newMessages);
+                                  }}
+                                  className="text-[#1A69DD] dark:text-[#26A5E9] hover:text-[#1A69DD]/70 dark:hover:text-[#26A5E9]/70"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </motion.div>
+                            ))}
+                          </AnimatePresence>
                         </div>
-                        <div className="flex">
+
+                        <div className="relative">
                           <Input
-                            placeholder="Add comment message"
-                            className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-md"
+                            placeholder="Add auto reply"
+                            className={`w-full py-6 px-6 rounded-xl border-2 ${
+                              form.formState.errors.commentMessage
+                                ? "border-red-500 dark:border-red-500"
+                                : "border-gray-200 dark:border-gray-700"
+                            } focus:border-[#1A69DD] focus:ring-0 dark:focus:border-[#26A5E9]`}
                             value={newCommentMessage}
                             onChange={(e) =>
                               setNewCommentMessage(e.target.value)
@@ -1269,7 +1677,6 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                               ) {
                                 e.preventDefault();
                                 const trimmedMessage = newCommentMessage.trim();
-                                // Check if message already exists (case insensitive)
                                 if (
                                   !field.value?.some(
                                     (m) =>
@@ -1282,24 +1689,25 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                                   ];
                                   updatedMessages.push(trimmedMessage);
                                   field.onChange(updatedMessages);
+                                  form.clearErrors("commentMessage");
                                   setNewCommentMessage("");
                                 } else {
                                   toast.error(
-                                    "This auto-reply message already exists"
+                                    "This auto reply message already exists"
                                   );
                                   setNewCommentMessage("");
                                 }
                               }
                             }}
                           />
-                          <Button
+                          <motion.button
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
                             type="button"
-                            variant="outline"
-                            className="ml-2"
+                            className="absolute right-2 top-2 bottom-2 px-4 bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] text-white rounded-lg flex items-center gap-2"
                             onClick={() => {
                               if (newCommentMessage.trim()) {
                                 const trimmedMessage = newCommentMessage.trim();
-                                // Check if message already exists (case insensitive)
                                 if (
                                   !field.value?.some(
                                     (m) =>
@@ -1312,6 +1720,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                                   ];
                                   updatedMessages.push(trimmedMessage);
                                   field.onChange(updatedMessages);
+                                  form.clearErrors("commentMessage");
                                   setNewCommentMessage("");
                                 } else {
                                   toast.error(
@@ -1322,12 +1731,108 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                               }
                             }}
                           >
-                            Add
-                          </Button>
+                            <Plus size={18} />
+                            <span className="font-semibold">Add</span>
+                          </motion.button>
                         </div>
                       </div>
                       <FormDescription className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                        Press Enter or click Add to add a comment message
+                        Press Enter or click Add to add a auto reply message
+                      </FormDescription>
+                      {form.formState.errors.commentMessage && (
+                        <FormMessage className="text-sm font-medium text-red-500 dark:text-red-400 mt-1.5 flex items-center gap-1.5">
+                          <AlertCircle size={14} />
+                          {form.formState.errors.commentMessage.message}
+                        </FormMessage>
+                      )}
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="autoReplyLimit"
+                  render={({ field }) => (
+                    <FormItem className="space-y-4">
+                      <Label className="text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                        Reply Limit
+                      </Label>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={(value) =>
+                            field.onChange(
+                              value === "unlimited" ? -1 : parseInt(value)
+                            )
+                          }
+                          value={
+                            field.value === -1
+                              ? "unlimited"
+                              : field.value
+                              ? field.value.toString()
+                              : "100"
+                          }
+                          className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                        >
+                          {[
+                            { value: "100", label: "100 Replies" },
+                            { value: "200", label: "200 Replies" },
+                            { value: "unlimited", label: "Unlimited" },
+                          ].map((option) => (
+                            <label
+                              key={option.value}
+                              className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                                (field.value === -1 &&
+                                  option.value === "unlimited") ||
+                                (field.value !== null &&
+                                  field.value !== undefined &&
+                                  field.value.toString() === option.value)
+                                  ? "border-[#1A69DD] bg-[#1A69DD]/5 dark:border-[#26A5E9] dark:bg-[#26A5E9]/10"
+                                  : "border-gray-200 dark:border-gray-700 hover:border-[#1A69DD]/50"
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="autoReplyLimit"
+                                value={option.value}
+                                checked={
+                                  (field.value === -1 &&
+                                    option.value === "unlimited") ||
+                                  (field.value !== null &&
+                                    field.value !== undefined &&
+                                    field.value.toString() === option.value)
+                                }
+                                onChange={() => {
+                                  const newValue =
+                                    option.value === "unlimited"
+                                      ? -1
+                                      : parseInt(option.value);
+                                  field.onChange(newValue);
+                                }}
+                                className="sr-only"
+                              />
+                              <div className="flex items-center gap-3">
+                                <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center border-current">
+                                  <div
+                                    className={`w-3 h-3 rounded-full ${
+                                      (field.value === -1 &&
+                                        option.value === "unlimited") ||
+                                      (field.value &&
+                                        field.value.toString() === option.value)
+                                        ? "bg-[#1A69DD] dark:bg-[#26A5E9]"
+                                        : "bg-transparent"
+                                    }`}
+                                  />
+                                </div>
+                                <span className="font-medium text-gray-800 dark:text-gray-200">
+                                  {option.label}
+                                </span>
+                              </div>
+                            </label>
+                          ))}
+                        </RadioGroup>
+                      </FormControl>
+                      <FormDescription>
+                        Set a limit for auto replies to comments.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1335,22 +1840,28 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                 />
               </div>
             )}
-          </div>
+          </motion.div>
 
-          {/* Follow Request section */}
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+          {/* Ask to Follow section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-[#1A69DD]/10 dark:border-gray-700"
+          >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">Follow Request</h2>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent mr-12">
+                Ask to Follow
+              </h2>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 px-2"
+                className="text-[#1A69DD] dark:text-[#26A5E9] hover:bg-[#1A69DD]/10 dark:hover:bg-[#26A5E9]/10 flex items-center gap-2"
                 onClick={toggleIsFollowed}
               >
                 {isFollowedOpen ? (
-                  <ChevronUp className="w-4 h-4 ml-1" />
+                  <ChevronUp className="w-4 h-4" />
                 ) : (
-                  <ChevronDown className="w-4 h-4 ml-1" />
+                  <ChevronDown className="w-4 h-4" />
                 )}
               </Button>
             </div>
@@ -1359,10 +1870,12 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
               control={form.control}
               name="isFollowed"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">Ask to Follow</Label>
-                    <FormDescription>
+                <FormItem className="flex flex-row items-center justify-between rounded-xl border-2 border-[#1A69DD]/20 dark:border-[#26A5E9]/20 p-4 bg-white dark:bg-gray-800">
+                  <div className="space-y-1">
+                    <Label className="text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                      Ask to Follow
+                    </Label>
+                    <FormDescription className="text-gray-600 dark:text-gray-400">
                       Request users to follow your account before receiving the
                       message
                     </FormDescription>
@@ -1371,6 +1884,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                     <Switch
                       checked={field.value}
                       onCheckedChange={field.onChange}
+                      className="data-[state=checked]:bg-[#1A69DD] data-[state=unchecked]:bg-gray-200 dark:data-[state=unchecked]:bg-gray-600"
                     />
                   </FormControl>
                 </FormItem>
@@ -1378,25 +1892,33 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
             />
 
             {isFollowedOpen && form.watch("isFollowed") && (
-              <div className="mt-4 space-y-4">
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-6 space-y-6"
+              >
                 <FormField
                   control={form.control}
                   name="notFollowerMessage"
                   render={({ field }) => (
                     <FormItem>
-                      <Label>Message for Non-Followers</Label>
-                      <FormDescription>
-                        This message will be shown to users who don&apos;t
-                        follow you
-                      </FormDescription>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Please follow my account to receive the message"
-                          className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[100px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                          <UserX className="w-5 h-5" />
+                          Non-Follower Message
+                        </Label>
+                        <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
+                          Displayed to users who don&apos;t follow you
+                        </FormDescription>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Please follow my account to receive the message"
+                            className="min-h-[120px] p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -1406,14 +1928,23 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                   name="followButtonTitle"
                   render={({ field }) => (
                     <FormItem>
-                      <Label>Follow Button Text</Label>
-                      <FormDescription>
-                        Text to display on the follow button
-                      </FormDescription>
-                      <FormControl>
-                        <Input placeholder="Follow Now" {...field} />
-                      </FormControl>
-                      <FormMessage />
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                          <UserPlus className="w-5 h-5" />
+                          Follow Button Text
+                        </Label>
+                        <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
+                          Customize your follow button text
+                        </FormDescription>
+                        <FormControl>
+                          <Input
+                            placeholder="Follow Now"
+                            className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -1423,18 +1954,23 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                   name="followUpMessage"
                   render={({ field }) => (
                     <FormItem>
-                      <Label>Follow-up Message</Label>
-                      <FormDescription>
-                        Message to send after user follows your account
-                      </FormDescription>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Thanks for following! Here's your message..."
-                          className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[100px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                          <MessageCircle className="w-5 h-5" />
+                          Follow-up Message
+                        </Label>
+                        <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
+                          Sent after users follow your account
+                        </FormDescription>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Thanks for following! Here's your message..."
+                            className="min-h-[120px] p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -1444,76 +1980,104 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                   name="followUpButtonTitle"
                   render={({ field }) => (
                     <FormItem>
-                      <Label>Follow-up Button Text</Label>
-                      <FormDescription>
-                        Customize your follow-up button text
-                      </FormDescription>
-                      <FormControl>
-                        <Input placeholder="Continue" {...field} />
-                      </FormControl>
-                      <FormMessage />
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                          <UserPlus className="w-5 h-5" />
+                          Follow-up Button Text
+                        </Label>
+                        <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
+                          Customize your follow-up button text
+                        </FormDescription>
+                        <FormControl>
+                          <Input
+                            placeholder="Continue"
+                            className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                      </div>
                     </FormItem>
                   )}
                 />
-              </div>
+              </motion.div>
             )}
-          </div>
-
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">Backtrack</h2>
-            </div>
-
-            <FormField
-              control={form.control}
-              name="enableBacktrack"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">Enable Backtrack</Label>
-                    <FormDescription>
-                      Apply automation to previous comments on selected posts
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </div>
+          </motion.div>
 
           {/* Remove Branding section */}
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-[#1A69DD]/10 dark:border-gray-700"
+          >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">Branding</h2>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent mr-12">
+                Branding
+              </h2>
             </div>
 
             <FormField
               control={form.control}
               name="removeBranding"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">Remove Branding</Label>
-                    <FormDescription>
-                      Remove &ldquo;This automation is sent by Groimon&rdquo;
-                      from messages
+                <FormItem className="flex flex-row items-center justify-between rounded-xl border-2 border-[#1A69DD]/20 dark:border-[#26A5E9]/20 p-4 bg-white dark:bg-gray-800">
+                  <div className="space-y-1">
+                    <Label className="text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                      Remove Branding
+                    </Label>
+                    <FormDescription className="text-gray-600 dark:text-gray-400">
+                      Remove &ldquo;This automation is sent using
+                      groimon.com&rdquo; from messages
                     </FormDescription>
                   </div>
                   <FormControl>
                     <Switch
                       checked={field.value}
                       onCheckedChange={field.onChange}
+                      className="data-[state=checked]:bg-[#1A69DD] data-[state=unchecked]:bg-gray-200 dark:data-[state=unchecked]:bg-gray-600"
                     />
                   </FormControl>
                 </FormItem>
               )}
             />
-          </div>
+          </motion.div>
+
+          {/* Backtrack Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-[#1A69DD]/10 dark:border-gray-700"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent mr-12">
+                Backtrack
+              </h2>
+            </div>
+            <FormField
+              control={form.control}
+              name="enableBacktrack"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-xl border-2 border-[#1A69DD]/20 dark:border-[#26A5E9]/20 p-4 bg-white dark:bg-gray-800">
+                  <div className="space-y-1">
+                    <Label className="text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                      Enable Backtrack
+                    </Label>
+                    <FormDescription className="text-gray-600 dark:text-gray-400">
+                      Apply automation on selected posts to previous comments
+                      upto 7 days old.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      className="data-[state=checked]:bg-[#1A69DD] data-[state=unchecked]:bg-gray-200 dark:data-[state=unchecked]:bg-gray-600"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </motion.div>
         </form>
       </Form>
     </div>
