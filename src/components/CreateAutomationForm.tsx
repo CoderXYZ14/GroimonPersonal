@@ -2325,57 +2325,91 @@ export function CreateAutomationForm() {
                 animate={{ opacity: 1, y: 0 }}
                 className="mt-6 space-y-6"
               >
-                <FormField
-                  control={form.control}
-                  name="notFollowerMessage"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
-                          <UserX className="w-5 h-5" />
-                          Non-Follower Message
-                        </Label>
-                        <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
-                          Displayed to users who don&apos;t follow you
-                        </FormDescription>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Please follow my account to receive the message"
-                            className="min-h-[120px] p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                {/* Non-Follower Preview and Form Section */}
+                <div className="flex flex-col lg:flex-row gap-6">
+                  {/* Preview Section - Left (1/4 width) */}
+                  <div className="lg:w-1/4">
+                    <div className="sticky top-4 p-4 border-2 border-gray-100 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 shadow-sm">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Eye className="w-5 h-5 text-[#1A69DD] dark:text-[#26A5E9]" />
+                        <h3 className="font-medium text-gray-800 dark:text-gray-200">
+                          Non-Follower Preview
+                        </h3>
                       </div>
-                    </FormItem>
-                  )}
-                />
 
-                <FormField
-                  control={form.control}
-                  name="followButtonTitle"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
-                          <UserPlus className="w-5 h-5" />
-                          Follow Button Text
-                        </Label>
-                        <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
-                          Customize your follow button text
-                        </FormDescription>
-                        <FormControl>
-                          <Input
-                            placeholder="Follow Now"
-                            className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                      <div className="space-y-4">
+                        {form.watch("notFollowerMessage") && (
+                          <p className="font-medium text-gray-800 dark:text-gray-200">
+                            {form.watch("notFollowerMessage")}
+                          </p>
+                        )}
+                        
+                        <div className="flex flex-col gap-2">
+                          <div className="p-2 px-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
+                            <span className="text-sm text-gray-800 dark:text-gray-200">
+                              {form.watch("followButtonTitle") || "I'm following now!"}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </FormItem>
-                  )}
-                />
+                    </div>
+                  </div>
+                  
+                  {/* Form Section - Right (3/4 width) */}
+                  <div className="flex-1 space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="notFollowerMessage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="space-y-2">
+                            <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                              <UserX className="w-5 h-5" />
+                              Non-Follower Message
+                            </Label>
+                            <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
+                              Displayed to users who don&apos;t follow you
+                            </FormDescription>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Please follow my account to receive the message"
+                                className="min-h-[120px] p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="followButtonTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="space-y-2">
+                            <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                              <UserPlus className="w-5 h-5" />
+                              Follow Button Text
+                            </Label>
+                            <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
+                              Customize your follow button text
+                            </FormDescription>
+                            <FormControl>
+                              <Input
+                                placeholder="Follow Now"
+                                className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
 
                 <FormField
                   control={form.control}
@@ -2404,57 +2438,91 @@ export function CreateAutomationForm() {
 
                 {form.watch("enableFollowUp") && (
                   <>
-                    <FormField
-                      control={form.control}
-                      name="followUpMessage"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="space-y-2">
-                            <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
-                              <MessageCircle className="w-5 h-5" />
-                              Follow-up Message
-                            </Label>
-                            <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
-                              Sent after users follow your account
-                            </FormDescription>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Thanks for following! Here's your message..."
-                                className="min-h-[120px] p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                    {/* Follow-up Preview and Form Section */}
+                    <div className="flex flex-col lg:flex-row gap-6">
+                      {/* Preview Section - Left (1/4 width) */}
+                      <div className="lg:w-1/4">
+                        <div className="sticky top-4 p-4 border-2 border-gray-100 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 shadow-sm">
+                          <div className="flex items-center gap-2 mb-4">
+                            <Eye className="w-5 h-5 text-[#1A69DD] dark:text-[#26A5E9]" />
+                            <h3 className="font-medium text-gray-800 dark:text-gray-200">
+                              Follow-up Preview
+                            </h3>
                           </div>
-                        </FormItem>
-                      )}
-                    />
 
-                    <FormField
-                      control={form.control}
-                      name="followUpButtonTitle"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="space-y-2">
-                            <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
-                              <UserPlus className="w-5 h-5" />
-                              Follow-up Button Text
-                            </Label>
-                            <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
-                              Customize your follow-up button text
-                            </FormDescription>
-                            <FormControl>
-                              <Input
-                                placeholder="Continue"
-                                className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                          <div className="space-y-4">
+                            {form.watch("followUpMessage") && (
+                              <p className="font-medium text-gray-800 dark:text-gray-200">
+                                {form.watch("followUpMessage")}
+                              </p>
+                            )}
+                            
+                            <div className="flex flex-col gap-2">
+                              <div className="p-2 px-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
+                                <span className="text-sm text-gray-800 dark:text-gray-200">
+                                  {form.watch("followUpButtonTitle") || "Continue"}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                        </FormItem>
-                      )}
-                    />
+                        </div>
+                      </div>
+                      
+                      {/* Form Section - Right (3/4 width) */}
+                      <div className="flex-1 space-y-6">
+                        <FormField
+                          control={form.control}
+                          name="followUpMessage"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="space-y-2">
+                                <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                                  <MessageCircle className="w-5 h-5" />
+                                  Follow-up Message
+                                </Label>
+                                <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
+                                  Sent after users follow your account
+                                </FormDescription>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Thanks for following! Here's your message..."
+                                    className="min-h-[120px] p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="followUpButtonTitle"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="space-y-2">
+                                <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                                  <UserPlus className="w-5 h-5" />
+                                  Follow-up Button Text
+                                </Label>
+                                <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
+                                  Customize your follow-up button text
+                                </FormDescription>
+                                <FormControl>
+                                  <Input
+                                    placeholder="Continue"
+                                    className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
                   </>
                 )}
               </motion.div>
