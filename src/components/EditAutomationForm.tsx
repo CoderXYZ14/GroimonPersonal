@@ -2266,11 +2266,11 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                           </div>
 
                           <div className="space-y-4">
-                            <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
-                              <p className="text-sm text-gray-800 dark:text-gray-200">
-                                {form.watch("followUpMessage") || "Thanks for following! Here's your message..."}
+                            {form.watch("followUpMessage") && (
+                              <p className="font-medium text-gray-800 dark:text-gray-200">
+                                {form.watch("followUpMessage")}
                               </p>
-                            </div>
+                            )}
                             
                             <div className="flex flex-col gap-2">
                               <div className="p-2 px-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
