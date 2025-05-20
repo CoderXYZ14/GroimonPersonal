@@ -120,6 +120,7 @@ const formSchema = z
     isFollowed: z.boolean().default(false),
     notFollowerMessage: z.string().optional(),
     followButtonTitle: z.string().optional(),
+    enableFollowUp: z.boolean().default(false),
     followUpMessage: z.string().optional(),
     followUpButtonTitle: z.string().optional(),
     isActive: z.boolean().default(true),
@@ -158,6 +159,74 @@ const formSchema = z
       message: "Message template is required for message type",
       path: ["message"],
     }
+  )
+  .refine(
+    (data) => {
+      // If messageType is ButtonText or ButtonImage, at least one button is required
+      if (
+        (data.messageType === "ButtonText" || data.messageType === "ButtonImage") &&
+        (!data.buttons || data.buttons.length === 0)
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "At least one button is required",
+      path: ["buttons"],
+    }
+  )
+  .refine(
+    (data) => {
+      // If messageType is ButtonText or ButtonImage, validate each button's URL and button text
+      if (
+        (data.messageType === "ButtonText" || data.messageType === "ButtonImage") &&
+        data.buttons && data.buttons.length > 0
+      ) {
+        // Check if any button has empty URL or button text
+        const hasInvalidButton = data.buttons.some(
+          (button) => !button.url || button.url.trim() === "" || !button.buttonText || button.buttonText.trim() === ""
+        );
+        return !hasInvalidButton;
+      }
+      return true;
+    },
+    {
+      message: "All buttons must have URL and button text",
+      path: ["buttons"],
+    }
+  )
+  .refine(
+    (data) => {
+      // If messageType is ButtonImage, imageUrl is required
+      if (
+        data.messageType === "ButtonImage" &&
+        (!data.imageUrl || data.imageUrl.trim() === "")
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Image URL is required for Button Image type",
+      path: ["imageUrl"],
+    }
+  )
+  .refine(
+    (data) => {
+      // If messageType is ButtonText or ButtonImage, buttonTitle is required
+      if (
+        (data.messageType === "ButtonText" || data.messageType === "ButtonImage") &&
+        (!data.buttonTitle || data.buttonTitle.trim() === "")
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Button section title is required",
+      path: ["buttonTitle"],
+    }
   );
 
 interface EditAutomationFormProps {
@@ -171,6 +240,15 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
   const [dmTypeOpen, setDmTypeOpen] = useState(true);
   const [commentAutomationOpen, setCommentAutomationOpen] = useState(false);
   const [isFollowedOpen, setIsFollowedOpen] = useState(false);
+  const [enableFollowUp, setEnableFollowUp] = useState(
+    // Check if follow-up message and button title are different from non-follower message and button title
+    Boolean(
+      (automation.followUpMessage && automation.notFollowerMessage && 
+       automation.followUpMessage !== automation.notFollowerMessage) ||
+      (automation.followUpButtonTitle && automation.followButtonTitle && 
+       automation.followUpButtonTitle !== automation.followButtonTitle)
+    )
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [media, setMedia] = useState<MediaItem[]>([]);
 
@@ -402,6 +480,12 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
         automation.notFollowerMessage ||
         "Please follow our account to receive the information you requested. Once you've followed, click the button below.",
       followButtonTitle: automation.followButtonTitle || "I'm following now!",
+      enableFollowUp: Boolean(
+        (automation.followUpMessage && automation.notFollowerMessage && 
+         automation.followUpMessage !== automation.notFollowerMessage) ||
+        (automation.followUpButtonTitle && automation.followButtonTitle && 
+         automation.followUpButtonTitle !== automation.followButtonTitle)
+      ),
       followUpMessage:
         automation.followUpMessage ||
         "Thanks for following! Here's your message...",
@@ -434,6 +518,12 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
       setIsFollowedOpen(false);
     }
   }, [isFollowed]);
+
+  useEffect(() => {
+    if (form.watch("isFollowed")) {
+      form.setValue("enableFollowUp", enableFollowUp);
+    }
+  }, [form, enableFollowUp]);
 
   useEffect(() => {
     if (
@@ -503,9 +593,16 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
         followButtonTitle: values.isFollowed
           ? values.followButtonTitle
           : undefined,
-        followUpMessage: values.isFollowed ? values.followUpMessage : undefined,
+        enableFollowUp: values.isFollowed ? values.enableFollowUp : false,
+        followUpMessage: values.isFollowed
+          ? (values.enableFollowUp 
+              ? values.followUpMessage 
+              : values.notFollowerMessage)
+          : undefined,
         followUpButtonTitle: values.isFollowed
-          ? values.followUpButtonTitle
+          ? (values.enableFollowUp 
+              ? values.followUpButtonTitle 
+              : values.followButtonTitle)
           : undefined,
         // Include buttonTitle at the main level
         buttonTitle:
@@ -1951,55 +2048,87 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
 
                 <FormField
                   control={form.control}
-                  name="followUpMessage"
+                  name="enableFollowUp"
                   render={({ field }) => (
-                    <FormItem>
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
-                          <MessageCircle className="w-5 h-5" />
-                          Follow-up Message
+                    <FormItem className="flex flex-row items-center justify-between rounded-xl border-2 border-[#1A69DD]/20 dark:border-[#26A5E9]/20 p-4 bg-white dark:bg-gray-800">
+                      <div className="space-y-1">
+                        <Label className="text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                          Enable Follow-up Message
                         </Label>
-                        <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
-                          Sent after users follow your account
+                        <FormDescription className="text-gray-600 dark:text-gray-400">
+                          Send a different message after users follow your
+                          account
                         </FormDescription>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Thanks for following! Here's your message..."
-                            className="min-h-[120px] p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
                       </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={(value) => {
+                            field.onChange(value);
+                            setEnableFollowUp(value);
+                          }}
+                          className="data-[state=checked]:bg-[#1A69DD] data-[state=unchecked]:bg-gray-200 dark:data-[state=unchecked]:bg-gray-600"
+                        />
+                      </FormControl>
                     </FormItem>
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="followUpButtonTitle"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
-                          <UserPlus className="w-5 h-5" />
-                          Follow-up Button Text
-                        </Label>
-                        <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
-                          Customize your follow-up button text
-                        </FormDescription>
-                        <FormControl>
-                          <Input
-                            placeholder="Continue"
-                            className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
-                      </div>
-                    </FormItem>
-                  )}
-                />
+                {form.watch("enableFollowUp") && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="followUpMessage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="space-y-2">
+                            <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                              <MessageCircle className="w-5 h-5" />
+                              Follow-up Message
+                            </Label>
+                            <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
+                              Sent after users follow your account
+                            </FormDescription>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Thanks for following! Here's your message..."
+                                className="min-h-[120px] p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="followUpButtonTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="space-y-2">
+                            <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                              <UserPlus className="w-5 h-5" />
+                              Follow-up Button Text
+                            </Label>
+                            <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
+                              Customize your follow-up button text
+                            </FormDescription>
+                            <FormControl>
+                              <Input
+                                placeholder="Continue"
+                                className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
               </motion.div>
             )}
           </motion.div>
