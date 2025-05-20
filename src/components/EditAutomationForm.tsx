@@ -264,17 +264,24 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
   const [newKeyword, setNewKeyword] = useState("");
   const [newCommentMessage, setNewCommentMessage] = useState("");
 
-  const [currentPage, setCurrentPage] = useState(0);
+  // Track all loaded cursors to prevent duplicate loading
+  const [loadedCursors, setLoadedCursors] = useState<Set<string>>(new Set());
+  // Track if we're near the end to preload next batch
+  const [isNearEnd, setIsNearEnd] = useState(false);
+  // Track if we're near the beginning to preload previous batch
+  const [isNearBeginning, setIsNearBeginning] = useState(false);
   const [beforeCursor, setBeforeCursor] = useState<string | null>(null);
   const [afterCursor, setAfterCursor] = useState<string | null>(null);
-
-  // Define fetchMedia with useCallback to prevent it from changing on every render
 
   const fetchMedia = async (
     direction: "initial" | "next" | "previous" = "initial"
   ) => {
+    console.log(`Fetching media: ${direction} direction`);
+    
     if (direction === "initial") {
       setIsLoading(true);
+      // Reset loaded cursors on initial load
+      setLoadedCursors(new Set());
     } else {
       setIsPaginating(true);
     }
@@ -283,7 +290,9 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
     const instagramAccessToken = user.instagramAccessToken;
 
     if (!instagramId || !instagramAccessToken) {
-      console.error("Instagram user ID or access token not found");
+      console.error(
+        "Instagram user ID or access token not found in localStorage"
+      );
       toast.error("Instagram user ID or access token not found");
       setIsLoading(false);
       setIsPaginating(false);
@@ -295,12 +304,26 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
       let url = `https://graph.instagram.com/v18.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&limit=25&access_token=${instagramAccessToken}`;
 
       // Determine which cursor to use based on navigation direction
+      let currentCursor = "";
       if (direction === "next" && afterCursor) {
+        currentCursor = afterCursor;
         url += `&after=${afterCursor}`;
-        setCurrentPage((prev) => prev + 1);
+        console.log(`Using after cursor: ${afterCursor}`);
       } else if (direction === "previous" && beforeCursor) {
+        currentCursor = beforeCursor;
         url += `&before=${beforeCursor}`;
-        setCurrentPage((prev) => Math.max(0, prev - 1));
+        console.log(`Using before cursor: ${beforeCursor}`);
+      }
+
+      // Skip if we've already loaded this cursor
+      if (
+        direction !== "initial" &&
+        currentCursor &&
+        loadedCursors.has(currentCursor)
+      ) {
+        console.log(`Cursor ${currentCursor} already loaded, skipping fetch`);
+        setIsPaginating(false);
+        return;
       }
 
       const response = await fetch(url);
@@ -320,6 +343,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
         // So we should clear the afterCursor
         if (direction === "next") {
           setAfterCursor(null);
+          setIsNearEnd(false);
         }
         return;
       }
@@ -333,28 +357,83 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
         timestamp: item.timestamp,
       }));
 
-      // Always replace the media with the new batch
-      setMedia(newMediaItems);
+      // Handle the media items based on the direction
+      if (direction === "initial") {
+        // For initial load, just set the media
+        console.log(`Initial load: ${newMediaItems.length} items`);
+        setMedia(newMediaItems);
+      } else if (direction === "next") {
+        // For next page, append the new items without duplicates
+        console.log(`Next page: ${newMediaItems.length} new items`);
+        setMedia((prevMedia) => {
+          // Create a set of existing IDs for quick lookup
+          const existingIds = new Set(prevMedia.map((item) => item.id));
+          // Filter out any duplicates from the new items
+          const uniqueNewItems = newMediaItems.filter(
+            (item) => !existingIds.has(item.id)
+          );
+          console.log(`Adding ${uniqueNewItems.length} unique items to existing ${prevMedia.length} items`);
+          return [...prevMedia, ...uniqueNewItems];
+        });
+
+        // Add this cursor to our loaded set
+        if (currentCursor) {
+          console.log(`Adding cursor ${currentCursor} to loaded set`);
+          setLoadedCursors((prev) => new Set(prev).add(currentCursor));
+        }
+        
+        // Reset near-end flag after loading
+        setIsNearEnd(false);
+      } else if (direction === "previous") {
+        // For previous page, prepend the new items without duplicates
+        console.log(`Previous page: ${newMediaItems.length} new items`);
+        setMedia((prevMedia) => {
+          // Create a set of existing IDs for quick lookup
+          const existingIds = new Set(prevMedia.map((item) => item.id));
+          // Filter out any duplicates from the new items
+          const uniqueNewItems = newMediaItems.filter(
+            (item) => !existingIds.has(item.id)
+          );
+          console.log(`Adding ${uniqueNewItems.length} unique items to beginning of existing ${prevMedia.length} items`);
+          return [...uniqueNewItems, ...prevMedia];
+        });
+
+        // Add this cursor to our loaded set
+        if (currentCursor) {
+          console.log(`Adding cursor ${currentCursor} to loaded set`);
+          setLoadedCursors((prev) => new Set(prev).add(currentCursor));
+        }
+        
+        // Reset near-beginning flag after loading
+        setIsNearBeginning(false);
+      }
 
       // Update cursors for pagination
       if (data.paging?.cursors) {
-        // Only set afterCursor if we have exactly 25 posts (a full page)
-        // This ensures we don't show the Next button when there are no more posts
-        if (data.paging.cursors.after && data.data.length === 25) {
+        if (data.paging.cursors.after) {
+          console.log(`Setting after cursor: ${data.paging.cursors.after}`);
           setAfterCursor(data.paging.cursors.after);
         } else {
+          console.log('No after cursor available, setting to null');
           setAfterCursor(null);
+          setIsNearEnd(false);
         }
 
         if (data.paging.cursors.before) {
+          console.log(`Setting before cursor: ${data.paging.cursors.before}`);
           setBeforeCursor(data.paging.cursors.before);
         } else {
+          console.log('No before cursor available, setting to null');
           setBeforeCursor(null);
+          setIsNearBeginning(false);
         }
       } else {
         // If no paging object at all, clear both cursors
+        console.log('No paging object available, clearing all cursors');
         setAfterCursor(null);
         setBeforeCursor(null);
+        setIsNearEnd(false);
+        setIsNearBeginning(false);
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -368,11 +447,46 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
       setIsLoading(false);
       setIsPaginating(false);
     }
-  };
+  };  
+
+  // Effect to preload next batch of posts when near the end
+  useEffect(() => {
+    if (isNearEnd && afterCursor && !isPaginating && !isLoading) {
+      console.log("Preloading next batch of posts...");
+      // Small delay to avoid too frequent API calls
+      const timer = setTimeout(() => {
+        fetchMedia("next");
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isNearEnd, afterCursor, isPaginating, isLoading, fetchMedia]);
+  
+  // Effect to preload previous batch of posts when near the beginning
+  useEffect(() => {
+    if (isNearBeginning && beforeCursor && !isPaginating && !isLoading) {
+      console.log("Preloading previous batch of posts...");
+      // Small delay to avoid too frequent API calls
+      const timer = setTimeout(() => {
+        fetchMedia("previous");
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isNearBeginning, beforeCursor, isPaginating, isLoading, fetchMedia]);
 
   // Initial fetch of media
   useEffect(() => {
     const initialFetch = async () => {
+      if (automation.postIds?.length === 1) {
+        // If there's a single post ID, set it to the form
+        form.setValue("postId", automation.postIds[0]);
+        form.setValue("applyOption", "selected");
+      } else if (automation.postIds?.length > 1) {
+        // If there are multiple post IDs, set to "all"
+        form.setValue("applyOption", "all");
+      }
+
       const instagramId = user.instagramId;
       const instagramAccessToken = user.instagramAccessToken;
 
@@ -408,10 +522,10 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
 
         setMedia(mediaItems);
 
-        // Only set afterCursor if we have exactly 25 posts (a full page)
-        // This ensures we don't show the Next button when there are no more posts
-        if (data.paging?.cursors?.after && data.data.length === 25) {
+        if (data.data.length === 25 && data.paging?.cursors?.after) {
           setAfterCursor(data.paging.cursors.after);
+          // Set the near-end flag to true to preload the next batch
+          setIsNearEnd(true);
         } else {
           setAfterCursor(null);
         }
@@ -927,8 +1041,71 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
                               }`}
                               style={{ height: "100%", overflowX: "auto" }}
                               autoHide={false}
+                              onScroll={() => {
+                                const scrollContainer = document.querySelector(
+                                  ".simplebar-content-wrapper"
+                                );
+                                if (scrollContainer) {
+                                  const element =
+                                    scrollContainer as HTMLDivElement;
+                                  const scrollThreshold = 200; // Reduced threshold for earlier loading
+                                  const preloadThreshold = 400; // Earlier threshold to detect approaching end
+
+                                  // Calculate scroll position metrics
+                                  const distanceFromEnd =
+                                    element.scrollWidth -
+                                    element.scrollLeft -
+                                    element.clientWidth;
+                                  const distanceFromStart = element.scrollLeft;
+
+                                  // Debug scroll metrics
+                                  console.log(`Scroll metrics - Distance from end: ${distanceFromEnd}, Distance from start: ${distanceFromStart}, Total width: ${element.scrollWidth}, Current position: ${element.scrollLeft}, Viewport width: ${element.clientWidth}`);
+
+                                  // Detect approaching end - set flag to preload next posts
+                                  if (
+                                    distanceFromEnd <= preloadThreshold &&
+                                    !isNearEnd &&
+                                    !isPaginating &&
+                                    afterCursor
+                                  ) {
+                                    console.log("Near end detected, setting isNearEnd flag");
+                                    setIsNearEnd(true);
+                                  }
+
+                                  // Detect approaching beginning - set flag to preload previous posts
+                                  if (
+                                    distanceFromStart <= preloadThreshold &&
+                                    !isNearBeginning &&
+                                    !isPaginating &&
+                                    beforeCursor
+                                  ) {
+                                    console.log("Near beginning detected, setting isNearBeginning flag");
+                                    setIsNearBeginning(true);
+                                  }
+
+                                  // Actually load next posts when very close to end
+                                  if (
+                                    distanceFromEnd <= scrollThreshold &&
+                                    !isPaginating &&
+                                    afterCursor
+                                  ) {
+                                    console.log("Very close to end, directly loading next posts");
+                                    fetchMedia("next");
+                                  }
+
+                                  // Actually load previous posts when very close to beginning
+                                  if (
+                                    distanceFromStart <= scrollThreshold &&
+                                    !isPaginating &&
+                                    beforeCursor
+                                  ) {
+                                    console.log("Very close to beginning, directly loading previous posts");
+                                    fetchMedia("previous");
+                                  }
+                                }
+                              }}
                             >
-                              <div className="inline-flex gap-4 pl-2 pr-4">
+                              <div className="inline-flex gap-4 pl-2 pr-4" style={{ minWidth: media.length * 160 + "px" }}>
                                 {media.map((item) => (
                                   <div
                                     key={item.id}
@@ -1024,41 +1201,7 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
               )}
             </AnimatePresence>
 
-            {/* Pagination */}
-            {(currentPage > 0 || afterCursor) && (
-              <div className="flex justify-center gap-4 mt-6 w-full">
-                {currentPage > 0 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => fetchMedia("previous")}
-                    disabled={isPaginating || isLoading}
-                    className="px-6 border-[#1A69DD] text-[#1A69DD] hover:bg-[#1A69DD]/10 dark:border-[#26A5E9] dark:text-[#26A5E9]"
-                  >
-                    {isPaginating ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      "← Previous"
-                    )}
-                  </Button>
-                )}
-                {afterCursor && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => fetchMedia("next")}
-                    disabled={isPaginating || isLoading}
-                    className="px-6 border-[#1A69DD] text-[#1A69DD] hover:bg-[#1A69DD]/10 dark:border-[#26A5E9] dark:text-[#26A5E9]"
-                  >
-                    {isPaginating ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      "Next →"
-                    )}
-                  </Button>
-                )}
-              </div>
-            )}
+            {/* No pagination buttons - using scroll-based pagination instead */}
           </motion.div>
 
           {/* Trigger/Keywords Section */}

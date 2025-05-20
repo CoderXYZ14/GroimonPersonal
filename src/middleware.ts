@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function middleware(_request: NextRequest) {
-  // const url = request.nextUrl;
+export async function middleware(request: NextRequest) {
+  const url = request.nextUrl;
   // const hostname = request.headers.get("host") || "";
   // const isProduction = hostname === "groimon.com";
 
@@ -19,12 +19,12 @@ export async function middleware(_request: NextRequest) {
   //   );
   // }
 
-  // if (url.pathname.startsWith("/dashboard")) {
-  //   const userDetails = request.cookies.get("user_details")?.value;
-  //   if (!userDetails) {
-  //     return NextResponse.redirect(new URL("/signin", request.url));
-  //   }
-  // }
+  if (url.pathname.startsWith("/dashboard")) {
+    const userDetails = request.cookies.get("user_details")?.value;
+    if (!userDetails) {
+      return NextResponse.redirect(new URL("/signin", request.url));
+    }
+  }
 
   return NextResponse.next();
 }
