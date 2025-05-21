@@ -2282,7 +2282,7 @@ export function CreateAutomationForm() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="text-[#1A69DD] dark:text-[#26A5E9] hover:bg-[#1A69DD]/10 dark:hover:bg-[#26A5E9]/10 flex items-center gap-2"
+                className={`flex items-center gap-2 ${form.watch("isFollowed") ? "text-[#1A69DD] dark:text-[#26A5E9] hover:bg-[#1A69DD]/10 dark:hover:bg-[#26A5E9]/10" : "text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50"}`}
                 onClick={toggleIsFollowed}
                 disabled={!form.watch("isFollowed")}
               >

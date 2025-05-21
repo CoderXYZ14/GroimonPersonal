@@ -22,11 +22,26 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import {
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   ChevronUp,
   Loader2,
   X,
+  Plus,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Rocket,
+  Image as ImageIcon,
+  Globe as GlobeIcon,
+  MousePointerClick,
+  AlertCircle,
+  Info,
+  MessageCircle,
+  MessageSquareText,
+  Link as LinkIcon,
+  Trash2,
+  Eye,
+  UserPlus,
+  UserX,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Switch } from "@/components/ui/switch";
@@ -34,6 +49,10 @@ import { toast } from "sonner";
 import axios from "axios";
 import Image from "next/image";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import SimpleBar from "simplebar-react";
+import "simplebar-react/dist/simplebar.min.css";
+import { cn } from "@/lib/utils";
 
 interface InstagramStoryItem {
   id: string;
@@ -106,6 +125,74 @@ const formSchema = z
       message: "Message template is required for message type",
       path: ["message"],
     }
+  )
+  .refine(
+    (data) => {
+      // If applyOption is "selected", storyId is required
+      if (data.applyOption === "selected" && !data.storyId) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Please select a story for your automation.",
+      path: ["storyId"],
+    }
+  )
+  .refine(
+    (data) => {
+      // Image URL is required for ButtonImage
+      if (
+        data.messageType === "ButtonImage" &&
+        (!data.imageUrl || data.imageUrl.trim() === "")
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Image URL is required for image buttons.",
+      path: ["imageUrl"],
+    }
+  )
+  .refine(
+    (data) => {
+      // Button title is required for ButtonText and ButtonImage
+      if (
+        (data.messageType === "ButtonText" ||
+          data.messageType === "ButtonImage") &&
+        (!data.buttonTitle || data.buttonTitle.trim() === "")
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Button title is required.",
+      path: ["buttonTitle"],
+    }
+  )
+  .refine(
+    (data) => {
+      // Follower message fields are required when isFollowed is true
+      if (data.isFollowed) {
+        if (!data.notFollowerMessage || data.notFollowerMessage.trim() === "") {
+          return false;
+        }
+        if (!data.followButtonTitle || data.followButtonTitle.trim() === "") {
+          return false;
+        }
+        if (!data.followUpMessage || data.followUpMessage.trim() === "") {
+          return false;
+        }
+      }
+      return true;
+    },
+    {
+      message:
+        "All follower-related messages are required when the follow check is enabled.",
+      path: ["notFollowerMessage"],
+    }
   );
 
 interface EditStoryFormProps {
@@ -140,6 +227,7 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
   const [beforeCursor, setBeforeCursor] = useState<string | null>(null);
   const [afterCursor, setAfterCursor] = useState<string | null>(null);
   const [isPaginating, setIsPaginating] = useState(false);
+  const [loadedCursors, setLoadedCursors] = useState<Set<string>>(new Set());
   const [isFollowedOpen, setIsFollowedOpen] = useState(false);
   const [storyLoaded, setStoryLoaded] = useState(false);
   const [buttons, setButtons] = useState<
@@ -254,6 +342,8 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
     async (direction: "initial" | "next" | "previous" = "initial") => {
       if (direction === "initial") {
         setIsLoading(true);
+        // Reset loaded cursors on initial load
+        setLoadedCursors(new Set());
       } else {
         setIsPaginating(true);
       }
@@ -274,12 +364,25 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
         let url = `https://graph.instagram.com/v18.0/${instagramId}/stories?fields=id,media_type,media_url,thumbnail_url,timestamp&limit=25&access_token=${instagramAccessToken}`;
 
         // Determine which cursor to use based on navigation direction
+        let currentCursor = "";
         if (direction === "next" && afterCursor) {
+          currentCursor = afterCursor;
           url += `&after=${afterCursor}`;
           setCurrentPage((prev) => prev + 1);
         } else if (direction === "previous" && beforeCursor) {
+          currentCursor = beforeCursor;
           url += `&before=${beforeCursor}`;
           setCurrentPage((prev) => Math.max(0, prev - 1));
+        }
+
+        // Skip if we've already loaded this cursor
+        if (
+          direction !== "initial" &&
+          currentCursor &&
+          loadedCursors.has(currentCursor)
+        ) {
+          setIsPaginating(false);
+          return;
         }
 
         const response = await fetch(url);
@@ -311,9 +414,44 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
           timestamp: item.timestamp,
         }));
 
-        // Always replace the stories with the new batch
-        setStories(fetchedStories);
-        setStoryLoaded(true);
+        // Handle the story items based on the direction
+        if (direction === "initial") {
+          // For initial load, just set the stories
+          setStories(fetchedStories);
+          setStoryLoaded(true);
+        } else if (direction === "next") {
+          // For next page, append the new items without duplicates
+          setStories((prevStories) => {
+            // Create a set of existing IDs for quick lookup
+            const existingIds = new Set(prevStories.map((item) => item.id));
+            // Filter out any duplicates from the new items
+            const uniqueNewItems = fetchedStories.filter(
+              (item) => !existingIds.has(item.id)
+            );
+            return [...prevStories, ...uniqueNewItems];
+          });
+
+          // Add this cursor to our loaded set
+          if (currentCursor) {
+            setLoadedCursors((prev) => new Set(prev).add(currentCursor));
+          }
+        } else if (direction === "previous") {
+          // For previous page, prepend the new items without duplicates
+          setStories((prevStories) => {
+            // Create a set of existing IDs for quick lookup
+            const existingIds = new Set(prevStories.map((item) => item.id));
+            // Filter out any duplicates from the new items
+            const uniqueNewItems = fetchedStories.filter(
+              (item) => !existingIds.has(item.id)
+            );
+            return [...uniqueNewItems, ...prevStories];
+          });
+
+          // Add this cursor to our loaded set
+          if (currentCursor) {
+            setLoadedCursors((prev) => new Set(prev).add(currentCursor));
+          }
+        }
 
         // Update cursors for pagination
         if (data.paging?.cursors) {
@@ -377,6 +515,55 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
+      // Validate buttons if using button types
+      if (
+        values.messageType === "ButtonText" ||
+        values.messageType === "ButtonImage"
+      ) {
+        // Check if button title is empty
+        if (!values.buttonTitle || values.buttonTitle.trim() === "") {
+          form.setError("buttonTitle", {
+            type: "manual",
+            message: "Button title is required",
+          });
+          // Scroll to the error
+          document
+            .querySelector("[name='buttonTitle']")
+            ?.scrollIntoView({ behavior: "smooth", block: "center" });
+          return;
+        }
+
+        // Check if any button has empty fields
+        if (buttons.length === 0) {
+          form.setError("buttons", {
+            type: "manual",
+            message: "At least one button is required",
+          });
+          return;
+        }
+
+        // Validate each button
+        let hasEmptyFields = false;
+        buttons.forEach((button) => {
+          if (
+            !button.buttonText ||
+            button.buttonText.trim() === "" ||
+            !button.url ||
+            button.url.trim() === ""
+          ) {
+            hasEmptyFields = true;
+          }
+        });
+
+        if (hasEmptyFields) {
+          form.setError("buttons", {
+            type: "manual",
+            message: "Button text and URL are required for all buttons",
+          });
+          return;
+        }
+      }
+
       setIsLoading(true);
 
       // First, ensure we have a valid story ID
@@ -468,53 +655,96 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
     <div className="w-full">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Input
-                      placeholder="Untitled"
-                      className="text-xl font-medium border-none focus-visible:ring-0 px-2 bg-transparent max-w-[200px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex gap-2">
-              <Link href="/dashboard/automation?type=story">
-                <Button
-                  variant="outline"
-                  className="border-gray-200 dark:border-gray-700"
+          {/* Header Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-[#1A69DD]/20 dark:border-gray-700"
+          >
+            <div className="px-2 sm:px-3 lg:px-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-3 md:gap-4 md:py-4">
+                {/* Title Input */}
+                <motion.div
+                  whileHover={{ scale: 1.01 }}
+                  className="w-full sm:max-w-[300px] lg:max-w-[400px] relative flex-1"
                 >
-                  Back
-                </Button>
-              </Link>
-              <Button
-                type="submit"
-                className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  "Update"
-                )}
-              </Button>
-            </div>
-          </div>
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem className="w-full">
+                        <FormControl>
+                          <Input
+                            placeholder="✨ Name Your Automation"
+                            className="text-base md:text-lg font-semibold bg-transparent border-gradient-to-r from-[#1A69DD]/30 to-[#26A5E9]/30 dark:border-[#26A5E9]/30 focus-visible:ring-0 px-3 py-2 placeholder:text-[#1A69DD]/60 dark:placeholder:text-[#26A5E9]/80"
+                            {...field}
+                          />
+                        </FormControl>
+                        {/* <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-[#1A69DD]/30 to-[#26A5E9]/30" /> */}
+                        <FormMessage className="text-sm mt-1 ml-2" />
+                      </FormItem>
+                    )}
+                  />
+                </motion.div>
 
-          {/* Story selection section */}
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">Stories</h2>
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                  <motion.div
+                    whileHover={{ x: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full sm:w-auto"
+                  >
+                    <Link href="/dashboard/automation?type=story">
+                      <Button
+                        variant="ghost"
+                        className="w-full sm:w-auto gap-2 text-sm sm:text-base font-medium text-[#1A69DD] dark:text-[#26A5E9] hover:bg-[#1A69DD]/10 dark:hover:bg-[#26A5E9]/10 border border-[#1A69DD]/20 dark:border-[#26A5E9]/30"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        <span>Back to Dashboard</span>
+                      </Button>
+                    </Link>
+                  </motion.div>
+
+                  <motion.div
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    className="w-full sm:w-auto"
+                  >
+                    <Button
+                      type="submit"
+                      className="w-full sm:w-auto text-sm sm:text-base font-medium bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] text-white shadow-lg shadow-[#1A69DD]/20 dark:shadow-[#26A5E9]/30"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin text-white/90" />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <Rocket className="h-4 w-4 mr-2" />
+                          Update Automation
+                        </>
+                      )}
+                    </Button>
+                  </motion.div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Story Selection Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-[#1A69DD]/10 dark:border-gray-700"
+          >
+            {/* Section Header */}
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent">
+                Stories
+              </h2>
               {applyOption === "selected" && (
                 <Button
                   type="button"
@@ -532,6 +762,7 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
               )}
             </div>
 
+            {/* Automation Type Selection */}
             <FormField
               control={form.control}
               name="applyOption"
@@ -541,163 +772,338 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
                     <RadioGroup
                       onValueChange={field.onChange}
                       value={field.value}
-                      className="grid grid-cols-2 gap-4"
+                      className="grid grid-cols-1 lg:grid-cols-2 gap-6"
                     >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="all" id="all" />
-                        <Label htmlFor="all" className="text-sm">
-                          Apply on all stories
+                      {/* All Stories Card */}
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="relative"
+                      >
+                        <RadioGroupItem
+                          value="all"
+                          id="all"
+                          className="peer hidden"
+                        />
+                        <Label
+                          htmlFor="all"
+                          className={cn(
+                            "flex flex-col p-6 border-3 rounded-2xl cursor-pointer transition-all",
+                            field.value === "all"
+                              ? "border-[#1A69DD] bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10"
+                              : "border-gray-200 dark:border-gray-700 hover:border-[#1A69DD]/50"
+                          )}
+                        >
+                          <div className="flex items-center gap-3 mb-4">
+                            <div
+                              className={cn(
+                                "p-2 rounded-full transition-colors",
+                                field.value === "all"
+                                  ? "bg-[#1A69DD] dark:bg-[#26A5E9]"
+                                  : "bg-[#1A69DD]/10 dark:bg-[#26A5E9]/10"
+                              )}
+                            >
+                              <GlobeIcon
+                                className={cn(
+                                  "h-6 w-6 transition-colors",
+                                  field.value === "all"
+                                    ? "text-white"
+                                    : "text-[#1A69DD] dark:text-[#26A5E9]"
+                                )}
+                              />
+                            </div>
+                            <h3 className="text-lg font-semibold">
+                              All Stories
+                            </h3>
+                          </div>
+                          <p className="text-gray-600 dark:text-gray-300">
+                            Automatically apply this workflow to all existing
+                            stories
+                          </p>
+
+                          {/* Selection Indicator */}
+                          <div
+                            className={cn(
+                              "absolute top-4 right-4 flex items-center justify-center h-6 w-6 rounded-full border-2 transition-colors",
+                              field.value === "all"
+                                ? "border-[#1A69DD] bg-[#1A69DD] dark:border-[#26A5E9] dark:bg-[#26A5E9]"
+                                : "border-gray-300"
+                            )}
+                          >
+                            <Check className="h-4 w-4 text-white opacity-100 transition-opacity" />
+                          </div>
                         </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="selected" id="selected" />
-                        <Label htmlFor="selected" className="text-sm">
-                          Apply on selected story
+                      </motion.div>
+
+                      {/* Specific Story Card */}
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="relative"
+                      >
+                        <RadioGroupItem
+                          value="selected"
+                          id="selected"
+                          className="peer hidden"
+                        />
+                        <Label
+                          htmlFor="selected"
+                          className={cn(
+                            "flex flex-col p-6 border-3 rounded-2xl cursor-pointer transition-all",
+                            field.value === "selected"
+                              ? "border-[#1A69DD] bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10"
+                              : "border-gray-200 dark:border-gray-700 hover:border-[#1A69DD]/50"
+                          )}
+                        >
+                          <div className="flex items-center gap-3 mb-4">
+                            <div
+                              className={cn(
+                                "p-2 rounded-full transition-colors",
+                                field.value === "selected"
+                                  ? "bg-[#1A69DD] dark:bg-[#26A5E9]"
+                                  : "bg-[#1A69DD]/10 dark:bg-[#26A5E9]/10"
+                              )}
+                            >
+                              <MousePointerClick
+                                className={cn(
+                                  "h-6 w-6 transition-colors",
+                                  field.value === "selected"
+                                    ? "text-white"
+                                    : "text-[#1A69DD] dark:text-[#26A5E9]"
+                                )}
+                              />
+                            </div>
+                            <h3 className="text-lg font-semibold">
+                              Specific Story
+                            </h3>
+                          </div>
+                          <p className="text-gray-600 dark:text-gray-300">
+                            Choose individual stories to apply this automation
+                            workflow
+                          </p>
+
+                          {/* Selection Indicator */}
+                          <div
+                            className={cn(
+                              "absolute top-4 right-4 flex items-center justify-center h-6 w-6 rounded-full border-2 transition-colors",
+                              field.value === "selected"
+                                ? "border-[#1A69DD] bg-[#1A69DD] dark:border-[#26A5E9] dark:bg-[#26A5E9]"
+                                : "border-gray-300"
+                            )}
+                          >
+                            <Check className="h-4 w-4 text-white opacity-100 transition-opacity" />
+                          </div>
                         </Label>
-                      </div>
+                      </motion.div>
                     </RadioGroup>
                   </FormControl>
                 </FormItem>
               )}
             />
 
-            {applyOption === "selected" && selectStoryOpen && (
-              <div className="mt-4">
-                {isLoading ? (
-                  <div className="flex justify-center py-6">
-                    <div className="w-8 h-8 border-4 border-t-purple-500 border-b-purple-300 border-l-purple-300 border-r-purple-300 rounded-full animate-spin"></div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {stories.length > 0 ? (
-                      stories.map((item) => (
-                        <Card
-                          key={item.id}
-                          className={`overflow-hidden w-full border transition-transform hover:scale-[1.02] cursor-pointer ${
-                            form.watch("storyId") === item.id
-                              ? "border-primary border-2"
-                              : "border-gray-200 dark:border-gray-700"
-                          }`}
-                          onClick={() => {
-                            // Simple approach - just set the form value directly
-                            form.setValue('storyId', item.id);
-                          }}
-                        >
-                          <div className="aspect-square bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                            {item.mediaType === "IMAGE" && (
-                              <Image
-                                src={item.mediaUrl}
-                                alt="Story"
-                                width={150}
-                                height={150}
-                                className="w-full h-full object-cover"
-                              />
-                            )}
-                            {item.mediaType === "VIDEO" && (
-                              <div className="relative w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                                {item.thumbnailUrl ? (
-                                  <Image
-                                    src={item.thumbnailUrl}
-                                    alt="Video Thumbnail"
-                                    width={150}
-                                    height={150}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <span className="absolute text-gray-500 dark:text-gray-400 text-xs">
-                                    Video Preview
-                                  </span>
+            {/* Story Selection Grid */}
+            <AnimatePresence>
+              {applyOption === "selected" && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-8"
+                >
+                  {selectStoryOpen && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="space-y-6"
+                    >
+                      {/* Loading State */}
+                      {isLoading ? (
+                        <div className="flex justify-center py-12">
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ repeat: Infinity, duration: 1.5 }}
+                            className="h-12 w-12 rounded-full border-4 border-[#1A69DD] border-t-transparent"
+                          />
+                        </div>
+                      ) : (
+                        <div className="relative flex flex-col space-y-4">
+                          <div className="relative">
+                            <SimpleBar
+                              className={`py-2 ${
+                                form.formState.errors.storyId
+                                  ? "border-2 border-red-500 dark:border-red-500 rounded-lg p-2"
+                                  : ""
+                              }`}
+                              style={{ height: "100%", overflowX: "auto" }}
+                              autoHide={false}
+                              onScroll={() => {
+                                const scrollContainer = document.querySelector(
+                                  ".simplebar-content-wrapper"
+                                );
+                                if (scrollContainer) {
+                                  const element =
+                                    scrollContainer as HTMLDivElement;
+                                  const scrollThreshold = 100;
+
+                                  if (
+                                    element.scrollWidth - element.scrollLeft <=
+                                      element.clientWidth + scrollThreshold &&
+                                    !isPaginating &&
+                                    afterCursor
+                                  ) {
+                                    fetchStories("next");
+                                  }
+
+                                  if (
+                                    element.scrollLeft <= scrollThreshold &&
+                                    !isPaginating &&
+                                    beforeCursor
+                                  ) {
+                                    fetchStories("previous");
+                                  }
+                                }
+                              }}
+                            >
+                              <div className="inline-flex gap-4 pl-2 pr-4">
+                                {stories.map((item) => (
+                                  <div
+                                    key={item.id}
+                                    className="inline-block w-[250px] flex-shrink-0"
+                                  >
+                                    <FormField
+                                      control={form.control}
+                                      name="storyId"
+                                      render={({ field }) => (
+                                        <RadioGroup
+                                          value={field.value}
+                                          onValueChange={field.onChange}
+                                        >
+                                          <Label className="block relative group cursor-pointer">
+                                            <motion.div
+                                              whileHover={{ scale: 1.03 }}
+                                              className={cn(
+                                                "relative aspect-square rounded-xl overflow-hidden border-4 transition-all",
+                                                field.value === item.id
+                                                  ? "border-[#1A69DD] dark:border-[#26A5E9]"
+                                                  : "border-transparent group-hover:border-[#1A69DD]/30"
+                                              )}
+                                            >
+                                              <div className="relative h-full w-full bg-gray-100 dark:bg-gray-700">
+                                                {item.mediaType === "IMAGE" && (
+                                                  <Image
+                                                    src={item.mediaUrl}
+                                                    alt="Story"
+                                                    fill
+                                                    className="object-cover"
+                                                    loading="lazy"
+                                                  />
+                                                )}
+                                                {item.mediaType === "VIDEO" && (
+                                                  <div className="relative w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                                    {item.thumbnailUrl ? (
+                                                      <Image
+                                                        src={item.thumbnailUrl}
+                                                        alt="Video Thumbnail"
+                                                        fill
+                                                        className="object-cover"
+                                                      />
+                                                    ) : (
+                                                      <span className="absolute text-gray-500 dark:text-gray-400 text-xs">
+                                                        Video Preview
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                )}
+                                              </div>
+
+                                              <div
+                                                className={cn(
+                                                  "absolute inset-0 flex items-center justify-center bg-black/40 transition-opacity",
+                                                  field.value === item.id
+                                                    ? "opacity-100"
+                                                    : "opacity-0"
+                                                )}
+                                              >
+                                                <Check className="h-8 w-8 text-white" />
+                                              </div>
+
+                                              <div className="absolute top-2 right-2">
+                                                <div
+                                                  className={cn(
+                                                    "h-6 w-6 rounded-full border-2 flex items-center justify-center",
+                                                    field.value === item.id
+                                                      ? "border-white bg-[#1A69DD] dark:bg-[#26A5E9] opacity-100"
+                                                      : "border-white bg-[#1A69DD]/60 dark:bg-[#26A5E9]/60 opacity-0 group-hover:opacity-70"
+                                                  )}
+                                                >
+                                                  <Check className="h-4 w-4 text-white" />
+                                                </div>
+                                                <RadioGroupItem
+                                                  value={item.id}
+                                                  className="sr-only"
+                                                />
+                                              </div>
+                                            </motion.div>
+                                          </Label>
+                                        </RadioGroup>
+                                      )}
+                                    />
+                                  </div>
+                                ))}
+
+                                {isPaginating && (
+                                  <div className="inline-flex w-[250px] flex-shrink-0 items-center justify-center">
+                                    <Loader2 className="h-8 w-8 animate-spin text-[#1A69DD] dark:text-[#26A5E9]" />
+                                  </div>
                                 )}
                               </div>
-                            )}
-                          </div>
-                          <div className="p-2 flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                              <input
-                                type="radio"
-                                id={item.id}
-                                value={item.id}
-                                checked={form.watch('storyId') === item.id}
-                                onChange={() => form.setValue('storyId', item.id)}
-                                className="h-4 w-4 text-primary"
-                              />
-                              <label
-                                htmlFor={item.id}
-                                className="text-xs cursor-pointer"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                Select
-                              </label>
-                            </div>
-                            {form.watch("storyId") === item.id && (
-                              <div className="text-xs text-purple-500 font-medium">
-                                Selected
+                            </SimpleBar>
+
+                            {form.formState.errors.storyId && (
+                              <div className="mt-2 flex items-center gap-1.5 text-red-500 dark:text-red-400">
+                                <AlertCircle size={14} />
+                                <p className="text-sm font-medium">
+                                  {form.formState.errors.storyId.message}
+                                </p>
                               </div>
                             )}
                           </div>
-                        </Card>
-                      ))
-                    ) : (
-                      <div className="text-center w-full py-4 text-muted-foreground col-span-4">
-                        No active stories found. Please create a story on
-                        Instagram first.
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Pagination Controls */}
-            {applyOption === "selected" &&
-              selectStoryOpen &&
-              stories.length > 0 && (
-                <div className="flex justify-center mt-6 gap-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fetchStories("previous")}
-                    disabled={!beforeCursor || isPaginating || isLoading}
-                    className="flex items-center gap-1"
-                  >
-                    {isPaginating && currentPage > 0 ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <ChevronLeft className="h-4 w-4" />
-                    )}
-                    Previous
-                  </Button>
-                  <div className="text-sm text-muted-foreground">
-                    Page {currentPage + 1}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fetchStories("next")}
-                    disabled={!afterCursor || isPaginating || isLoading}
-                    className="flex items-center gap-1"
-                  >
-                    Next
-                    {isPaginating && afterCursor ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </motion.div>
               )}
-          </div>
-          {/* Trigger/Keywords section */}
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+            </AnimatePresence>
+          </motion.div>
+
+          {/* Trigger/Keywords Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-[#1A69DD]/10 dark:border-gray-700"
+          >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">Trigger</h2>
-              {!form.watch("respondToAll") && (
-                <div className="text-green-500 flex items-center">
-                  {keywordsCount} keyword{keywordsCount !== 1 ? "s" : ""}
-                  <ChevronDown className="w-4 h-4 ml-1" />
+              <div className="flex items-center">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent mr-12">
+                  Trigger
+                </h2>
+                <div className="relative group -ml-9">
+                  <Info className="h-5 w-5 text-[#1A69DD] dark:text-[#26A5E9]" />
+                  <div className="absolute hidden group-hover:block bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 dark:bg-gray-100 text-white dark:text-gray-900 text-sm rounded-lg shadow-lg w-64 text-center">
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-gray-800 dark:bg-gray-100 rotate-45"></div>
+                    Keywords are not case-sensitive, e.g., “Groimon” and
+                    “groimon” are recognized as the same.
+                  </div>
                 </div>
+              </div>
+              {!form.watch("respondToAll") && (
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  className="px-3 py-1 rounded-full bg-[#1A69DD]/10 dark:bg-[#26A5E9]/10 text-[#1A69DD] dark:text-[#26A5E9]"
+                >
+                  {keywordsCount} {keywordsCount === 1 ? "Keyword" : "Keywords"}
+                </motion.div>
               )}
             </div>
 
@@ -705,415 +1111,642 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
               control={form.control}
               name="respondToAll"
               render={({ field }) => (
-                <FormItem className="mb-4">
+                <FormItem>
                   <FormControl>
                     <RadioGroup
                       onValueChange={(value) =>
                         field.onChange(value === "true")
                       }
-                      defaultValue={field.value ? "true" : "false"}
-                      className="flex flex-col space-y-2"
+                      value={field.value ? "true" : "false"}
+                      className="grid grid-cols-1 md:grid-cols-2 gap-4"
                     >
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="false" />
-                        </FormControl>
-                        <Label className="font-normal">
-                          a specific word or words
+                      {/* Specific Words Option */}
+                      <motion.div whileHover={{ scale: 1.02 }}>
+                        <Label
+                          htmlFor="specific"
+                          className={cn(
+                            "flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all",
+                            field.value === false
+                              ? "border-[#1A69DD] bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10"
+                              : "border-gray-200 dark:border-gray-700 hover:border-[#1A69DD]/50"
+                          )}
+                        >
+                          <RadioGroupItem
+                            value="false"
+                            id="specific"
+                            className="peer hidden"
+                          />
+                          <div className="flex items-center gap-3">
+                            <div className="h-6 w-6 rounded-full border-2 flex items-center justify-center border-current">
+                              <div
+                                className={cn(
+                                  "h-3 w-3 rounded-full transition-all",
+                                  field.value === false
+                                    ? "bg-[#1A69DD] dark:bg-[#26A5E9]"
+                                    : "bg-transparent"
+                                )}
+                              />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-base">
+                                Specific Words
+                              </h3>
+                              <p className="text-sm text-gray-500 dark:text-gray-300">
+                                Respond when specific keywords are used
+                              </p>
+                            </div>
+                          </div>
                         </Label>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="true" />
-                        </FormControl>
-                        <Label className="font-normal">any word</Label>
-                      </FormItem>
+                      </motion.div>
+
+                      {/* Any Word Option */}
+                      <motion.div whileHover={{ scale: 1.02 }}>
+                        <Label
+                          htmlFor="any"
+                          className={cn(
+                            "flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all",
+                            field.value === true
+                              ? "border-[#1A69DD] bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10"
+                              : "border-gray-200 dark:border-gray-700 hover:border-[#1A69DD]/50"
+                          )}
+                        >
+                          <RadioGroupItem
+                            value="true"
+                            id="any"
+                            className="peer hidden"
+                          />
+                          <div className="flex items-center gap-3">
+                            <div className="h-6 w-6 rounded-full border-2 flex items-center justify-center">
+                              <div
+                                className={cn(
+                                  "h-3 w-3 rounded-full transition-all",
+                                  field.value === true
+                                    ? "bg-[#1A69DD] dark:bg-[#26A5E9]"
+                                    : "bg-transparent"
+                                )}
+                              />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-base">
+                                Any Word
+                              </h3>
+                              <p className="text-sm text-gray-500 dark:text-gray-300">
+                                Respond to all messages
+                              </p>
+                            </div>
+                          </div>
+                        </Label>
+                      </motion.div>
                     </RadioGroup>
                   </FormControl>
                 </FormItem>
               )}
             />
 
-            {!form.watch("respondToAll") && (
-              <div>
-                <FormField
-                  control={form.control}
-                  name="keywords"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {field.value?.map((keyword, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-md px-3 py-1 text-sm"
-                          >
-                            <span>{keyword}</span>
-                            <button
+            <AnimatePresence>
+              {!form.watch("respondToAll") && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-6"
+                >
+                  <FormField
+                    control={form.control}
+                    name="keywords"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="space-y-4">
+                          <div className="flex flex-wrap gap-2">
+                            <AnimatePresence>
+                              {field.value?.map((keyword, index) => (
+                                <motion.div
+                                  key={index}
+                                  initial={{ scale: 0.8, opacity: 0 }}
+                                  animate={{ scale: 1, opacity: 1 }}
+                                  exit={{ scale: 0.8, opacity: 0 }}
+                                  className="flex items-center bg-[#1A69DD]/10 dark:bg-[#26A5E9]/10 rounded-full px-3 py-1.5"
+                                >
+                                  <span className="text-[#1A69DD] dark:text-[#26A5E9] text-base font-medium mr-1">
+                                    {keyword}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newKeywords = [...field.value];
+                                      newKeywords.splice(index, 1);
+                                      field.onChange(newKeywords);
+                                    }}
+                                    className="text-[#1A69DD] dark:text-[#26A5E9] hover:text-[#1A69DD]/70 dark:hover:text-[#26A5E9]/70"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                </motion.div>
+                              ))}
+                            </AnimatePresence>
+                          </div>
+
+                          <div className="relative">
+                            <Input
+                              placeholder="Add keyword"
+                              className={`w-full py-6 px-6 rounded-xl border-2 ${
+                                form.formState.errors.keywords
+                                  ? "border-red-500 dark:border-red-500"
+                                  : "border-gray-200 dark:border-gray-700"
+                              } focus:border-[#1A69DD] focus:ring-0 dark:focus:border-[#26A5E9]`}
+                              value={newKeyword}
+                              onChange={(e) => setNewKeyword(e.target.value)}
+                              onKeyDown={(
+                                e: KeyboardEvent<HTMLInputElement>
+                              ) => {
+                                if (e.key === "Enter" && newKeyword.trim()) {
+                                  e.preventDefault();
+                                  const trimmedKeyword = newKeyword.trim();
+                                  if (
+                                    !field.value?.some(
+                                      (k) =>
+                                        k.toLowerCase() ===
+                                        trimmedKeyword.toLowerCase()
+                                    )
+                                  ) {
+                                    const updatedKeywords = [
+                                      ...(field.value || []),
+                                    ];
+                                    updatedKeywords.push(trimmedKeyword);
+                                    field.onChange(updatedKeywords);
+                                    setNewKeyword("");
+                                  } else {
+                                    toast.error("This keyword already exists");
+                                    setNewKeyword("");
+                                  }
+                                }
+                              }}
+                            />
+                            <motion.button
+                              whileHover={{ scale: 1.03 }}
+                              whileTap={{ scale: 0.97 }}
                               type="button"
                               onClick={() => {
-                                const newKeywords = [...field.value];
-                                newKeywords.splice(index, 1);
-                                field.onChange(newKeywords);
+                                if (newKeyword.trim()) {
+                                  const trimmedKeyword = newKeyword.trim();
+                                  if (
+                                    !field.value?.some(
+                                      (k) =>
+                                        k.toLowerCase() ===
+                                        trimmedKeyword.toLowerCase()
+                                    )
+                                  ) {
+                                    const updatedKeywords = [
+                                      ...(field.value || []),
+                                    ];
+                                    updatedKeywords.push(trimmedKeyword);
+                                    field.onChange(updatedKeywords);
+                                    setNewKeyword("");
+                                  } else {
+                                    toast.error("This keyword already exists");
+                                    setNewKeyword("");
+                                  }
+                                }
                               }}
-                              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 ml-2"
+                              className="absolute right-2 top-2 bottom-2 px-4 bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] text-white rounded-lg flex items-center gap-2"
                             >
-                              <X size={14} />
-                            </button>
+                              <Plus size={18} />
+                              <span className="font-semibold">Add</span>
+                            </motion.button>
                           </div>
-                        ))}
-                      </div>
-                      <div className="flex">
-                        <Input
-                          placeholder="Add keyword"
-                          className="w-full rounded-md"
-                          value={newKeyword}
-                          onChange={(e) => setNewKeyword(e.target.value)}
-                          onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-                            if (e.key === "Enter" && newKeyword.trim()) {
-                              e.preventDefault();
-                              const trimmedKeyword = newKeyword.trim();
-                              // Check if keyword already exists (case insensitive)
-                              if (
-                                !field.value?.some(
-                                  (k) =>
-                                    k.toLowerCase() ===
-                                    trimmedKeyword.toLowerCase()
-                                )
-                              ) {
-                                const updatedKeywords = [
-                                  ...(field.value || []),
-                                ];
-                                updatedKeywords.push(trimmedKeyword);
-                                field.onChange(updatedKeywords);
-                                setNewKeyword("");
-                              } else {
-                                toast.error("This keyword already exists");
-                                setNewKeyword("");
-                              }
-                            }
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="ml-2"
-                          onClick={() => {
-                            if (newKeyword.trim()) {
-                              const trimmedKeyword = newKeyword.trim();
-                              // Check if keyword already exists (case insensitive)
-                              if (
-                                !field.value?.some(
-                                  (k) =>
-                                    k.toLowerCase() ===
-                                    trimmedKeyword.toLowerCase()
-                                )
-                              ) {
-                                const updatedKeywords = [
-                                  ...(field.value || []),
-                                ];
-                                updatedKeywords.push(trimmedKeyword);
-                                field.onChange(updatedKeywords);
-                                setNewKeyword("");
-                              } else {
-                                toast.error("This keyword already exists");
-                                setNewKeyword("");
-                              }
-                            }
-                          }}
-                        >
-                          Add
-                        </Button>
-                      </div>
-                      <FormDescription className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Press Enter or click Add to add a keyword
-                      </FormDescription>
-                      {form.formState.isSubmitted &&
-                        (!field.value || field.value.length === 0) && (
-                          <p className="text-sm font-medium text-destructive mt-2">
-                            At least one keyword is required when not responding
-                            to all messages
-                          </p>
-                        )}
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
-          </div>
 
-          {/* DM Type section */}
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+                          {form.formState.errors.keywords && (
+                            <div className="mt-2 flex items-center gap-1.5 text-red-500 dark:text-red-400">
+                              <AlertCircle size={14} />
+                              <p className="text-sm font-medium">
+                                {form.formState.errors.keywords.message}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+
+          {/* DM Type Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-[#1A69DD]/10 dark:border-gray-700"
+          >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">DM Message</h2>
-              <Button
-                type="button"
-                variant="ghost"
-                className="text-green-500 flex items-center"
-                onClick={toggleDmType}
-              >
-                Message Type
-                {dmTypeOpen ? (
-                  <ChevronUp className="w-4 h-4 ml-1" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 ml-1" />
-                )}
-              </Button>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent mr-12">
+                DM Message
+              </h2>
+              <motion.div whileHover={{ scale: 1.05 }}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-[#1A69DD] dark:text-[#26A5E9] hover:bg-[#1A69DD]/10 dark:hover:bg-[#26A5E9]/10"
+                  onClick={toggleDmType}
+                >
+                  <MessageCircle className="w-4 h-4" /> Message Type
+                  {dmTypeOpen ? (
+                    <ChevronUp className="w-4 h-4 ml-1" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 ml-1" />
+                  )}
+                </Button>
+              </motion.div>
             </div>
 
-            {dmTypeOpen && (
-              <div className="mt-4 space-y-4">
-                <FormField
-                  control={form.control}
-                  name="messageType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="grid grid-cols-3 gap-4"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="message" id="message" />
-                            <Label htmlFor="message">Message</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="ButtonText"
-                              id="ButtonText"
-                            />
-                            <Label htmlFor="ButtonText">Button Text</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem
-                              value="ButtonImage"
-                              id="ButtonImage"
-                            />
-                            <Label htmlFor="ButtonImage">Button Image</Label>
-                          </div>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {messageType === "message" && (
+            <AnimatePresence>
+              {dmTypeOpen && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-6"
+                >
+                  {/* Message Type Selection */}
                   <FormField
                     control={form.control}
-                    name="message"
+                    name="messageType"
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          <Textarea
-                            placeholder="Enter your message template"
-                            className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[120px]"
-                            {...field}
-                          />
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value || ""}
+                            className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                          >
+                            {["message", "ButtonText", "ButtonImage"].map(
+                              (type) => (
+                                <motion.div
+                                  key={type}
+                                  whileHover={{ scale: 1.02 }}
+                                  className="relative"
+                                >
+                                  <RadioGroupItem
+                                    value={type}
+                                    id={type}
+                                    className="peer hidden"
+                                  />
+                                  <Label
+                                    htmlFor={type}
+                                    className={cn(
+                                      "flex flex-col p-4 border-2 rounded-xl cursor-pointer transition-all",
+                                      field.value === type
+                                        ? "border-[#1A69DD] bg-[#1A69DD]/5 dark:border-[#26A5E9] dark:bg-[#26A5E9]/10"
+                                        : "border-gray-200 dark:border-gray-700 hover:border-[#1A69DD]/50"
+                                    )}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      {/* Custom Radio Indicator */}
+                                      <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center border-current">
+                                        <div
+                                          className={cn(
+                                            "w-3 h-3 rounded-full transition-all",
+                                            field.value === type
+                                              ? "bg-[#1A69DD] dark:bg-[#26A5E9]"
+                                              : "bg-transparent"
+                                          )}
+                                        />
+                                      </div>
+
+                                      {/* Icon Container */}
+                                      <div className="p-2 rounded-lg bg-[#1A69DD]/10 dark:bg-[#26A5E9]/10">
+                                        {type === "message" && (
+                                          <MessageSquareText className="w-5 h-5 text-[#1A69DD] dark:text-[#26A5E9]" />
+                                        )}
+                                        {type === "ButtonText" && (
+                                          <LinkIcon className="w-5 h-5 text-[#1A69DD] dark:text-[#26A5E9]" />
+                                        )}
+                                        {type === "ButtonImage" && (
+                                          <ImageIcon className="w-5 h-5 text-[#1A69DD] dark:text-[#26A5E9]" />
+                                        )}
+                                      </div>
+
+                                      <span className="font-medium text-base capitalize dark:text-gray-200">
+                                        {type.replace(/([A-Z])/g, " $1").trim()}
+                                      </span>
+                                    </div>
+                                    <p className="text-sm text-gray-600 dark:text-gray-300 ml-9">
+                                      {type === "message" &&
+                                        "Text message reply"}
+                                      {type === "ButtonText" &&
+                                        "Text with buttons"}
+                                      {type === "ButtonImage" &&
+                                        "Image with buttons"}
+                                    </p>
+                                  </Label>
+                                </motion.div>
+                              )
+                            )}
+                          </RadioGroup>
                         </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
-                )}
 
-                {messageType === "ButtonImage" && (
-                  <FormField
-                    control={form.control}
-                    name="imageUrl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <div className="space-y-2">
-                            <Label>Main Image URL</Label>
-                            <Input
-                              placeholder="https://example.com/main-image.jpg"
-                              className="w-full"
-                              {...field}
-                              value={field.value || ""}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
-                {(messageType === "ButtonText" ||
-                  messageType === "ButtonImage") && (
-                  <div className="space-y-4">
-                    {/* Button Title at the form level */}
+                  {form.watch("messageType") === "message" && (
                     <FormField
                       control={form.control}
-                      name="buttonTitle"
+                      name="message"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Button Title</FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="Enter a title for all buttons"
+                            <Textarea
+                              placeholder="Enter the message to send as an auto-reply"
+                              className={`w-full p-4 border-2 ${
+                                form.formState.errors.message
+                                  ? "border-red-500 dark:border-red-500"
+                                  : "border-gray-200 dark:border-gray-700"
+                              } rounded-lg min-h-[140px] 
+                                        text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800/90
+                                        focus:border-[#1A69DD] dark:focus:border-[#26A5E9] focus:ring-2 
+                                        focus:ring-[#1A69DD]/20 dark:focus:ring-[#26A5E9]/30
+                                        hover:border-gray-300 dark:hover:border-gray-600
+                                        transition-all duration-200 ease-in-out
+                                        placeholder-gray-400 dark:placeholder-gray-500
+                                        resize-y`}
                               {...field}
                             />
                           </FormControl>
-                          <FormMessage />
+                          {form.formState.errors.message && (
+                            <FormMessage className="text-sm font-medium text-red-500 dark:text-red-400 mt-1.5 flex items-center gap-1.5">
+                              <AlertCircle size={14} />
+                              {form.formState.errors.message.message}
+                            </FormMessage>
+                          )}
                         </FormItem>
                       )}
                     />
+                  )}
 
-                    <div className="flex flex-col md:flex-row gap-4">
-                      <div className="w-full md:w-1/2 space-y-4">
-                        {buttons.map((button, index) => (
-                          <Card key={index} className="p-4">
-                            <div className="space-y-4">
-                              <div>
-                                <Label>URL</Label>
-                                <Input
-                                  value={button.url}
-                                  onChange={(e) => {
-                                    const newButtons = [...buttons];
-                                    newButtons[index].url = e.target.value;
-                                    setButtons(newButtons);
-                                  }}
-                                  placeholder="Enter URL"
-                                  className="mt-1"
-                                />
+                  {form.watch("messageType") === "ButtonImage" && (
+                    <FormField
+                      control={form.control}
+                      name="imageUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Label className="block text-sm font-medium mb-2 text-gray-800 dark:text-gray-200 transition-colors hover:text-[#1A69DD] dark:hover:text-[#26A5E9]">
+                            <span className="bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent">
+                              Media URL
+                            </span>
+                          </Label>
+                          <FormControl>
+                            <div className="relative group">
+                              <Input
+                                placeholder="https://example.com/main-image.jpg"
+                                className={`w-full pl-10 pr-4 py-3 border-2 ${
+                                  form.formState.errors.imageUrl
+                                    ? "border-red-500 dark:border-red-500"
+                                    : "border-gray-200 dark:border-gray-700"
+                                } rounded-lg
+                                          text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800/90
+                                          focus:border-[#1A69DD] dark:focus:border-[#26A5E9] focus:ring-2
+                                          focus:ring-[#1A69DD]/20 dark:focus:ring-[#26A5E9]/30
+                                          hover:border-gray-300 dark:hover:border-gray-600
+                                          transition-all duration-200 ease-in-out
+                                          placeholder-gray-400 dark:placeholder-gray-500`}
+                                {...field}
+                              />
+                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <LinkIcon className="w-5 h-5 text-gray-400 dark:text-gray-500 group-hover:text-[#1A69DD] dark:group-hover:text-[#26A5E9] transition-colors" />
                               </div>
-                              <div>
-                                <Label>Button Text</Label>
-                                <Input
-                                  value={button.buttonText}
-                                  onChange={(e) => {
-                                    const newButtons = [...buttons];
-                                    newButtons[index].buttonText = e.target.value;
-                                    setButtons(newButtons);
-                                  }}
-                                  placeholder="Click here"
-                                  className="mt-1"
-                                />
-                              </div>
-
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                onClick={() => {
-                                  const newButtons = buttons.filter(
-                                    (_, i) => i !== index
-                                  );
-                                  setButtons(newButtons);
-                                }}
-                              >
-                                Remove Button
-                              </Button>
                             </div>
-                          </Card>
-                        ))}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            // Limit to maximum 3 buttons
-                            if (buttons.length >= 3) {
-                              toast.error("Maximum 3 buttons are allowed");
-                              return;
-                            }
-                            setButtons([...buttons, { url: "", buttonText: "" }]);
-                          }}
-                          className="w-full mt-4"
-                          disabled={buttons.length >= 3}
-                        >
-                          Add Button
-                        </Button>
-                      </div>
-                      
-                      {/* Button Preview Section */}
+                          </FormControl>
+                          <FormDescription className="text-sm mt-2 px-3 py-1.5 bg-blue-50/50 dark:bg-[#26A5E9]/10 text-gray-600 dark:text-gray-400 rounded-md border-l-4 border-[#1A69DD] dark:border-[#26A5E9]">
+                            Must start with http:// or https://
+                          </FormDescription>
+                          {form.formState.errors.imageUrl && (
+                            <FormMessage className="text-sm font-medium text-red-500 dark:text-red-400 mt-1.5 flex items-center gap-1.5">
+                              <AlertCircle size={14} />
+                              {form.formState.errors.imageUrl.message}
+                            </FormMessage>
+                          )}
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  {(form.watch("messageType") === "ButtonText" ||
+                    form.watch("messageType") === "ButtonImage") && (
+                    <div className="flex flex-col lg:flex-row gap-6">
+                      {/* Preview Section - Left (1/4 width) */}
                       {buttons.length > 0 && (
-                        <div className="w-full md:w-1/2 p-4 border rounded-lg bg-gray-100 dark:bg-gray-800">
-                          <h3 className="text-sm font-medium mb-3">
-                            Button Preview
-                          </h3>
-                          <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                            {messageType === "ButtonImage" && (
-                              <div className="mb-3 flex justify-center">
-                                {form.watch("imageUrl") ? (
-                                  <Image
-                                    src={form.watch("imageUrl")}
-                                    alt="Preview image"
-                                    width={200}
-                                    height={150}
-                                    className="rounded-md max-h-[150px] object-contain"
-                                    unoptimized={true}
-                                    onError={(e) => {
-                                      const target =
-                                        e.target as HTMLImageElement;
-                                      target.src = "/placeholder-image.jpg";
-                                    }}
-                                  />
-                                ) : (
-                                  <div className="w-[200px] h-[150px] border border-dashed border-gray-300 rounded-md flex items-center justify-center bg-gray-50">
-                                    <div className="text-center">
-                                      <div className="flex justify-center">
-                                        <svg
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          className="h-10 w-10 text-gray-400"
-                                          fill="none"
-                                          viewBox="0 0 24 24"
-                                          stroke="currentColor"
-                                        >
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={1}
-                                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                          />
-                                        </svg>
-                                      </div>
+                        <div className="lg:w-1/4">
+                          <div className="sticky top-4 p-4 border-2 border-gray-100 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 shadow-sm">
+                            <div className="flex items-center gap-2 mb-4">
+                              <Eye className="w-5 h-5 text-[#1A69DD] dark:text-[#26A5E9]" />
+                              <h3 className="font-medium text-gray-800 dark:text-gray-200">
+                                Live Preview
+                              </h3>
+                            </div>
+
+                            <div className="space-y-4">
+                              {form.watch("messageType") === "ButtonImage" && (
+                                <div className="relative aspect-square bg-gray-100 dark:bg-gray-900 rounded-lg overflow-hidden">
+                                  {form.watch("imageUrl")?.trim() ? (
+                                    <Image
+                                      src={form.watch("imageUrl").trim()}
+                                      alt="Preview"
+                                      fill
+                                      className="object-cover"
+                                      onError={(e) => {
+                                        const target =
+                                          e.target as HTMLImageElement;
+                                        target.src = "/placeholder-image.jpg";
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+                                      <ImageIcon className="w-8 h-8" />
                                     </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {form.watch("buttonTitle") && (
+                                <p className="font-medium text-gray-800 dark:text-gray-200">
+                                  {form.watch("buttonTitle")}
+                                </p>
+                              )}
+
+                              <div className="flex flex-col gap-2">
+                                {buttons.map((button, index) => (
+                                  <div
+                                    key={index}
+                                    className="p-2 px-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg"
+                                  >
+                                    <span className="text-sm text-gray-800 dark:text-gray-200">
+                                      {button.buttonText || "Button Text"}
+                                    </span>
                                   </div>
-                                )}
+                                ))}
                               </div>
-                            )}
-                            {form.watch("buttonTitle") && (
-                              <div className="font-medium text-sm mb-2">
-                                {form.watch("buttonTitle")}
-                              </div>
-                            )}
-                            {!form.watch("removeBranding") && (
-                              <div className="text-xs text-gray-500 mb-2">
-                                Sent using groimon.com
-                              </div>
-                            )}
-                            <div className="flex flex-col gap-2">
-                              {buttons.map((button, index) => (
-                                <Button
-                                  key={index}
-                                  className="w-full bg-white hover:bg-gray-50 text-black border border-gray-200"
-                                  variant="outline"
-                                  disabled
-                                >
-                                  {button.buttonText || "Click Here"}
-                                </Button>
-                              ))}
                             </div>
                           </div>
                         </div>
                       )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
 
-          {/* Follow Request section */}
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+                      {/* Configuration Section - Right (3/4 width) */}
+                      <div className="flex-1 space-y-6">
+                        <FormField
+                          control={form.control}
+                          name="buttonTitle"
+                          render={({ field }) => (
+                            <FormItem>
+                              <Label className="text-gray-800 dark:text-gray-200">
+                                Button Section Title
+                              </Label>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  placeholder="e.g. 'Choose an option'"
+                                  className={`border-2 ${
+                                    form.formState.errors.buttonTitle
+                                      ? "border-red-500 dark:border-red-500"
+                                      : "border-gray-200 dark:border-gray-700"
+                                  } focus:border-[#1A69DD] dark:focus:border-[#26A5E9]`}
+                                  onChange={(e) => {
+                                    field.onChange(e);
+                                    if (e.target.value.trim() !== "") {
+                                      form.clearErrors("buttonTitle");
+                                    }
+                                  }}
+                                />
+                              </FormControl>
+                              {form.formState.errors.buttonTitle && (
+                                <FormMessage className="text-sm font-medium text-red-500 dark:text-red-400 mt-1.5 flex items-center gap-1.5">
+                                  <AlertCircle size={14} />
+                                  {form.formState.errors.buttonTitle.message}
+                                </FormMessage>
+                              )}
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="space-y-4">
+                          {/* General error message for buttons */}
+                          {form.formState.errors.buttons && (
+                            <div className="p-3 border-2 border-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg mb-4">
+                              <p className="text-sm font-medium text-red-500 dark:text-red-400 flex items-center gap-1.5">
+                                <AlertCircle size={16} />
+                                {form.formState.errors.buttons.message ||
+                                  "Button fields cannot be empty"}
+                              </p>
+                            </div>
+                          )}
+
+                          {buttons.map((button, index) => (
+                            <Card
+                              key={index}
+                              className="p-4 relative bg-white dark:bg-gray-800"
+                            >
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute top-3 right-3 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20"
+                                onClick={() =>
+                                  setButtons(
+                                    buttons.filter((_, i) => i !== index)
+                                  )
+                                }
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+
+                              <div className="space-y-3">
+                                <div>
+                                  <Input
+                                    value={button.buttonText}
+                                    onChange={(e) => {
+                                      const newButtons = [...buttons];
+                                      newButtons[index].buttonText =
+                                        e.target.value;
+                                      setButtons(newButtons);
+                                    }}
+                                    placeholder="Button label"
+                                    className={
+                                      !button.buttonText ? "border-red-500" : ""
+                                    }
+                                  />
+                                  {!button.buttonText && (
+                                    <p className="text-sm text-red-500 mt-1">
+                                      Button text is required
+                                    </p>
+                                  )}
+                                </div>
+                                <div>
+                                  <Input
+                                    value={button.url}
+                                    onChange={(e) => {
+                                      const newButtons = [...buttons];
+                                      newButtons[index].url = e.target.value;
+                                      setButtons(newButtons);
+                                    }}
+                                    placeholder="https://example.com"
+                                    className={
+                                      !button.url ? "border-red-500" : ""
+                                    }
+                                  />
+                                  {!button.url && (
+                                    <p className="text-sm text-red-500 mt-1">
+                                      URL is required
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            if (buttons.length >= 3) {
+                              toast.error("Maximum 3 buttons allowed");
+                              return;
+                            }
+                            setButtons([
+                              ...buttons,
+                              { url: "", buttonText: "" },
+                            ]);
+                          }}
+                          className="w-full border-2 border-[#1A69DD] dark:border-[#26A5E9] text-[#1A69DD] dark:text-[#26A5E9] hover:bg-[#1A69DD]/10 py-2 px-6 rounded-lg font-medium"
+                          disabled={buttons.length >= 3}
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Button
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+
+          {/* Follow Request Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-[#1A69DD]/10 dark:border-gray-700"
+          >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">Follow Request</h2>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent">
+                Follow Request
+              </h2>
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
-                className="h-8 px-2"
+                className="h-8 px-2 text-[#1A69DD] dark:text-[#26A5E9] hover:bg-[#1A69DD]/10 dark:hover:bg-[#26A5E9]/10"
                 onClick={toggleIsFollowed}
+                disabled={!form.watch("isFollowed")}
               >
                 {isFollowedOpen ? (
                   <ChevronUp className="w-4 h-4 ml-1" />
@@ -1127,10 +1760,12 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
               control={form.control}
               name="isFollowed"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <FormItem className="flex flex-row items-center justify-between rounded-xl border-2 border-gray-200 dark:border-gray-700 p-4">
                   <div className="space-y-0.5">
-                    <Label className="text-base">Ask to Follow</Label>
-                    <FormDescription>
+                    <Label className="text-base text-gray-800 dark:text-gray-200">
+                      Ask to Follow
+                    </Label>
+                    <FormDescription className="text-sm text-gray-600 dark:text-gray-300">
                       Request users to follow your account before receiving the
                       message
                     </FormDescription>
@@ -1139,105 +1774,171 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
                     <Switch
                       checked={field.value}
                       onCheckedChange={field.onChange}
+                      className="data-[state=checked]:bg-[#1A69DD] dark:data-[state=checked]:bg-[#26A5E9]"
                     />
                   </FormControl>
                 </FormItem>
               )}
             />
 
-            {isFollowedOpen && form.watch("isFollowed") && (
-              <div className="mt-4 space-y-4">
-                <FormField
-                  control={form.control}
-                  name="notFollowerMessage"
-                  render={({ field }) => (
-                    <FormItem>
-                      <Label>Message for Non-Followers</Label>
-                      <FormDescription>
-                        This message will be shown to users who don&apos;t
-                        follow you
-                      </FormDescription>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Please follow my account to receive the message"
-                          className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[100px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <AnimatePresence>
+              {isFollowedOpen && form.watch("isFollowed") && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-4 space-y-6"
+                >
+                  <FormField
+                    control={form.control}
+                    name="notFollowerMessage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Label className="text-gray-800 dark:text-gray-200">
+                          Message for Non-Followers
+                        </Label>
+                        <FormDescription className="text-sm bg-blue-50/50 dark:bg-[#26A5E9]/10 px-3 py-1.5 rounded-md border-l-4 border-[#1A69DD] dark:border-[#26A5E9]">
+                          This message will be shown to users who don't follow
+                          you
+                        </FormDescription>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Please follow my account to receive the message"
+                            className={`w-full p-4 border-2 ${
+                              form.formState.errors.notFollowerMessage
+                                ? "border-red-500 dark:border-red-500"
+                                : "border-gray-200 dark:border-gray-700"
+                            } rounded-lg min-h-[100px] 
+                                      text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800/90
+                                      focus:border-[#1A69DD] dark:focus:border-[#26A5E9] focus:ring-2 
+                                      focus:ring-[#1A69DD]/20 dark:focus:ring-[#26A5E9]/30
+                                      hover:border-gray-300 dark:hover:border-gray-600
+                                      transition-all duration-200 ease-in-out
+                                      placeholder-gray-400 dark:placeholder-gray-500`}
+                            {...field}
+                          />
+                        </FormControl>
+                        {form.formState.errors.notFollowerMessage && (
+                          <FormMessage className="text-sm font-medium text-red-500 dark:text-red-400 mt-1.5 flex items-center gap-1.5">
+                            <AlertCircle size={14} />
+                            {form.formState.errors.notFollowerMessage.message}
+                          </FormMessage>
+                        )}
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="followButtonTitle"
-                  render={({ field }) => (
-                    <FormItem>
-                      <Label>Follow Button Text</Label>
-                      <FormDescription>
-                        Text to display on the follow button
-                      </FormDescription>
-                      <FormControl>
-                        <Input placeholder="Follow Now" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="followButtonTitle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Label className="text-gray-800 dark:text-gray-200">
+                          Follow Button Text
+                        </Label>
+                        <FormDescription className="text-sm bg-blue-50/50 dark:bg-[#26A5E9]/10 px-3 py-1.5 rounded-md border-l-4 border-[#1A69DD] dark:border-[#26A5E9]">
+                          Text to display on the follow button
+                        </FormDescription>
+                        <FormControl>
+                          <Input
+                            placeholder="Follow Now"
+                            className={`border-2 ${
+                              form.formState.errors.followButtonTitle
+                                ? "border-red-500 dark:border-red-500"
+                                : "border-gray-200 dark:border-gray-700"
+                            } focus:border-[#1A69DD] dark:focus:border-[#26A5E9]`}
+                            {...field}
+                          />
+                        </FormControl>
+                        {form.formState.errors.followButtonTitle && (
+                          <FormMessage className="text-sm font-medium text-red-500 dark:text-red-400 mt-1.5 flex items-center gap-1.5">
+                            <AlertCircle size={14} />
+                            {form.formState.errors.followButtonTitle.message}
+                          </FormMessage>
+                        )}
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="followUpMessage"
-                  render={({ field }) => (
-                    <FormItem>
-                      <Label>Follow-up Message</Label>
-                      <FormDescription>
-                        Message to send after user follows your account
-                      </FormDescription>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Thanks for following! Here's your message..."
-                          className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-[100px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
-          </div>
+                  <FormField
+                    control={form.control}
+                    name="followUpMessage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Label className="text-gray-800 dark:text-gray-200">
+                          Follow-up Message
+                        </Label>
+                        <FormDescription className="text-sm bg-blue-50/50 dark:bg-[#26A5E9]/10 px-3 py-1.5 rounded-md border-l-4 border-[#1A69DD] dark:border-[#26A5E9]">
+                          Message to send after user follows your account
+                        </FormDescription>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Thanks for following! Here's your message..."
+                            className={`w-full p-4 border-2 ${
+                              form.formState.errors.followUpMessage
+                                ? "border-red-500 dark:border-red-500"
+                                : "border-gray-200 dark:border-gray-700"
+                            } rounded-lg min-h-[100px] 
+                                      text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800/90
+                                      focus:border-[#1A69DD] dark:focus:border-[#26A5E9] focus:ring-2 
+                                      focus:ring-[#1A69DD]/20 dark:focus:ring-[#26A5E9]/30
+                                      hover:border-gray-300 dark:hover:border-gray-600
+                                      transition-all duration-200 ease-in-out
+                                      placeholder-gray-400 dark:placeholder-gray-500`}
+                            {...field}
+                          />
+                        </FormControl>
+                        {form.formState.errors.followUpMessage && (
+                          <FormMessage className="text-sm font-medium text-red-500 dark:text-red-400 mt-1.5 flex items-center gap-1.5">
+                            <AlertCircle size={14} />
+                            {form.formState.errors.followUpMessage.message}
+                          </FormMessage>
+                        )}
+                      </FormItem>
+                    )}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
 
           {/* Remove Branding section */}
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-[#1A69DD]/10 dark:border-gray-700"
+          >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium">Branding</h2>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent mr-12">
+                Branding
+              </h2>
             </div>
 
             <FormField
               control={form.control}
               name="removeBranding"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">Remove Branding</Label>
-                    <FormDescription>
-                      Remove &ldquo;This automation is sent by Groimon&rdquo;
-                      from messages
+                <FormItem className="flex flex-row items-center justify-between rounded-xl border-2 border-[#1A69DD]/20 dark:border-[#26A5E9]/20 p-4 bg-white dark:bg-gray-800">
+                  <div className="space-y-1">
+                    <Label className="text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                      Remove Branding
+                    </Label>
+                    <FormDescription className="text-gray-600 dark:text-gray-400">
+                      Remove &ldquo;This automation is sent using
+                      groimon.com&rdquo; from messages
                     </FormDescription>
                   </div>
                   <FormControl>
                     <Switch
                       checked={field.value}
                       onCheckedChange={field.onChange}
+                      className="data-[state=checked]:bg-[#1A69DD] data-[state=unchecked]:bg-gray-200 dark:data-[state=unchecked]:bg-gray-600"
                     />
                   </FormControl>
                 </FormItem>
               )}
             />
-          </div>
+          </motion.div>
         </form>
       </Form>
     </div>

@@ -5,6 +5,8 @@ import { EditAutomationForm } from "@/components/EditAutomationForm";
 import { useParams } from "next/navigation";
 import { IAutomation } from "@/models/Automation";
 import axios from "axios";
+import { motion } from "framer-motion";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 
 export default function EditAutomationPage() {
   const params = useParams();
@@ -30,38 +32,92 @@ export default function EditAutomationPage() {
 
   if (loading) {
     return (
-      <div className="w-full bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+      <div className="bg-[#F9FBFF] dark:bg-[#090E1A] min-h-screen">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1A69DD]/10 via-[#26A5E9]/10 to-transparent dark:from-[#166dbd]/20 dark:via-[#1e99c7]/20 dark:to-transparent pointer-events-none" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="space-y-8">
+            <div className="animate-pulse">
+              <div className="h-8 bg-[#1A69DD]/10 dark:bg-[#26A5E9]/10 rounded w-1/4 mb-4" />
+              <div className="h-4 bg-[#1A69DD]/10 dark:bg-[#26A5E9]/10 rounded w-1/2" />
+            </div>
+            <div className="bg-white/80 dark:bg-[#0F172A]/80 backdrop-blur-xl rounded-2xl shadow-xl p-6">
+              <div className="animate-pulse space-y-4">
+                <div className="h-4 bg-[#1A69DD]/10 dark:bg-[#26A5E9]/10 rounded w-1/3" />
+                <div className="h-4 bg-[#1A69DD]/10 dark:bg-[#26A5E9]/10 rounded w-1/4" />
+                <div className="h-4 bg-[#1A69DD]/10 dark:bg-[#26A5E9]/10 rounded w-1/2" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error || !automation) {
     return (
-      <div className="w-full bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 min-h-screen flex items-center justify-center">
-        <div className="text-red-500">{error || "Automation not found"}</div>
-      </div>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="w-full min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-[#1A69DD]/5 dark:from-gray-900 dark:to-[#26A5E9]/10"
+      >
+        <div className="max-w-md p-8 text-center">
+          <motion.div
+            initial={{ scale: 0.8, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            className="inline-flex flex-col items-center space-y-4"
+          >
+            <div className="p-4 bg-red-100/80 dark:bg-red-900/20 rounded-full">
+              <AlertTriangle className="w-12 h-12 text-red-500 dark:text-red-400 animate-pulse" />
+            </div>
+
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-red-500 to-orange-400 bg-clip-text text-transparent">
+              {error ? "Error Occurred" : "Not Found"}
+            </h2>
+
+            <p className="text-gray-600 dark:text-gray-300 text-lg">
+              {error || "The requested automation could not be found"}
+            </p>
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="mt-6 px-6 py-3 bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] text-white rounded-xl font-medium flex items-center gap-2 hover:shadow-lg transition-all"
+              onClick={() => window.location.reload()} // Optional refresh action
+            >
+              <RefreshCw className="w-5 h-5" />
+              Try Again
+            </motion.button>
+
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-4 px-4 py-2 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 rounded-md">
+              If the problem persists, contact our support team
+            </p>
+          </motion.div>
+        </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="w-full bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
-      <div className="w-full  absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-400/10 via-pink-300/5 to-transparent dark:from-purple-900/20 dark:via-pink-900/10 dark:to-transparent"></div>
-      <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 transition-all">
-        <div className="flex flex-col space-y-6">
-          <div className="pb-4 border-b border-gray-100 dark:border-gray-700">
-            <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-500">
-              Edit Automation
-            </h2>
-            <p className="text-muted-foreground mt-2 sm:mt-0">
-              Update your Instagram DM automation settings
-            </p>
-          </div>
+    <div className="w-full min-h-screen bg-[#F9FBFF] dark:bg-[#090E1A]">
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-1/3 left-1/5 w-64 h-64 bg-[#1A69DD]/10 dark:bg-[#166dbd]/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/5 w-64 h-64 bg-[#26A5E9]/10 dark:bg-[#1e99c7]/10 rounded-full blur-3xl" />
+      </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden ">
-            <EditAutomationForm automation={automation} />
-          </div>
+      <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header Section */}
+        <div className="pb-4 mb-6 border-b border-border">
+          <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] dark:from-[#1e99c7] dark:to-[#166dbd]">
+            Edit Post Automation
+          </h2>
         </div>
+
+        {/* Form Container */}
+        {/* <div className="bg-white dark:bg-[#0F172A] rounded-xl shadow-lg border border-border"> */}
+        {/* <div className="p-6 sm:p-8 lg:p-10"> */}
+        <EditAutomationForm automation={automation} />
+        {/* </div> */}
+        {/* </div> */}
       </div>
     </div>
   );
