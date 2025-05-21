@@ -79,6 +79,7 @@ const formSchema = z
     notFollowerMessage: z.string().optional(),
     followButtonTitle: z.string().optional(),
     followUpMessage: z.string().optional(),
+    followUpButtonTitle: z.string().optional(),
     respondToAll: z.boolean().default(false),
     removeBranding: z.boolean().default(false),
   })
@@ -260,6 +261,7 @@ export function CreateStoryAutomationForm() {
       followButtonTitle: "I'm following now!",
       followUpMessage:
         "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
+      followUpButtonTitle: "I'm following now!",
       respondToAll: false,
       removeBranding: false,
     },
@@ -569,6 +571,9 @@ export function CreateStoryAutomationForm() {
           ? values.followButtonTitle
           : undefined,
         followUpMessage: values.isFollowed ? values.followUpMessage : undefined,
+        followUpButtonTitle: values.isFollowed
+          ? values.followUpButtonTitle
+          : undefined,
         buttons:
           values.messageType === "ButtonText" ||
           values.messageType === "ButtonImage"
@@ -1815,7 +1820,7 @@ export function CreateStoryAutomationForm() {
                       </FormItem>
                     )}
                   />
-                  {/* 
+
                   <FormField
                     control={form.control}
                     name="followUpButtonTitle"
@@ -1832,15 +1837,32 @@ export function CreateStoryAutomationForm() {
                           <FormControl>
                             <Input
                               placeholder="Continue"
-                              className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
+                              className={`w-full p-4 border-2 ${
+                                form.formState.errors.followUpButtonTitle
+                                  ? "border-red-500 dark:border-red-500"
+                                  : "border-gray-200 dark:border-gray-700"
+                              } rounded-lg
+                                        text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800/90
+                                        focus:border-[#1A69DD] dark:focus:border-[#26A5E9] focus:ring-2 
+                                        focus:ring-[#1A69DD]/20 dark:focus:ring-[#26A5E9]/30
+                                        hover:border-gray-300 dark:hover:border-gray-600
+                                        transition-all duration-200 ease-in-out
+                                        placeholder-gray-400 dark:placeholder-gray-500`}
                               {...field}
                             />
                           </FormControl>
-                          <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                          {form.formState.errors.followUpButtonTitle && (
+                            <FormMessage className="text-red-500 dark:text-red-400 text-sm">
+                              {
+                                form.formState.errors.followUpButtonTitle
+                                  .message
+                              }
+                            </FormMessage>
+                          )}
                         </div>
                       </FormItem>
                     )}
-                  /> */}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>

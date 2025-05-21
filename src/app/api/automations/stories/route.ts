@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     await dbConnect();
     const body = await request.json();
 
-    const {
+    let {
       name,
       postIds,
       keywords,
@@ -23,6 +23,7 @@ export async function POST(request: Request) {
       notFollowerMessage,
       followButtonTitle,
       followUpMessage,
+      followUpButtonTitle,
       removeBranding,
       respondToAll,
     } = body;
@@ -43,18 +44,49 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+    // Log the incoming values for debugging
+    console.log("Incoming values:", {
+      isFollowed,
+      notFollowerMessage,
+      followButtonTitle,
+      followUpMessage,
+      followUpButtonTitle
+    });
+
     // Additional check for isFollowed
     if (isFollowed) {
-      if (!notFollowerMessage || !followButtonTitle || !followUpMessage) {
+      if (!notFollowerMessage || !followButtonTitle) {
         return NextResponse.json(
           {
             message:
-              "When isFollowed is true, notFollowerMessage, followButtonTitle, and followUpMessage are required.",
+              "When isFollowed is true, notFollowerMessage and followButtonTitle are required.",
           },
           { status: 400 }
         );
       }
+
+      // Apply fallback logic if followUpMessage or followUpButtonTitle are missing
+      if (!followUpMessage) {
+        followUpMessage = notFollowerMessage;
+        console.log("Applied fallback for followUpMessage:", followUpMessage);
+      }
+
+      // If followUpButtonTitle is empty/null/undefined, use followButtonTitle as fallback
+      if (!followUpButtonTitle && followButtonTitle) {
+        followUpButtonTitle = followButtonTitle;
+        console.log("Applied fallback for followUpButtonTitle from followButtonTitle:", followUpButtonTitle);
+      } else if (!followUpButtonTitle) {
+        // If both are empty, use a default value
+        followUpButtonTitle = "Continue";
+        console.log("Applied default value for followUpButtonTitle:", followUpButtonTitle);
+      }
     }
+    
+    // Log the final values after fallback logic
+    console.log("Final values after fallback:", {
+      followUpMessage,
+      followUpButtonTitle
+    });
 
     const story = new StoryModel({
       name,
@@ -76,6 +108,7 @@ export async function POST(request: Request) {
       notFollowerMessage: isFollowed ? notFollowerMessage : undefined,
       followButtonTitle: isFollowed ? followButtonTitle : undefined,
       followUpMessage: isFollowed ? followUpMessage : undefined,
+      followUpButtonTitle: isFollowed ? followUpButtonTitle : undefined,
       removeBranding: removeBranding || false,
       respondToAll: respondToAll || false,
       isActive: true,

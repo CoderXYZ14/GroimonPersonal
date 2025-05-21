@@ -19,6 +19,7 @@ export interface IStory extends Document {
   notFollowerMessage?: string;
   followButtonTitle?: string;
   followUpMessage?: string;
+  followUpButtonTitle?: string;
   removeBranding: boolean;
   hitCount: number;
   redirectCount: number;
@@ -59,6 +60,7 @@ const StorySchema: Schema<IStory> = new Schema(
     notFollowerMessage: { type: String },
     followButtonTitle: { type: String },
     followUpMessage: { type: String },
+    followUpButtonTitle: { type: String },
     removeBranding: { type: Boolean, default: false },
     hitCount: { type: Number, default: 0 },
     redirectCount: { type: Number, default: 0 },

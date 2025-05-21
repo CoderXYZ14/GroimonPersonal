@@ -106,6 +106,7 @@ const formSchema = z
     notFollowerMessage: z.string().optional(),
     followButtonTitle: z.string().optional(),
     followUpMessage: z.string().optional(),
+    followUpButtonTitle: z.string().optional(),
     isActive: z.boolean().default(true),
     respondToAll: z.boolean().default(false),
     removeBranding: z.boolean().default(false),
@@ -211,6 +212,7 @@ interface EditStoryFormProps {
     notFollowerMessage?: string;
     followButtonTitle?: string;
     followUpMessage?: string;
+    followUpButtonTitle?: string;
     isActive?: boolean;
     respondToAll?: boolean;
     removeBranding: boolean;
@@ -283,6 +285,8 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
       followUpMessage:
         story.followUpMessage ||
         "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
+      followUpButtonTitle:
+        story.followUpButtonTitle || "Continue",
       isActive: story.isActive !== undefined ? story.isActive : true,
       respondToAll:
         story.respondToAll !== undefined ? story.respondToAll : false,
@@ -610,6 +614,7 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
           ? values.followButtonTitle
           : undefined,
         followUpMessage: values.isFollowed ? values.followUpMessage : undefined,
+        followUpButtonTitle: values.isFollowed ? values.followUpButtonTitle : undefined,
         buttons:
           values.messageType === "ButtonText" ||
           values.messageType === "ButtonImage"
@@ -1892,6 +1897,44 @@ export function EditStoryForm({ story }: EditStoryFormProps) {
                           <FormMessage className="text-sm font-medium text-red-500 dark:text-red-400 mt-1.5 flex items-center gap-1.5">
                             <AlertCircle size={14} />
                             {form.formState.errors.followUpMessage.message}
+                          </FormMessage>
+                        )}
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="followUpButtonTitle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Label className="text-gray-800 dark:text-gray-200">
+                          Follow-up Button Text
+                        </Label>
+                        <FormDescription className="text-sm bg-blue-50/50 dark:bg-[#26A5E9]/10 px-3 py-1.5 rounded-md border-l-4 border-[#1A69DD] dark:border-[#26A5E9]">
+                          Customize your follow-up button text
+                        </FormDescription>
+                        <FormControl>
+                          <Input
+                            placeholder="Continue"
+                            className={`w-full p-4 border-2 ${
+                              form.formState.errors.followUpButtonTitle
+                                ? "border-red-500 dark:border-red-500"
+                                : "border-gray-200 dark:border-gray-700"
+                            } rounded-lg
+                                      text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800/90
+                                      focus:border-[#1A69DD] dark:focus:border-[#26A5E9] focus:ring-2 
+                                      focus:ring-[#1A69DD]/20 dark:focus:ring-[#26A5E9]/30
+                                      hover:border-gray-300 dark:hover:border-gray-600
+                                      transition-all duration-200 ease-in-out
+                                      placeholder-gray-400 dark:placeholder-gray-500`}
+                            {...field}
+                          />
+                        </FormControl>
+                        {form.formState.errors.followUpButtonTitle && (
+                          <FormMessage className="text-sm font-medium text-red-500 dark:text-red-400 mt-1.5 flex items-center gap-1.5">
+                            <AlertCircle size={14} />
+                            {form.formState.errors.followUpButtonTitle.message}
                           </FormMessage>
                         )}
                       </FormItem>

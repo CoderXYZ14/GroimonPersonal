@@ -1350,6 +1350,7 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                   let user: IUser | null = null;
                   let isStory = false;
                   let followUpMessage = "";
+                  let followUpButtonTitle = "Continue";
 
                   if (postbackData.automationId) {
                     // Handle automation follow request
@@ -1365,6 +1366,12 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                     followUpMessage =
                       automation.followUpMessage ||
                       "Thank you for following us!";
+                    
+                    // Update the followUpButtonTitle for later use
+                    followUpButtonTitle =
+                      automation.followUpButtonTitle ||
+                      automation.followButtonTitle ||
+                      "Continue";
 
                     // Prepare the follow-up button title for later use
                     // We'll use this value directly when needed instead of storing in a variable
@@ -1382,6 +1389,12 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                     user = story.user as IUser;
                     followUpMessage =
                       story.followUpMessage || "Thank you for following us!";
+                      
+                    // Update the followUpButtonTitle for later use
+                    followUpButtonTitle =
+                      story.followUpButtonTitle ||
+                      story.followButtonTitle ||
+                      "Continue";
                   } else {
                     continue;
                   }
@@ -1410,11 +1423,7 @@ async function handlePostback(payload: InstagramWebhookPayload) {
                   if (isNowFollowing) {
                     // When user is actually following, send the followUpMessage
                     console.log(
-                      `User ${senderId} is confirmed to be following. Sending followUpMessage with followUpButtonTitle: ${
-                        postbackData.followUpButtonTitle ||
-                        postbackData.followButtonTitle ||
-                        "Continue"
-                      }`
+                      `User ${senderId} is confirmed to be following. Sending followUpMessage with followUpButtonTitle: ${followUpButtonTitle}`
                     );
 
                     // Add branding based on the type (story or automation)
