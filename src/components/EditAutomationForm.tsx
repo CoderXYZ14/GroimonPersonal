@@ -282,185 +282,200 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
   const [beforeCursor, setBeforeCursor] = useState<string | null>(null);
   const [afterCursor, setAfterCursor] = useState<string | null>(null);
 
-  const fetchMedia = useCallback(async (
-    direction: "initial" | "next" | "previous" = "initial"
-  ) => {
-    console.log(`Fetching media: ${direction} direction`);
+  const fetchMedia = useCallback(
+    async (direction: "initial" | "next" | "previous" = "initial") => {
+      console.log(`Fetching media: ${direction} direction`);
 
-    if (direction === "initial") {
-      setIsLoading(true);
-      // Reset loaded cursors on initial load
-      setLoadedCursors(new Set());
-    } else {
-      setIsPaginating(true);
-    }
-
-    const instagramId = user.instagramId;
-    const instagramAccessToken = user.instagramAccessToken;
-
-    if (!instagramId || !instagramAccessToken) {
-      console.error(
-        "Instagram user ID or access token not found in localStorage"
-      );
-      toast.error("Instagram user ID or access token not found");
-      setIsLoading(false);
-      setIsPaginating(false);
-      return;
-    }
-
-    try {
-      // Build the URL with the appropriate cursor if needed
-      let url = `https://graph.instagram.com/v18.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&limit=25&access_token=${instagramAccessToken}`;
-
-      // Determine which cursor to use based on navigation direction
-      let currentCursor = "";
-      if (direction === "next" && afterCursor) {
-        currentCursor = afterCursor;
-        url += `&after=${afterCursor}`;
-        console.log(`Using after cursor: ${afterCursor}`);
-      } else if (direction === "previous" && beforeCursor) {
-        currentCursor = beforeCursor;
-        url += `&before=${beforeCursor}`;
-        console.log(`Using before cursor: ${beforeCursor}`);
+      if (direction === "initial") {
+        setIsLoading(true);
+        // Reset loaded cursors on initial load
+        setLoadedCursors(new Set());
+      } else {
+        setIsPaginating(true);
       }
 
-      // Skip if we've already loaded this cursor
-      if (
-        direction !== "initial" &&
-        currentCursor &&
-        loadedCursors.has(currentCursor)
-      ) {
-        console.log(`Cursor ${currentCursor} already loaded, skipping fetch`);
-        setIsPaginating(false);
-        return;
-      }
+      const instagramId = user.instagramId;
+      const instagramAccessToken = user.instagramAccessToken;
 
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch media: ${response.statusText}`);
-      }
-
-      const data: InstagramMediaResponse = await response.json();
-
-      // Check if there are any media items
-      if (!data.data || data.data.length === 0) {
-        // If there's no data, just return without updating
+      if (!instagramId || !instagramAccessToken) {
+        console.error(
+          "Instagram user ID or access token not found in localStorage"
+        );
+        toast.error("Instagram user ID or access token not found");
         setIsLoading(false);
         setIsPaginating(false);
-        // If we're trying to go 'next' but there's no data, that means we're at the end
-        // So we should clear the afterCursor
-        if (direction === "next") {
-          setAfterCursor(null);
-          setIsNearEnd(false);
-        }
         return;
       }
 
-      const newMediaItems = data.data.map((item: InstagramMediaItem) => ({
-        id: item.id,
-        title: item.caption || `Post ${item.id}`,
-        mediaUrl: item.media_url,
-        mediaType: item.media_type,
-        thumbnailUrl: item.thumbnail_url,
-        timestamp: item.timestamp,
-      }));
+      try {
+        // Build the URL with the appropriate cursor if needed
+        let url = `https://graph.instagram.com/v18.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&limit=25&access_token=${instagramAccessToken}`;
 
-      // Handle the media items based on the direction
-      if (direction === "initial") {
-        // For initial load, just set the media
-        console.log(`Initial load: ${newMediaItems.length} items`);
-        setMedia(newMediaItems);
-      } else if (direction === "next") {
-        // For next page, append the new items without duplicates
-        console.log(`Next page: ${newMediaItems.length} new items`);
-        setMedia((prevMedia) => {
-          // Create a set of existing IDs for quick lookup
-          const existingIds = new Set(prevMedia.map((item) => item.id));
-          // Filter out any duplicates from the new items
-          const uniqueNewItems = newMediaItems.filter(
-            (item) => !existingIds.has(item.id)
-          );
-          console.log(
-            `Adding ${uniqueNewItems.length} unique items to existing ${prevMedia.length} items`
-          );
-          return [...prevMedia, ...uniqueNewItems];
-        });
-
-        // Add this cursor to our loaded set
-        if (currentCursor) {
-          console.log(`Adding cursor ${currentCursor} to loaded set`);
-          setLoadedCursors((prev) => new Set(prev).add(currentCursor));
+        // Determine which cursor to use based on navigation direction
+        let currentCursor = "";
+        if (direction === "next" && afterCursor) {
+          currentCursor = afterCursor;
+          url += `&after=${afterCursor}`;
+          console.log(`Using after cursor: ${afterCursor}`);
+        } else if (direction === "previous" && beforeCursor) {
+          currentCursor = beforeCursor;
+          url += `&before=${beforeCursor}`;
+          console.log(`Using before cursor: ${beforeCursor}`);
         }
 
-        // Reset near-end flag after loading
-        setIsNearEnd(false);
-      } else if (direction === "previous") {
-        // For previous page, prepend the new items without duplicates
-        console.log(`Previous page: ${newMediaItems.length} new items`);
-        setMedia((prevMedia) => {
-          // Create a set of existing IDs for quick lookup
-          const existingIds = new Set(prevMedia.map((item) => item.id));
-          // Filter out any duplicates from the new items
-          const uniqueNewItems = newMediaItems.filter(
-            (item) => !existingIds.has(item.id)
-          );
-          console.log(
-            `Adding ${uniqueNewItems.length} unique items to beginning of existing ${prevMedia.length} items`
-          );
-          return [...uniqueNewItems, ...prevMedia];
-        });
-
-        // Add this cursor to our loaded set
-        if (currentCursor) {
-          console.log(`Adding cursor ${currentCursor} to loaded set`);
-          setLoadedCursors((prev) => new Set(prev).add(currentCursor));
+        // Skip if we've already loaded this cursor
+        if (
+          direction !== "initial" &&
+          currentCursor &&
+          loadedCursors.has(currentCursor)
+        ) {
+          console.log(`Cursor ${currentCursor} already loaded, skipping fetch`);
+          setIsPaginating(false);
+          return;
         }
 
-        // Reset near-beginning flag after loading
-        setIsNearBeginning(false);
-      }
+        const response = await fetch(url);
 
-      // Update cursors for pagination
-      if (data.paging?.cursors) {
-        if (data.paging.cursors.after) {
-          console.log(`Setting after cursor: ${data.paging.cursors.after}`);
-          setAfterCursor(data.paging.cursors.after);
-        } else {
-          console.log("No after cursor available, setting to null");
-          setAfterCursor(null);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch media: ${response.statusText}`);
+        }
+
+        const data: InstagramMediaResponse = await response.json();
+
+        // Check if there are any media items
+        if (!data.data || data.data.length === 0) {
+          // If there's no data, just return without updating
+          setIsLoading(false);
+          setIsPaginating(false);
+          // If we're trying to go 'next' but there's no data, that means we're at the end
+          // So we should clear the afterCursor
+          if (direction === "next") {
+            setAfterCursor(null);
+            setIsNearEnd(false);
+          }
+          return;
+        }
+
+        const newMediaItems = data.data.map((item: InstagramMediaItem) => ({
+          id: item.id,
+          title: item.caption || `Post ${item.id}`,
+          mediaUrl: item.media_url,
+          mediaType: item.media_type,
+          thumbnailUrl: item.thumbnail_url,
+          timestamp: item.timestamp,
+        }));
+
+        // Handle the media items based on the direction
+        if (direction === "initial") {
+          // For initial load, just set the media
+          console.log(`Initial load: ${newMediaItems.length} items`);
+          setMedia(newMediaItems);
+        } else if (direction === "next") {
+          // For next page, append the new items without duplicates
+          console.log(`Next page: ${newMediaItems.length} new items`);
+          setMedia((prevMedia) => {
+            // Create a set of existing IDs for quick lookup
+            const existingIds = new Set(prevMedia.map((item) => item.id));
+            // Filter out any duplicates from the new items
+            const uniqueNewItems = newMediaItems.filter(
+              (item) => !existingIds.has(item.id)
+            );
+            console.log(
+              `Adding ${uniqueNewItems.length} unique items to existing ${prevMedia.length} items`
+            );
+            return [...prevMedia, ...uniqueNewItems];
+          });
+
+          // Add this cursor to our loaded set
+          if (currentCursor) {
+            console.log(`Adding cursor ${currentCursor} to loaded set`);
+            setLoadedCursors((prev) => new Set(prev).add(currentCursor));
+          }
+
+          // Reset near-end flag after loading
           setIsNearEnd(false);
-        }
+        } else if (direction === "previous") {
+          // For previous page, prepend the new items without duplicates
+          console.log(`Previous page: ${newMediaItems.length} new items`);
+          setMedia((prevMedia) => {
+            // Create a set of existing IDs for quick lookup
+            const existingIds = new Set(prevMedia.map((item) => item.id));
+            // Filter out any duplicates from the new items
+            const uniqueNewItems = newMediaItems.filter(
+              (item) => !existingIds.has(item.id)
+            );
+            console.log(
+              `Adding ${uniqueNewItems.length} unique items to beginning of existing ${prevMedia.length} items`
+            );
+            return [...uniqueNewItems, ...prevMedia];
+          });
 
-        if (data.paging.cursors.before) {
-          console.log(`Setting before cursor: ${data.paging.cursors.before}`);
-          setBeforeCursor(data.paging.cursors.before);
-        } else {
-          console.log("No before cursor available, setting to null");
-          setBeforeCursor(null);
+          // Add this cursor to our loaded set
+          if (currentCursor) {
+            console.log(`Adding cursor ${currentCursor} to loaded set`);
+            setLoadedCursors((prev) => new Set(prev).add(currentCursor));
+          }
+
+          // Reset near-beginning flag after loading
           setIsNearBeginning(false);
         }
-      } else {
-        // If no paging object at all, clear both cursors
-        console.log("No paging object available, clearing all cursors");
-        setAfterCursor(null);
-        setBeforeCursor(null);
-        setIsNearEnd(false);
-        setIsNearBeginning(false);
+
+        // Update cursors for pagination
+        if (data.paging?.cursors) {
+          if (data.paging.cursors.after) {
+            console.log(`Setting after cursor: ${data.paging.cursors.after}`);
+            setAfterCursor(data.paging.cursors.after);
+          } else {
+            console.log("No after cursor available, setting to null");
+            setAfterCursor(null);
+            setIsNearEnd(false);
+          }
+
+          if (data.paging.cursors.before) {
+            console.log(`Setting before cursor: ${data.paging.cursors.before}`);
+            setBeforeCursor(data.paging.cursors.before);
+          } else {
+            console.log("No before cursor available, setting to null");
+            setBeforeCursor(null);
+            setIsNearBeginning(false);
+          }
+        } else {
+          // If no paging object at all, clear both cursors
+          console.log("No paging object available, clearing all cursors");
+          setAfterCursor(null);
+          setBeforeCursor(null);
+          setIsNearEnd(false);
+          setIsNearBeginning(false);
+        }
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          console.error("Error fetching media:", error.message);
+          toast.error(`Failed to fetch media: ${error.message}`);
+        } else {
+          console.error("Unknown error fetching media:", error);
+          toast.error("Failed to fetch media");
+        }
+      } finally {
+        setIsLoading(false);
+        setIsPaginating(false);
       }
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Error fetching media:", error.message);
-        toast.error(`Failed to fetch media: ${error.message}`);
-      } else {
-        console.error("Unknown error fetching media:", error);
-        toast.error("Failed to fetch media");
-      }
-    } finally {
-      setIsLoading(false);
-      setIsPaginating(false);
-    }
-  }, [user.instagramId, user.instagramAccessToken, afterCursor, beforeCursor, loadedCursors, setMedia, setIsLoading, setIsPaginating, setAfterCursor, setBeforeCursor, setIsNearEnd, setIsNearBeginning, setLoadedCursors, toast]);
+    },
+    [
+      user.instagramId,
+      user.instagramAccessToken,
+      afterCursor,
+      beforeCursor,
+      loadedCursors,
+      setMedia,
+      setIsLoading,
+      setIsPaginating,
+      setAfterCursor,
+      setBeforeCursor,
+      setIsNearEnd,
+      setIsNearBeginning,
+      setLoadedCursors,
+    ]
+  );
 
   // Effect to preload next batch of posts when near the end
   useEffect(() => {
@@ -491,15 +506,6 @@ export function EditAutomationForm({ automation }: EditAutomationFormProps) {
   // Initial fetch of media
   useEffect(() => {
     const initialFetch = async () => {
-      if (automation.postIds?.length === 1) {
-        // If there's a single post ID, set it to the form
-        form.setValue("postId", automation.postIds[0]);
-        form.setValue("applyOption", "selected");
-      } else if (automation.postIds?.length > 1) {
-        // If there are multiple post IDs, set to "all"
-        form.setValue("applyOption", "all");
-      }
-
       const instagramId = user.instagramId;
       const instagramAccessToken = user.instagramAccessToken;
 

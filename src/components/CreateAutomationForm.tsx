@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, KeyboardEvent } from "react";
+import React, { useCallback, useEffect, useState, KeyboardEvent } from "react";
 import { useAppSelector } from "@/redux/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -429,7 +429,7 @@ export function CreateAutomationForm() {
   // Track if we're near the beginning to preload previous batch
   const [isNearBeginning, setIsNearBeginning] = useState(false);
 
-  const fetchMedia = async (
+  const fetchMedia = useCallback(async (
     direction: "initial" | "next" | "previous" = "initial"
   ) => {
     if (direction === "initial") {
@@ -586,7 +586,7 @@ export function CreateAutomationForm() {
       setIsLoading(false);
       setIsPaginating(false);
     }
-  };
+  }, [user.instagramId, user.instagramAccessToken, afterCursor, beforeCursor, loadedCursors, setMedia, setAfterCursor, setBeforeCursor, setLoadedCursors, setIsNearEnd, setIsNearBeginning, setIsLoading, setIsPaginating]);
 
   // Initial fetch of media
   useEffect(() => {
@@ -2231,43 +2231,6 @@ export function CreateAutomationForm() {
             )}
           </motion.div>
 
-          {/* Backtrack Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-[#1A69DD]/10 dark:border-gray-700"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent mr-12">
-                Backtrack
-              </h2>
-            </div>
-            <FormField
-              control={form.control}
-              name="enableBacktrack"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-xl border-2 border-[#1A69DD]/20 dark:border-[#26A5E9]/20 p-4 bg-white dark:bg-gray-800">
-                  <div className="space-y-1">
-                    <Label className="text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
-                      Enable Backtrack
-                    </Label>
-                    <FormDescription className="text-gray-600 dark:text-gray-400">
-                      Apply automation on selected posts to previous comments
-                      upto 7 days old.
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      className="data-[state=checked]:bg-[#1A69DD] data-[state=unchecked]:bg-gray-200 dark:data-[state=unchecked]:bg-gray-600"
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </motion.div>
-
           {/* Ask to Follow section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -2282,7 +2245,11 @@ export function CreateAutomationForm() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className={`flex items-center gap-2 ${form.watch("isFollowed") ? "text-[#1A69DD] dark:text-[#26A5E9] hover:bg-[#1A69DD]/10 dark:hover:bg-[#26A5E9]/10" : "text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50"}`}
+                className={`flex items-center gap-2 ${
+                  form.watch("isFollowed")
+                    ? "text-[#1A69DD] dark:text-[#26A5E9] hover:bg-[#1A69DD]/10 dark:hover:bg-[#26A5E9]/10"
+                    : "text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50"
+                }`}
                 onClick={toggleIsFollowed}
                 disabled={!form.watch("isFollowed")}
               >
@@ -2566,6 +2533,43 @@ export function CreateAutomationForm() {
                 </FormItem>
               )}
             />
+
+            {/* Backtrack Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-[#1A69DD]/10 dark:border-gray-700"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent mr-12">
+                  Backtrack
+                </h2>
+              </div>
+              <FormField
+                control={form.control}
+                name="enableBacktrack"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-xl border-2 border-[#1A69DD]/20 dark:border-[#26A5E9]/20 p-4 bg-white dark:bg-gray-800">
+                    <div className="space-y-1">
+                      <Label className="text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                        Enable Backtrack
+                      </Label>
+                      <FormDescription className="text-gray-600 dark:text-gray-400">
+                        Apply automation on selected posts to previous comments
+                        upto 7 days old.
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        className="data-[state=checked]:bg-[#1A69DD] data-[state=unchecked]:bg-gray-200 dark:data-[state=unchecked]:bg-gray-600"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </motion.div>
           </motion.div>
         </form>
       </Form>

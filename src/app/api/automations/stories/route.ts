@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     await dbConnect();
     const body = await request.json();
 
-    let {
+    const {
       name,
       postIds,
       keywords,
@@ -22,11 +22,11 @@ export async function POST(request: Request) {
       isFollowed,
       notFollowerMessage,
       followButtonTitle,
-      followUpMessage,
-      followUpButtonTitle,
       removeBranding,
       respondToAll,
     } = body;
+    
+    let { followUpMessage, followUpButtonTitle } = body;
 
     // Validation checks
     if (
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       notFollowerMessage,
       followButtonTitle,
       followUpMessage,
-      followUpButtonTitle
+      followUpButtonTitle,
     });
 
     // Additional check for isFollowed
@@ -74,18 +74,24 @@ export async function POST(request: Request) {
       // If followUpButtonTitle is empty/null/undefined, use followButtonTitle as fallback
       if (!followUpButtonTitle && followButtonTitle) {
         followUpButtonTitle = followButtonTitle;
-        console.log("Applied fallback for followUpButtonTitle from followButtonTitle:", followUpButtonTitle);
+        console.log(
+          "Applied fallback for followUpButtonTitle from followButtonTitle:",
+          followUpButtonTitle
+        );
       } else if (!followUpButtonTitle) {
         // If both are empty, use a default value
         followUpButtonTitle = "Continue";
-        console.log("Applied default value for followUpButtonTitle:", followUpButtonTitle);
+        console.log(
+          "Applied default value for followUpButtonTitle:",
+          followUpButtonTitle
+        );
       }
     }
-    
+
     // Log the final values after fallback logic
     console.log("Final values after fallback:", {
       followUpMessage,
-      followUpButtonTitle
+      followUpButtonTitle,
     });
 
     const story = new StoryModel({
@@ -277,15 +283,11 @@ export async function PUT(request: Request) {
 
     // Additional check for isFollowed
     if (body.isFollowed) {
-      if (
-        !body.notFollowerMessage ||
-        !body.followButtonTitle ||
-        !body.followUpMessage
-      ) {
+      if (!body.notFollowerMessage || !body.followButtonTitle) {
         return NextResponse.json(
           {
             message:
-              "When isFollowed is true, notFollowerMessage, followButtonTitle, and followUpMessage are required.",
+              "When isFollowed is true, notFollowerMessage and followButtonTitle are required.",
           },
           { status: 400 }
         );

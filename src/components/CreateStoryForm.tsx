@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, KeyboardEvent } from "react";
+import { useState, useEffect, useCallback, KeyboardEvent, useRef } from "react";
 import { useAppSelector } from "@/redux/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -12,7 +12,6 @@ import {
   FormDescription,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -78,6 +77,7 @@ const formSchema = z
     isFollowed: z.boolean().default(false),
     notFollowerMessage: z.string().optional(),
     followButtonTitle: z.string().optional(),
+    enableFollowUp: z.boolean().default(false),
     followUpMessage: z.string().optional(),
     followUpButtonTitle: z.string().optional(),
     respondToAll: z.boolean().default(false),
@@ -214,11 +214,10 @@ interface InstagramStoriesResponse {
 export function CreateStoryAutomationForm() {
   const router = useRouter();
   const user = useAppSelector((state) => state.user);
-  const [selectStoryOpen, setSelectStoryOpen] = useState(true);
+
   const [dmTypeOpen, setDmTypeOpen] = useState(true);
   const [stories, setStories] = useState<StoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0);
   const [beforeCursor, setBeforeCursor] = useState<string | null>(null);
   const [afterCursor, setAfterCursor] = useState<string | null>(null);
   const [isPaginating, setIsPaginating] = useState(false);
@@ -228,10 +227,6 @@ export function CreateStoryAutomationForm() {
     Array<{ url: string; buttonText: string }>
   >([]);
   const [newKeyword, setNewKeyword] = useState("");
-
-  const toggleSelectStory = () => {
-    setSelectStoryOpen(!selectStoryOpen);
-  };
 
   const toggleDmType = () => {
     setDmTypeOpen(!dmTypeOpen);
@@ -256,12 +251,10 @@ export function CreateStoryAutomationForm() {
       imageUrl: "",
       buttonTitle: "Default Button",
       isFollowed: false,
-      notFollowerMessage:
-        "Please follow our account to receive the information you requested. Once you've followed, click the button below.",
-      followButtonTitle: "I'm following now!",
-      followUpMessage:
-        "It seems you haven't followed us yet. Please follow our account and click the button below when you're done.",
-      followUpButtonTitle: "I'm following now!",
+      notFollowerMessage: "",
+      followButtonTitle: "",
+      followUpMessage: "",
+      followUpButtonTitle: "",
       respondToAll: false,
       removeBranding: false,
     },
@@ -271,7 +264,6 @@ export function CreateStoryAutomationForm() {
   const messageType = form.watch("messageType");
   const isFollowed = form.watch("isFollowed");
 
-  // Watch for changes to isFollowed and update isFollowedOpen
   useEffect(() => {
     if (isFollowed) {
       setIsFollowedOpen(true);
@@ -280,7 +272,6 @@ export function CreateStoryAutomationForm() {
     }
   }, [isFollowed]);
 
-  // Add a default button when ButtonText or ButtonImage is selected and no buttons exist
   useEffect(() => {
     if (
       (messageType === "ButtonText" || messageType === "ButtonImage") &&
@@ -293,16 +284,38 @@ export function CreateStoryAutomationForm() {
         },
       ]);
     }
-  }, [messageType, buttons.length]);
+  }, [messageType]);
 
   useEffect(() => {
     if (messageType === "ButtonImage") {
-      // Make sure the imageUrl field is registered properly
       if (!form.getValues("imageUrl")) {
-        form.setValue("imageUrl", "");
+        // Use setTimeout to break the render cycle
+        setTimeout(() => {
+          form.setValue("imageUrl", "");
+        }, 0);
       }
     }
-  }, [form, messageType]);
+  }, [messageType]); // Remove form from dependencies to prevent infinite loop
+
+  // Use useRef to store mutable values without triggering re-renders
+  const cursorsRef = useRef<{
+    before: string | null;
+    after: string | null;
+    loaded: Set<string>;
+  }>({
+    before: beforeCursor,
+    after: afterCursor,
+    loaded: loadedCursors,
+  });
+
+  // Update ref when state changes
+  useEffect(() => {
+    cursorsRef.current = {
+      before: beforeCursor,
+      after: afterCursor,
+      loaded: loadedCursors,
+    };
+  }, [beforeCursor, afterCursor, loadedCursors]);
 
   const fetchStories = useCallback(
     async (direction: "initial" | "next" | "previous" = "initial") => {
@@ -333,21 +346,19 @@ export function CreateStoryAutomationForm() {
 
         // Determine which cursor to use based on navigation direction
         let currentCursor = "";
-        if (direction === "next" && afterCursor) {
-          currentCursor = afterCursor;
-          url += `&after=${afterCursor}`;
-          setCurrentPage((prev) => prev + 1);
-        } else if (direction === "previous" && beforeCursor) {
-          currentCursor = beforeCursor;
-          url += `&before=${beforeCursor}`;
-          setCurrentPage((prev) => Math.max(0, prev - 1));
+        if (direction === "next" && cursorsRef.current.after) {
+          currentCursor = cursorsRef.current.after;
+          url += `&after=${cursorsRef.current.after}`;
+        } else if (direction === "previous" && cursorsRef.current.before) {
+          currentCursor = cursorsRef.current.before;
+          url += `&before=${cursorsRef.current.before}`;
         }
 
         // Skip if we've already loaded this cursor
         if (
           direction !== "initial" &&
           currentCursor &&
-          loadedCursors.has(currentCursor)
+          cursorsRef.current.loaded.has(currentCursor)
         ) {
           setIsPaginating(false);
           return;
@@ -400,7 +411,11 @@ export function CreateStoryAutomationForm() {
 
           // Add this cursor to our loaded set
           if (currentCursor) {
-            setLoadedCursors((prev) => new Set(prev).add(currentCursor));
+            const newLoadedCursors = new Set(cursorsRef.current.loaded).add(
+              currentCursor
+            );
+            setLoadedCursors(newLoadedCursors);
+            cursorsRef.current.loaded = newLoadedCursors;
           }
         } else if (direction === "previous") {
           // For previous page, prepend the new items without duplicates
@@ -416,7 +431,11 @@ export function CreateStoryAutomationForm() {
 
           // Add this cursor to our loaded set
           if (currentCursor) {
-            setLoadedCursors((prev) => new Set(prev).add(currentCursor));
+            const newLoadedCursors = new Set(cursorsRef.current.loaded).add(
+              currentCursor
+            );
+            setLoadedCursors(newLoadedCursors);
+            cursorsRef.current.loaded = newLoadedCursors;
           }
         }
 
@@ -453,23 +472,17 @@ export function CreateStoryAutomationForm() {
         setIsPaginating(false);
       }
     },
-    [user.instagramId, user.instagramAccessToken, afterCursor, beforeCursor]
+    [
+      user.instagramId,
+      user.instagramAccessToken,
+      // Remove state dependencies that change during the callback execution
+    ]
   );
 
   // Initial fetch of stories
   useEffect(() => {
     fetchStories("initial");
   }, [user.instagramId, user.instagramAccessToken, fetchStories]);
-
-  useEffect(() => {
-    const messageType = form.watch("messageType");
-    if (
-      (messageType === "ButtonText" || messageType === "ButtonImage") &&
-      buttons.length === 0
-    ) {
-      setButtons([{ url: "", buttonText: "" }]);
-    }
-  }, [buttons.length, form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -570,9 +583,15 @@ export function CreateStoryAutomationForm() {
         followButtonTitle: values.isFollowed
           ? values.followButtonTitle
           : undefined,
-        followUpMessage: values.isFollowed ? values.followUpMessage : undefined,
+        followUpMessage: values.isFollowed
+          ? values.enableFollowUp
+            ? values.followUpMessage
+            : values.notFollowerMessage
+          : undefined,
         followUpButtonTitle: values.isFollowed
-          ? values.followUpButtonTitle
+          ? values.enableFollowUp
+            ? values.followUpButtonTitle
+            : values.followButtonTitle
           : undefined,
         buttons:
           values.messageType === "ButtonText" ||
@@ -854,7 +873,7 @@ export function CreateStoryAutomationForm() {
                   exit={{ opacity: 0, height: 0 }}
                   className="mt-8"
                 >
-                  {selectStoryOpen && (
+                  {
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -1015,7 +1034,7 @@ export function CreateStoryAutomationForm() {
                         </div>
                       )}
                     </motion.div>
-                  )}
+                  }
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1693,13 +1712,17 @@ export function CreateStoryAutomationForm() {
           >
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent mr-12">
-                Follow Request
+                Ask to Follow
               </h2>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="text-[#1A69DD] dark:text-[#26A5E9] hover:bg-[#1A69DD]/10 dark:hover:bg-[#26A5E9]/10"
+                className={`flex items-center gap-2 ${
+                  form.watch("isFollowed")
+                    ? "text-[#1A69DD] dark:text-[#26A5E9] hover:bg-[#1A69DD]/10 dark:hover:bg-[#26A5E9]/10"
+                    : "text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50"
+                }`}
                 onClick={toggleIsFollowed}
                 disabled={!form.watch("isFollowed")}
               >
@@ -1743,126 +1766,208 @@ export function CreateStoryAutomationForm() {
                   animate={{ opacity: 1, y: 0 }}
                   className="mt-6 space-y-6"
                 >
-                  <FormField
-                    control={form.control}
-                    name="notFollowerMessage"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="space-y-2">
-                          <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
-                            <UserX className="w-5 h-5" />
-                            Non-Follower Message
-                          </Label>
-                          <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
-                            Displayed to users who don't follow you
-                          </FormDescription>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Please follow my account to receive the message"
-                              className="min-h-[120px] p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                  {/* Non-Follower Preview and Form Section */}
+                  <div className="flex flex-col lg:flex-row gap-6">
+                    {/* Preview Section - Left (1/4 width) */}
+                    <div className="lg:w-1/4">
+                      <div className="sticky top-4 p-4 border-2 border-gray-100 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 shadow-sm">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Eye className="w-5 h-5 text-[#1A69DD] dark:text-[#26A5E9]" />
+                          <h3 className="font-medium text-gray-800 dark:text-gray-200">
+                            Non-Follower Preview
+                          </h3>
                         </div>
-                      </FormItem>
-                    )}
-                  />
 
-                  <FormField
-                    control={form.control}
-                    name="followButtonTitle"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="space-y-2">
-                          <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
-                            <UserPlus className="w-5 h-5" />
-                            Follow Button Text
-                          </Label>
-                          <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
-                            Customize your follow button text
-                          </FormDescription>
-                          <FormControl>
-                            <Input
-                              placeholder="Follow Now"
-                              className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="followUpMessage"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="space-y-2">
-                          <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
-                            <MessageCircle className="w-5 h-5" />
-                            Follow-up Message
-                          </Label>
-                          <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
-                            Sent after users follow your account
-                          </FormDescription>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Thanks for following! Here's your message..."
-                              className="min-h-[120px] p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="followUpButtonTitle"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="space-y-2">
-                          <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
-                            <UserPlus className="w-5 h-5" />
-                            Follow-up Button Text
-                          </Label>
-                          <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
-                            Customize your follow-up button text
-                          </FormDescription>
-                          <FormControl>
-                            <Input
-                              placeholder="Continue"
-                              className={`w-full p-4 border-2 ${
-                                form.formState.errors.followUpButtonTitle
-                                  ? "border-red-500 dark:border-red-500"
-                                  : "border-gray-200 dark:border-gray-700"
-                              } rounded-lg
-                                        text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800/90
-                                        focus:border-[#1A69DD] dark:focus:border-[#26A5E9] focus:ring-2 
-                                        focus:ring-[#1A69DD]/20 dark:focus:ring-[#26A5E9]/30
-                                        hover:border-gray-300 dark:hover:border-gray-600
-                                        transition-all duration-200 ease-in-out
-                                        placeholder-gray-400 dark:placeholder-gray-500`}
-                              {...field}
-                            />
-                          </FormControl>
-                          {form.formState.errors.followUpButtonTitle && (
-                            <FormMessage className="text-red-500 dark:text-red-400 text-sm">
-                              {
-                                form.formState.errors.followUpButtonTitle
-                                  .message
-                              }
-                            </FormMessage>
+                        <div className="space-y-4">
+                          {form.watch("notFollowerMessage") && (
+                            <p className="font-medium text-gray-800 dark:text-gray-200">
+                              {form.watch("notFollowerMessage")}
+                            </p>
                           )}
+
+                          <div className="flex flex-col gap-2">
+                            <div className="p-2 px-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
+                              <span className="text-sm text-gray-800 dark:text-gray-200">
+                                {form.watch("followButtonTitle") ||
+                                  "I'm following now!"}
+                              </span>
+                            </div>
+                          </div>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Form Section - Right (3/4 width) */}
+                    <div className="flex-1 space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="notFollowerMessage"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="space-y-2">
+                              <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                                <UserX className="w-5 h-5" />
+                                Non-Follower Message
+                              </Label>
+                              <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
+                                Displayed to users who don&apos;t follow you
+                              </FormDescription>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Please follow my account to receive the message"
+                                  className="min-h-[120px] p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="followButtonTitle"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="space-y-2">
+                              <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                                <UserPlus className="w-5 h-5" />
+                                Follow Button Text
+                              </Label>
+                              <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
+                                Customize your follow button text
+                              </FormDescription>
+                              <FormControl>
+                                <Input
+                                  placeholder="Follow Now"
+                                  className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="enableFollowUp"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-xl border-2 border-[#1A69DD]/20 dark:border-[#26A5E9]/20 p-4 bg-white dark:bg-gray-800">
+                        <div className="space-y-1">
+                          <Label className="text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                            Enable Follow-up Message
+                          </Label>
+                          <FormDescription className="text-gray-600 dark:text-gray-400">
+                            Send a different message after users follow your
+                            account
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            className="data-[state=checked]:bg-[#1A69DD] data-[state=unchecked]:bg-gray-200 dark:data-[state=unchecked]:bg-gray-600"
+                          />
+                        </FormControl>
                       </FormItem>
                     )}
                   />
+
+                  {form.watch("enableFollowUp") && (
+                    <>
+                      {/* Follow-up Preview and Form Section */}
+                      <div className="flex flex-col lg:flex-row gap-6">
+                        {/* Preview Section - Left (1/4 width) */}
+                        <div className="lg:w-1/4">
+                          <div className="sticky top-4 p-4 border-2 border-gray-100 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 shadow-sm">
+                            <div className="flex items-center gap-2 mb-4">
+                              <Eye className="w-5 h-5 text-[#1A69DD] dark:text-[#26A5E9]" />
+                              <h3 className="font-medium text-gray-800 dark:text-gray-200">
+                                Follow-up Preview
+                              </h3>
+                            </div>
+
+                            <div className="space-y-4">
+                              {form.watch("followUpMessage") && (
+                                <p className="font-medium text-gray-800 dark:text-gray-200">
+                                  {form.watch("followUpMessage")}
+                                </p>
+                              )}
+
+                              <div className="flex flex-col gap-2">
+                                <div className="p-2 px-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
+                                  <span className="text-sm text-gray-800 dark:text-gray-200">
+                                    {form.watch("followUpButtonTitle") ||
+                                      "Continue"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Form Section - Right (3/4 width) */}
+                        <div className="flex-1 space-y-6">
+                          <FormField
+                            control={form.control}
+                            name="followUpMessage"
+                            render={({ field }) => (
+                              <FormItem>
+                                <div className="space-y-2">
+                                  <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                                    <MessageCircle className="w-5 h-5" />
+                                    Follow-up Message
+                                  </Label>
+                                  <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
+                                    Sent after users follow your account
+                                  </FormDescription>
+                                  <FormControl>
+                                    <Textarea
+                                      placeholder="Thanks for following! Here's your message..."
+                                      className="min-h-[120px] p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="followUpButtonTitle"
+                            render={({ field }) => (
+                              <FormItem>
+                                <div className="space-y-2">
+                                  <Label className="flex items-center gap-2 text-lg font-medium text-[#1A69DD] dark:text-[#26A5E9]">
+                                    <UserPlus className="w-5 h-5" />
+                                    Follow-up Button Text
+                                  </Label>
+                                  <FormDescription className="text-gray-600 dark:text-gray-400 bg-[#1A69DD]/5 dark:bg-[#26A5E9]/10 px-3 py-2 rounded-md">
+                                    Customize your follow-up button text
+                                  </FormDescription>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="Continue"
+                                      className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-[#1A69DD] focus:ring-2 focus:ring-[#1A69DD]/20 dark:focus:border-[#26A5E9] dark:focus:ring-[#26A5E9]/30 transition-all"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage className="text-red-500 dark:text-red-400 text-sm" />
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
