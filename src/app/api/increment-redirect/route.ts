@@ -1,69 +1,41 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import AutomationModel from "@/models/Automation";
 import StoryModel from "@/models/Story";
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const { type, id } = await request.json();
-
     if (!type || !id) {
       return NextResponse.json(
-        { error: "Missing required parameters: type and id" },
+        { error: "Missing type or id" },
         { status: 400 }
       );
     }
 
     await dbConnect();
 
-    // Increment redirect count based on type
-    if (type === "automation") {
-      const automation = await AutomationModel.findById(id);
-      if (!automation) {
-        return NextResponse.json(
-          { error: `Automation with ID ${id} not found` },
-          { status: 404 }
-        );
-      }
-
-      // Increment redirectCount
-      automation.redirectCount = (automation.redirectCount || 0) + 1;
-      await automation.save();
-
-      return NextResponse.json({
-        success: true,
-        message: `Redirect count incremented for automation ${id}`,
-        currentCount: automation.redirectCount,
-      });
-    } else if (type === "story") {
-      const story = await StoryModel.findById(id);
-      if (!story) {
-        return NextResponse.json(
-          { error: `Story with ID ${id} not found` },
-          { status: 404 }
-        );
-      }
-
-      // Increment redirectCount
-      story.redirectCount = (story.redirectCount || 0) + 1;
-      await story.save();
-
-      return NextResponse.json({
-        success: true,
-        message: `Redirect count incremented for story ${id}`,
-        currentCount: story.redirectCount,
-      });
-    } else {
-      return NextResponse.json(
-        { error: `Invalid type: ${type}. Must be 'automation' or 'story'` },
-        { status: 400 }
-      );
+    let model;
+    if (type === "automation") model = AutomationModel;
+    else if (type === "story") model = StoryModel;
+    else {
+      return NextResponse.json({ error: "Invalid type" }, { status: 400 });
     }
+
+    const doc = await model.findById(id);
+    if (!doc) {
+      return NextResponse.json({ error: `${type} not found` }, { status: 404 });
+    }
+
+    doc.redirectCount = (doc.redirectCount || 0) + 1;
+    await doc.save();
+
+    return NextResponse.json({
+      success: true,
+      currentCount: doc.redirectCount,
+    });
   } catch (error) {
-    console.error("Error incrementing redirect count:", error);
-    return NextResponse.json(
-      { error: "Failed to increment redirect count", details: String(error) },
-      { status: 500 }
-    );
+    console.error("Error:", error);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
