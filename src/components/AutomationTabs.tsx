@@ -1,10 +1,10 @@
-import { MessageCircle, Image as ImageIcon, Play } from "lucide-react";
+import { Image as ImageIcon, Play } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AutomationTable } from "@/components/AutomationTable";
 import React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export type AutomationType = "post" | "story" | "dm";
+export type AutomationType = "post" | "story";
 
 const AUTOMATION_TABS = [
   {
@@ -14,6 +14,7 @@ const AUTOMATION_TABS = [
     icon: <ImageIcon className="h-4 w-4" />,
     isActive: true,
     gradient: "from-[#1A69DD] to-[#26A5E9]",
+    iconColor: "text-white",
   },
   {
     id: "story",
@@ -22,15 +23,7 @@ const AUTOMATION_TABS = [
     icon: <Play className="h-4 w-4" />,
     isActive: true,
     gradient: "from-[#1A69DD] to-[#26A5E9]",
-  },
-  {
-    id: "dm",
-    label: "Inbox Automation",
-    description: "Automate Instagram direct message responses",
-    icon: <MessageCircle className="h-4 w-4" />,
-    comingSoon: true,
-    gradient: "from-[#1A69DD]/20 to-[#26A5E9]/20",
-    iconColor: "text-[#1A69DD] dark:text-[#26A5E9]",
+    iconColor: "text-white",
   },
 ];
 
@@ -74,7 +67,7 @@ export function AutomationTabs({ defaultType = "post" }: AutomationTabsProps) {
                       className={`p-1 rounded-md bg-gradient-to-r ${tab.gradient}`}
                     >
                       {React.cloneElement(tab.icon, {
-                        className: `h-4 w-4 ${tab.iconColor || "text-white"}`,
+                        className: `h-4 w-4 ${tab.iconColor}`,
                       })}
                     </div>
                     <div className="text-left">
@@ -95,34 +88,6 @@ export function AutomationTabs({ defaultType = "post" }: AutomationTabsProps) {
             </div>
           </TabsContent>
         ))}
-
-        <TabsContent value="dm" className="mt-0">
-          <div className="flex flex-col items-center justify-center p-12">
-            <div className="text-center max-w-md space-y-4">
-              <div className="relative inline-block">
-                <div className="absolute -inset-3 rounded-full bg-gradient-to-r from-[#1A69DD]/20 to-[#26A5E9]/20 blur-lg opacity-75" />
-                <div className="relative bg-white dark:bg-gray-800 rounded-full p-4 shadow-lg">
-                  <MessageCircle className="h-10 w-10 text-[#1A69DD] dark:text-[#26A5E9]" />
-                </div>
-              </div>
-              <div className="space-y-3">
-                <h3 className="text-xl font-bold bg-gradient-to-r from-[#1A69DD] to-[#26A5E9] bg-clip-text text-transparent">
-                  Inbox Automation Coming Soon!
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  We&apos;re building powerful Inbox automation tools to help
-                  you engage with your audience.
-                </p>
-                <div className="pt-2"></div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1A69DD]/5 dark:bg-[#26A5E9]/5">
-                  <span className="text-xs text-[#1A69DD] dark:text-[#26A5E9]">
-                    ✨ In Development ✨
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </TabsContent>
       </Tabs>
     </div>
   );

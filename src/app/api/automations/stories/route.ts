@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
-import StoryModel from "@/models/Story";
+import StoryModel, { IStory } from "@/models/Story";
 import UserModel from "@/models/User";
 import dbConnect from "@/lib/dbConnect";
 import mongoose from "mongoose";
+import {
+  getCache,
+  setCache,
+  delCache,
+  removeItemFromCachedCollection,
+} from "@/lib/redis";
+import axios from "axios";
+import { IAutomation } from "@/models/Automation";
 
 export async function POST(request: Request) {
   try {
@@ -25,7 +33,7 @@ export async function POST(request: Request) {
       removeBranding,
       respondToAll,
     } = body;
-    
+
     let { followUpMessage, followUpButtonTitle } = body;
 
     // Validation checks
@@ -123,6 +131,14 @@ export async function POST(request: Request) {
 
     await story.save();
 
+    // Update cache
+    const cacheKey = `story:${story._id}`;
+    await setCache(cacheKey, story);
+    // Invalidate user stories cache
+    await delCache(`stories:user:${user}`);
+    // Invalidate total hits cache
+    await delCache(`story:totalHits:${user}`);
+
     // Update user's stories array
     const updatedUser = await UserModel.findByIdAndUpdate(
       user,
@@ -146,69 +162,106 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    await dbConnect();
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
+    const id = searchParams.get("id");
+    const getTotalHits = searchParams.get("getTotalHits");
 
-    const url = new URL(request.url);
-    const userId = url.searchParams.get("userId");
-    const id = url.searchParams.get("id");
-    const getTotalHits = url.searchParams.get("getTotalHits");
-
-    // Handle total hits request
     if (getTotalHits === "true" && userId) {
-      const totalHits = await StoryModel.aggregate([
+      const cacheKey = `story:totalHits:${userId}`;
+      const cachedTotalHits = await getCache(cacheKey);
+      if (cachedTotalHits !== null)
+        return NextResponse.json({ totalHits: cachedTotalHits });
+
+      await dbConnect();
+      const [result] = await StoryModel.aggregate([
         { $match: { user: new mongoose.Types.ObjectId(userId) } },
         { $group: { _id: null, total: { $sum: "$hitCount" } } },
       ]);
 
-      return NextResponse.json(
-        {
-          totalHits: totalHits.length > 0 ? totalHits[0].total : 0,
-        },
-        { status: 200 }
-      );
+      const hitCount = result?.total || 0;
+      await setCache(cacheKey, hitCount, 300); // 5 min TTL
+      return NextResponse.json({ totalHits: hitCount });
     }
 
-    // Get specific story by ID
     if (id) {
-      const story = await StoryModel.findById(id);
+      const cacheKey = `story:${id}`;
+      const cachedStory = await getCache(cacheKey);
+      if (cachedStory) return NextResponse.json(cachedStory);
 
-      if (!story) {
+      await dbConnect();
+      const story = await StoryModel.findById(id);
+      if (!story)
         return NextResponse.json(
           { message: "Story not found" },
           { status: 404 }
         );
-      }
 
-      return NextResponse.json(story, { status: 200 });
+      await setCache(cacheKey, story);
+      return NextResponse.json(story);
     }
 
-    // Get all stories for user
-    if (!userId) {
+    if (!userId)
       return NextResponse.json(
-        { message: "User ID is required" },
+        { message: "User ID required" },
         { status: 400 }
       );
-    }
-
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return NextResponse.json(
-        { message: "Invalid User ID format" },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: "Invalid User ID" }, { status: 400 });
     }
 
+    const cacheKey = `stories:user:${userId}`;
+    const cachedStories = await getCache(cacheKey);
+    if (cachedStories) return NextResponse.json(cachedStories);
+
+    await dbConnect();
     const user = await UserModel.findById(userId).populate("stories");
-    if (!user) {
+    if (!user)
       return NextResponse.json({ message: "User not found" }, { status: 404 });
-    }
 
-    return NextResponse.json(user.stories, { status: 200 });
-  } catch (error) {
-    console.error("Error fetching stories:", error);
-    return NextResponse.json(
-      { message: "Failed to fetch stories" },
-      { status: 500 }
+    const stories = await Promise.all(
+      (user.stories as unknown as IStory[]).map(async (story) => {
+        const permalinks: Record<string, string> = {};
+
+        if (story.postIds?.length) {
+          await Promise.all(
+            story.postIds.map(async (postId: string) => {
+              const permalinkKey = `instagram:permalink:${postId}`;
+              const cached = await getCache<string>(permalinkKey);
+              if (cached) return (permalinks[postId] = cached);
+
+              try {
+                const userWithToken = await UserModel.findById(userId).select(
+                  "instagramAccessToken"
+                );
+                if (!userWithToken?.instagramAccessToken) return;
+
+                const { data } = await axios.get(
+                  `https://graph.instagram.com/v18.0/${postId}?fields=permalink&access_token=${userWithToken.instagramAccessToken}`
+                );
+                if (data?.permalink) {
+                  permalinks[postId] = data.permalink;
+                  await setCache(permalinkKey, data.permalink, 604800); // 1 week
+                }
+              } catch (error) {
+                console.error(`Permalink error for ${postId}:`, error);
+              }
+            })
+          );
+        }
+
+        return {
+          ...(story.toObject?.() || story),
+          permalinks,
+        };
+      })
     );
+
+    await setCache(cacheKey, stories);
+    return NextResponse.json(stories);
+  } catch (error) {
+    console.error("GET error:", error);
+    return NextResponse.json({ message: "Server error" }, { status: 500 });
   }
 }
 
@@ -342,30 +395,61 @@ export async function DELETE(request: Request) {
   try {
     await dbConnect();
 
-    const url = new URL(request.url);
-    const id = url.searchParams.get("id");
-
-    if (!id) {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    if (!id)
       return NextResponse.json(
-        { message: "Story ID is required" },
+        { message: "Story ID required" },
         { status: 400 }
       );
-    }
 
+    // Get story and prepare data
     const story = await StoryModel.findById(id);
-    if (!story) {
+    if (!story)
       return NextResponse.json({ message: "Story not found" }, { status: 404 });
-    }
+    const { user: userId, postIds = [] } = story;
 
-    await UserModel.findByIdAndUpdate(story.user, {
-      $pull: { stories: id },
+    // Parallel database operations
+    await Promise.all([
+      StoryModel.findByIdAndDelete(id),
+      UserModel.findByIdAndUpdate(userId, { $pull: { stories: id } }),
+    ]);
+
+    // Cache operations
+    const cacheTasks = [
+      delCache(`story:${id}`),
+      removeItemFromCachedCollection(`stories:user:${userId}`, id),
+      delCache(`story:totalHits:${userId}`),
+    ];
+
+    // Check for unused permalinks
+    const [storiesCache, automationsCache] = await Promise.all([
+      getCache<IStory[]>(`stories:user:${userId}`),
+      getCache<IAutomation[]>(`automations:user:${userId}`),
+    ]);
+
+    const usedPosts = new Set<string>();
+    [...(storiesCache || []), ...(automationsCache || [])]
+      .filter((item) => item._id !== id)
+      .forEach((item) =>
+        item.postIds?.forEach((pid: string) => usedPosts.add(pid))
+      );
+
+    postIds.forEach((pid) => {
+      if (!usedPosts.has(pid)) {
+        cacheTasks.push(delCache(`instagram:permalink:${pid}`));
+      }
     });
 
-    await story.deleteOne();
+    // Execute all cache operations
+    await Promise.all(cacheTasks);
 
-    return NextResponse.json({ success: true }, { status: 200 });
+    return NextResponse.json({
+      message: "Story deleted successfully",
+      deletedStory: { _id: id, user: userId, postIds },
+    });
   } catch (error) {
-    console.error("Error deleting story:", error);
+    console.error("Story deletion error:", error);
     return NextResponse.json(
       { error: "Failed to delete story" },
       { status: 500 }

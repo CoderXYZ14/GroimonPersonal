@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import AutomationModel from "@/models/Automation";
+import AutomationModel, { IAutomation } from "@/models/Automation";
 import UserModel from "@/models/User";
 import dbConnect from "@/lib/dbConnect";
 import mongoose from "mongoose";
-import StoryModel from "@/models/Story";
+import {
+  getCache,
+  setCache,
+  delCache,
+  removeItemFromCachedCollection,
+} from "@/lib/redis";
+import axios from "axios";
 
 export async function POST(request: Request) {
   try {
@@ -66,12 +72,12 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
-      
+
       // Apply fallback logic if followUpMessage or followUpButtonTitle are missing
       if (!followUpMessage) {
         followUpMessage = notFollowerMessage;
       }
-      
+
       if (!followUpButtonTitle) {
         followUpButtonTitle = followButtonTitle;
       }
@@ -142,6 +148,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
+    // Cache the new automation
+    await setCache(`automation:${automation._id}`, automation);
+    // Invalidate user automations cache
+    await delCache(`automations:user:${user}`);
+
     return NextResponse.json(automation, { status: 201 });
   } catch (error) {
     console.error("Error creating automation:", error);
@@ -169,52 +180,88 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    await dbConnect();
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
+    const id = searchParams.get("id");
 
-    const url = new URL(request.url);
-    const userId = url.searchParams.get("userId");
-    const id = url.searchParams.get("id");
-
-    // Note: Stats-related queries have been moved to /api/stats
     if (id) {
-      const automation = await AutomationModel.findById(id);
+      const cacheKey = `automation:${id}`;
+      const cached = await getCache(cacheKey);
+      if (cached) return NextResponse.json(cached);
 
-      if (!automation) {
+      await dbConnect();
+      const automation = await AutomationModel.findById(id);
+      if (!automation)
         return NextResponse.json(
           { message: "Automation not found" },
           { status: 404 }
         );
-      }
 
-      return NextResponse.json(automation, { status: 200 });
+      await setCache(cacheKey, automation);
+      return NextResponse.json(automation);
     }
 
-    if (!userId) {
+    if (!userId)
       return NextResponse.json(
         { message: "User ID is required" },
         { status: 400 }
       );
-    }
-
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return NextResponse.json(
-        { message: "Invalid User ID format" },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: "Invalid User ID" }, { status: 400 });
     }
 
+    const cacheKey = `automations:user:${userId}`;
+    const cached = await getCache(cacheKey);
+    if (cached) return NextResponse.json(cached);
+
+    await dbConnect();
     const user = await UserModel.findById(userId).populate("automations");
-    if (!user) {
+    if (!user)
       return NextResponse.json({ message: "User not found" }, { status: 404 });
-    }
 
-    return NextResponse.json(user.automations, { status: 200 });
-  } catch (error) {
-    console.error("Error fetching automations:", error);
-    return NextResponse.json(
-      { message: "Failed to fetch automations" },
-      { status: 500 }
+    const automations = await Promise.all(
+      (user.automations as unknown as IAutomation[]).map(async (automation) => {
+        const permalinks: Record<string, string> = {};
+
+        if (automation.postIds?.length) {
+          await Promise.all(
+            automation.postIds.map(async (postId: string) => {
+              const cacheKey = `instagram:permalink:${postId}`;
+              const cached = await getCache<string>(cacheKey);
+              if (cached) return (permalinks[postId] = cached);
+
+              try {
+                const userWithToken = await UserModel.findById(userId).select(
+                  "instagramAccessToken"
+                );
+                if (!userWithToken?.instagramAccessToken) return;
+
+                const { data } = await axios.get(
+                  `https://graph.instagram.com/v18.0/${postId}?fields=permalink&access_token=${userWithToken.instagramAccessToken}`
+                );
+                if (data?.permalink) {
+                  permalinks[postId] = data.permalink;
+                  await setCache(cacheKey, data.permalink, 604800);
+                }
+              } catch (error) {
+                console.error(`Error fetching permalink for ${postId}:`, error);
+              }
+            })
+          );
+        }
+
+        return {
+          ...(automation.toObject?.() || automation),
+          permalinks,
+        };
+      })
     );
+
+    await setCache(cacheKey, automations);
+    return NextResponse.json(automations);
+  } catch (error) {
+    console.error("Error:", error);
+    return NextResponse.json({ message: "Server error" }, { status: 500 });
   }
 }
 
@@ -377,36 +424,63 @@ export async function DELETE(request: Request) {
   try {
     await dbConnect();
 
-    const url = new URL(request.url);
-    const id = url.searchParams.get("id");
-
-    if (!id) {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    if (!id)
       return NextResponse.json(
-        { message: "Automation ID is required" },
+        { message: "Automation ID required" },
         { status: 400 }
       );
-    }
 
     const automation = await AutomationModel.findById(id);
-    if (!automation) {
+    if (!automation)
       return NextResponse.json(
         { message: "Automation not found" },
         { status: 404 }
       );
+
+    const { user: userId, postIds = [] } = automation;
+
+    // Database operations
+    await Promise.all([
+      AutomationModel.findByIdAndDelete(id),
+      UserModel.findByIdAndUpdate(userId, { $pull: { automations: id } }),
+    ]);
+
+    // Cache operations
+    const cacheOps = [
+      delCache(`automation:${id}`),
+      removeItemFromCachedCollection(`automations:user:${userId}`, id),
+    ];
+
+    // Check if we need to clean up permalink cache
+    const cachedAutomations = await getCache<IAutomation[]>(
+      `automations:user:${userId}`
+    );
+    if (cachedAutomations) {
+      const postsInUse = new Set<string>();
+      cachedAutomations
+        .filter((auto) => auto._id !== id)
+        .forEach((auto) =>
+          auto.postIds?.forEach((postId: string) => postsInUse.add(postId))
+        );
+
+      postIds.forEach((postId) => {
+        if (!postsInUse.has(postId)) {
+          cacheOps.push(delCache(`instagram:permalink:${postId}`));
+        }
+      });
     }
 
-    await UserModel.findByIdAndUpdate(automation.user, {
-      $pull: { automations: id },
+    await Promise.all(cacheOps);
+
+    return NextResponse.json({
+      message: "Automation deleted",
+      deletedAutomation: { _id: id, user: userId, postIds },
     });
-
-    await automation.deleteOne();
-
-    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
-    console.error("Error deleting automation:", error);
-    return NextResponse.json(
-      { error: "Failed to delete automation" },
-      { status: 500 }
-    );
+    console.error("Delete error:", error);
+    return NextResponse.json({ error: "Deletion failed" }, { status: 500 });
   }
 }
+// ... (rest of the code remains the same)

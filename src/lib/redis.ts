@@ -1,7 +1,6 @@
 import Redis from "ioredis";
 
 const redis = new Redis(process.env.REDIS_URL || "");
-
 const TTL = 1200;
 
 export async function getCache<T>(key: string): Promise<T | null> {
@@ -31,5 +30,27 @@ export async function delCache(key: string): Promise<void> {
     await redis.del(key);
   } catch (err) {
     console.error("Redis delete error:", err);
+  }
+}
+
+export async function removeItemFromCachedCollection<T>(
+  key: string,
+  idToRemove: string,
+  idField: string = "_id"
+): Promise<boolean> {
+  try {
+    const cachedCollection = await getCache<T[]>(key);
+    if (!cachedCollection) return false;
+
+    const updatedCollection = cachedCollection.filter(
+      (item) => item[idField] !== idToRemove
+    );
+    if (updatedCollection.length === cachedCollection.length) return false;
+
+    await setCache(key, updatedCollection);
+    return true;
+  } catch (err) {
+    console.error("Redis removeItemFromCachedCollection error:", err);
+    return false;
   }
 }
