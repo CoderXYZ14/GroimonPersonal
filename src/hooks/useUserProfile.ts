@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { useAppSelector } from "@/redux/hooks";
 
 interface UserProfileData {
   instaId: string;
   automationsCreated: number;
   profileImage: string;
-  provider: string;
 }
 
 export function useUserProfile() {
@@ -13,66 +13,60 @@ export function useUserProfile() {
     instaId: "",
     automationsCreated: 0,
     profileImage: "",
-    provider: "",
   });
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const user = useAppSelector((state) => state.user);
 
   useEffect(() => {
-    const fetchUserDetails = async () => {
+    if (!user?.isAuthenticated) {
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchData = async () => {
       setIsLoading(true);
       setError(null);
 
-      const userDetails = localStorage.getItem("user_details");
-      if (!userDetails) {
-        setIsLoading(false);
-        setError("User details not found");
-        return;
-      }
-
       try {
-        const parsedUser = JSON.parse(userDetails);
-        const response = await axios.get(`/api/get-user-details`, {
-          params: { id: parsedUser._id },
+        const [stats, instaDetails] = await Promise.all([
+          axios.get(`/api/stats`, {
+            params: { userId: user._id, type: "count" },
+          }),
+          axios.get(`/api/insta_details`, {
+            params: {
+              userId: user.instagramId,
+              accessToken: user.instagramAccessToken,
+            },
+          }),
+        ]);
+
+        setUserData({
+          instaId: user.instagramUsername || "",
+          automationsCreated: stats.data.totalAutomations,
+          profileImage: instaDetails.data.profilePic,
         });
-
-        const userData = {
-          instaId: parsedUser.instagramUsername,
-          automationsCreated: response.data.numberOfAutomations,
-          profileImage: response.data.profileImage,
-          provider: parsedUser.provider,
-        };
-
-        setUserData(userData);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-        setError("Failed to fetch user data");
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setError("Failed to load profile data");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchUserDetails();
-  }, []);
+    fetchData();
+  }, [user]);
 
   const handleDelinkAccount = () => {
-    if (
-      window.confirm("Are you sure you want to delink your Instagram account?")
-    ) {
-      setUserData((prev) => ({
-        ...prev,
-        instaId: "",
-        automationsCreated: 0,
-      }));
-      return true;
-    }
-    return false;
+    if (!window.confirm("Delink your Instagram account?")) return false;
+
+    setUserData((prev) => ({
+      ...prev,
+      instaId: "",
+      automationsCreated: 0,
+    }));
+    return true;
   };
 
-  return {
-    userData,
-    isLoading,
-    error,
-    handleDelinkAccount,
-  };
+  return { userData, isLoading, error, handleDelinkAccount };
 }

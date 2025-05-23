@@ -21,7 +21,6 @@ const AvatarDropdown = () => {
     const fetchProfilePic = async () => {
       if (user && user.instagramId && user.instagramAccessToken) {
         try {
-          // Use the same approach as in AutomationStats
           const response = await axios.get(
             `/api/insta_details?userId=${user.instagramId}&accessToken=${user.instagramAccessToken}`
           );
@@ -37,7 +36,6 @@ const AvatarDropdown = () => {
             hasToken: !!user.instagramAccessToken,
           });
 
-          // Fallback to get-user-details if the first approach fails
           try {
             const fallbackResponse = await axios.get(
               `/api/get-user-details?id=${user._id}`

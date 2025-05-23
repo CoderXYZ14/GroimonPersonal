@@ -1,10 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { IUser } from "./User";
-
-export interface Button {
-  url: string;
-  buttonText: string;
-}
+import { Button } from "@/types/type";
 
 export interface IAutomation extends Document {
   name: string;

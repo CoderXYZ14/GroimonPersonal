@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import axios from "axios";
 import UserModel, { IUser } from "@/models/User";
 import dbConnect from "@/lib/dbConnect";
+import { fetchInstagramUserDetails } from "@/utils/instagramApi";
 
 interface InstagramTokenResponse {
   access_token: string;
@@ -78,18 +79,13 @@ export async function POST(req: Request) {
         );
         const longLivedAccessToken = longLivedTokenResponse.data.access_token;
 
-        const userDetailsResponse = await axios.get(
-          `https://graph.instagram.com/me`,
-          {
-            params: {
-              fields: "id,username",
-              access_token: longLivedAccessToken,
-            },
-          }
+        const instagramUserData = await fetchInstagramUserDetails(
+          longLivedAccessToken,
+          "id,username"
         );
 
-        const { id, username } = userDetailsResponse.data;
-        const user_id = id; // Map id to user_id
+        const { id, username } = instagramUserData;
+        const user_id = id;
 
         let user = await UserModel.findOne({
           instagramId: user_id,

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import axios from "axios";
+import { fetchInstagramUserDetails } from "@/utils/instagramApi";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -15,14 +15,12 @@ export async function GET(request: Request) {
       );
     }
 
-    const response = await axios.get(`https://graph.instagram.com/me`, {
-      params: {
-        fields: "id,username,account_type,media_count,profile_picture_url",
-        access_token: accessToken,
-      },
-    });
+    const userData = await fetchInstagramUserDetails(
+      accessToken,
+      "id,username,account_type,media_count,profile_picture_url"
+    );
 
-    const { id, username, profile_picture_url } = response.data;
+    const { id, username, profile_picture_url } = userData;
 
     return NextResponse.json({
       id,
