@@ -174,68 +174,8 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const userId = url.searchParams.get("userId");
     const id = url.searchParams.get("id");
-    const getTotalHits = url.searchParams.get("getTotalHits");
-    const redirectCount = url.searchParams.get("redirectCount");
 
-    if (getTotalHits === "true" && userId) {
-      const totalHitsPost = await AutomationModel.aggregate([
-        { $match: { user: new mongoose.Types.ObjectId(userId) } },
-        { $group: { _id: null, total: { $sum: "$hitCount" } } },
-      ]);
-
-      const totalHitsStory = await StoryModel.aggregate([
-        { $match: { user: new mongoose.Types.ObjectId(userId) } },
-        { $group: { _id: null, total: { $sum: "$hitCount" } } },
-      ]);
-
-      const totalHits =
-        (totalHitsPost.length > 0 ? totalHitsPost[0].total : 0) +
-        (totalHitsStory.length > 0 ? totalHitsStory[0].total : 0);
-      return NextResponse.json(
-        {
-          totalHits,
-        },
-        { status: 200 }
-      );
-    }
-
-    if (redirectCount === "true" && userId) {
-      const redirectHitsPost = await AutomationModel.aggregate([
-        { $match: { user: new mongoose.Types.ObjectId(userId) } },
-        { $group: { _id: null, total: { $sum: "$redirectCount" } } },
-      ]);
-
-      const redirectHitsStory = await StoryModel.aggregate([
-        { $match: { user: new mongoose.Types.ObjectId(userId) } },
-        { $group: { _id: null, total: { $sum: "$redirectCount" } } },
-      ]);
-
-      const totalRedirectHits =
-        (redirectHitsPost.length > 0 ? redirectHitsPost[0].total : 0) +
-        (redirectHitsStory.length > 0 ? redirectHitsStory[0].total : 0);
-
-      //total dm count
-      const totalHitsPost = await AutomationModel.aggregate([
-        { $match: { user: new mongoose.Types.ObjectId(userId) } },
-        { $group: { _id: null, total: { $sum: "$hitCount" } } },
-      ]);
-
-      const totalHitsStory = await StoryModel.aggregate([
-        { $match: { user: new mongoose.Types.ObjectId(userId) } },
-        { $group: { _id: null, total: { $sum: "$hitCount" } } },
-      ]);
-
-      const totalHits =
-        (totalHitsPost.length > 0 ? totalHitsPost[0].total : 0) +
-        (totalHitsStory.length > 0 ? totalHitsStory[0].total : 0);
-      return NextResponse.json(
-        {
-          totalRedirectHits,
-          totalHits,
-        },
-        { status: 200 }
-      );
-    }
+    // Note: Stats-related queries have been moved to /api/stats
     if (id) {
       const automation = await AutomationModel.findById(id);
 

@@ -36,7 +36,6 @@ function AutomationContent() {
               hover:shadow-2xl hover:shadow-[#1A69DD]/40
             `}
           >
-            {/* Shiny slide-in overlay */}
             <span
               className={`
                 absolute -left-16 top-0 h-full w-16 bg-white opacity-10
@@ -45,7 +44,6 @@ function AutomationContent() {
               `}
             />
 
-            {/* Icon + text (keep above overlay) */}
             <Plus className="relative z-10 h-8 w-8 mr-2 font-bold stroke-[4]" />
             <span className="relative z-10 text-lg font-bold">
               Create Automation
@@ -70,7 +68,6 @@ function AutomationContent() {
 export default function AutomationPage() {
   return (
     <div className="bg-[#F9FBFF] dark:bg-[#090E1A] min-h-screen">
-      {/* Background elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/3 left-1/5 w-64 h-64 bg-[#1A69DD]/10 dark:bg-[#166dbd]/10 rounded-full blur-3xl animate-float" />
         <div className="absolute bottom-1/4 right-1/5 w-64 h-64 bg-[#26A5E9]/10 dark:bg-[#1e99c7]/10 rounded-full blur-3xl animate-float-delayed" />

@@ -17,22 +17,13 @@ export function AutomationStats() {
     const fetchStats = async () => {
       if (user._id) {
         try {
-          const [hitsResponse, automationsResponsePost] = await Promise.all([
-            axios.get(
-              `/api/automations?userId=${user._id}&redirectCount=true&`
-            ),
-            axios.get(`/api/automations?userId=${user._id}`),
-          ]);
+          const statsResponse = await axios.get(
+            `/api/stats?userId=${user._id}&type=all`
+          );
 
-          const automationsResponseStory = await axios.get(
-            `/api/automations/stories?userId=${user._id}`
-          );
-          setTotalHits(hitsResponse.data.totalHits);
-          setRedirectCount(hitsResponse.data.totalRedirectHits);
-          setAutomationsCount(
-            automationsResponsePost.data.length +
-              automationsResponseStory.data.length
-          );
+          setTotalHits(statsResponse.data.totalHits);
+          setRedirectCount(statsResponse.data.totalRedirectHits);
+          setAutomationsCount(statsResponse.data.totalAutomations);
         } catch (error) {
           console.error("Error fetching stats:", error);
         }
